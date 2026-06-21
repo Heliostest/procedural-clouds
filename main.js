@@ -6,6 +6,44 @@ import Stats from 'stats.js';
 const shaderSource = noiseSource + cloudSource;
 
 // ============================================================
+// Params layout (must match cloud.wgsl `Params`, std140, f32 offsets)
+// ============================================================
+
+const PARAM_OFFSETS = {
+  rayMarchSteps: 0,
+  lightMarchSteps: 1,
+  shadowDarkness: 2,
+  sunIntensity: 3,
+  skipLight: 4,
+  cacheBlend: 5,
+  density: 8,
+  coverage: 9,
+  altitude: 10,
+  scale: 11,
+  detail: 12,
+  lowAltDensity: 13,
+  factorShaper: 14,
+  factorDetail: 15,
+  cloudHeight: 16,
+  windSpeed: 20,
+  sceneTime: 24,
+  deltaTime: 25,
+  noiseTime: 26,
+  timeVoronoi1: 27,
+  timeVoronoi2: 28,
+};
+const PARAMS_FLOAT_COUNT = 32;
+const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
+
+function packParams(dst, values) {
+  for (const key in values) {
+    const v = values[key];
+    dst[PARAM_OFFSETS[key]] = typeof v === 'boolean' ? (v ? 1 : 0) : v;
+  }
+  return dst;
+}
+
+// ============================================================
 // Matrix math helpers (column-major, matches WebGPU std140)
 // ============================================================
 
@@ -149,9 +187,8 @@ async function initWebGPU() {
   });
 
   // --- Params uniform buffer ---
-  // Layout: 6 x vec4f = 96 bytes
   const paramsBuffer = device.createBuffer({
-    size: 96,
+    size: PARAMS_BYTE_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -308,43 +345,36 @@ async function initWebGPU() {
   let cacheIndex = 0;
   let prevCacheTime = 0.0;
   let nextCacheTime = 0.0;
+  let prevSceneTime = 0.0;
 
   // Pre-allocated buffers to avoid GC pressure
-  const paramsData = new Float32Array(24);
+  const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(time, cacheBlend) {
-    const density = params.density;
-    const altitude = params.altitude;
-    const factorMacro = params.coverage;
-    const scale = params.scale;
-    const detail = params.detail;
-
-    paramsData[0] = time;
-    paramsData[1] = time;
-    paramsData[2] = time;
-    paramsData[3] = density;
-    paramsData[4] = 0.2;
-    paramsData[5] = altitude;
-    paramsData[6] = factorMacro;
-    paramsData[7] = 1.0;
-    paramsData[8] = 1.0;
-    paramsData[9] = scale;
-    paramsData[10] = scale;
-    paramsData[11] = scale;
-    paramsData[12] = scale;
-    paramsData[13] = detail;
-    paramsData[14] = params.rayMarchSteps;
-    paramsData[15] = params.skipLight ? 1.0 : 0.0;
-    paramsData[16] = cacheBlend;
-    paramsData[17] = params.lightMarchSteps;
-    paramsData[18] = params.shadowDarkness;
-    paramsData[19] = params.sunIntensity;
-    paramsData[20] = params.cloudHeight;
-    paramsData[21] = 1.0;
-    paramsData[22] = 0.0;
-    paramsData[23] = 0.0;
-    return paramsData;
+  function buildParams(time, cacheBlend, sceneTime, deltaTime) {
+    return packParams(paramsData, {
+      noiseTime: time,
+      timeVoronoi1: time,
+      timeVoronoi2: time,
+      density: params.density,
+      lowAltDensity: 0.2,
+      altitude: params.altitude,
+      coverage: params.coverage,
+      factorDetail: 1.0,
+      factorShaper: 1.0,
+      scale: params.scale,
+      detail: params.detail,
+      rayMarchSteps: params.rayMarchSteps,
+      skipLight: params.skipLight,
+      cacheBlend: cacheBlend,
+      lightMarchSteps: params.lightMarchSteps,
+      shadowDarkness: params.shadowDarkness,
+      sunIntensity: params.sunIntensity,
+      cloudHeight: params.cloudHeight,
+      windSpeed: params.windSpeed,
+      sceneTime: sceneTime,
+      deltaTime: deltaTime,
+    });
   }
   const stats = new Stats();
   stats.showPanel(0);
@@ -391,7 +421,9 @@ async function initWebGPU() {
       cacheBlend = Math.pow(linearBlend, 1.0 / (1.0 + params.cacheSmooth * 4.0));
     }
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(time, cacheBlend));
+    const deltaTime = elapsed - prevSceneTime;
+    prevSceneTime = elapsed;
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(time, cacheBlend, elapsed, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
 

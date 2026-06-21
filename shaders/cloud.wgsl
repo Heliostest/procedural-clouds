@@ -8,13 +8,55 @@ struct Camera {
   _pad        : f32,
 };
 
+struct RenderParams {
+  rayMarchSteps   : f32,
+  lightMarchSteps : f32,
+  shadowDarkness  : f32,
+  sunIntensity    : f32,
+  skipLight       : f32,
+  cacheBlend      : f32,
+  _pad0           : f32,
+  _pad1           : f32,
+};
+
+struct CloudShape {
+  density       : f32,
+  coverage      : f32,
+  altitude      : f32,
+  scale         : f32,
+  detail        : f32,
+  lowAltDensity : f32,
+  factorShaper  : f32,
+  factorDetail  : f32,
+  cloudHeight   : f32,
+  _pad0         : f32,
+  _pad1         : f32,
+  _pad2         : f32,
+};
+
+struct Wind {
+  speed : f32,
+  _pad0 : f32,
+  _pad1 : f32,
+  _pad2 : f32,
+};
+
+struct SceneTime {
+  sceneTime    : f32,
+  deltaTime    : f32,
+  noiseTime    : f32,
+  timeVoronoi1 : f32,
+  timeVoronoi2 : f32,
+  _pad0        : f32,
+  _pad1        : f32,
+  _pad2        : f32,
+};
+
 struct Params {
-  time_pack   : vec4f, // timeNoise, timeVoronoi1, timeVoronoi2, density
-  alt_pack    : vec4f, // lowAltDensity, altitude, factorMacro, factorDetail
-  scale_pack  : vec4f, // factorShaper, scaleAlt, scaleNoise, scaleVoronoi1
-  extra_pack  : vec4f, // scaleVoronoi2, detail, rayMarchSteps, skipLight
-  cache_pack  : vec4f, // cacheBlend, lightMarchSteps, shadowDarkness, sunIntensity
-  bounds_pack : vec4f, // cloudHeight, _pad1, _pad2, _pad3
+  render : RenderParams,
+  shape  : CloudShape,
+  wind   : Wind,
+  time   : SceneTime,
 };
 
 @group(0) @binding(0) var<uniform> camera : Camera;
@@ -63,7 +105,7 @@ fn sampleDensity(pos: vec3f) -> f32 {
   }
   let a = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0).r;
   let b = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).r;
-  let blend = clamp(params.cache_pack.x, 0.0, 1.0);
+  let blend = clamp(params.render.cacheBlend, 0.0, 1.0);
   let density = mix(a, b, blend);
   return density;
 }
@@ -73,23 +115,23 @@ fn sampleDensity(pos: vec3f) -> f32 {
 // ------------------------------------------------------------
 
 fn cloudDensity(pos : vec3f) -> f32 {
-  let timeNoise     = params.time_pack.x;
-  let timeVoronoi1  = params.time_pack.y;
-  let timeVoronoi2  = params.time_pack.z;
-  let densityParam  = params.time_pack.w;
+  let timeNoise     = params.time.noiseTime;
+  let timeVoronoi1  = params.time.timeVoronoi1;
+  let timeVoronoi2  = params.time.timeVoronoi2;
+  let densityParam  = params.shape.density;
 
-  let lowAltDens    = params.alt_pack.x;
-  let altitude      = params.alt_pack.y;
-  let factorMacro   = params.alt_pack.z;
-  let factorDetail  = params.alt_pack.w;
+  let lowAltDens    = params.shape.lowAltDensity;
+  let altitude      = params.shape.altitude;
+  let factorMacro   = params.shape.coverage;
+  let factorDetail  = params.shape.factorDetail;
 
-  let factorShaper  = params.scale_pack.x;
-  let scaleAlt      = params.scale_pack.y;
-  let scaleNoise    = params.scale_pack.z;
-  let scaleVoronoi1 = params.scale_pack.w;
+  let factorShaper  = params.shape.factorShaper;
+  let scaleAlt      = params.shape.scale;
+  let scaleNoise    = params.shape.scale;
+  let scaleVoronoi1 = params.shape.scale;
 
-  let scaleVoronoi2 = params.extra_pack.x;
-  let detail        = params.extra_pack.y;
+  let scaleVoronoi2 = params.shape.scale;
+  let detail        = params.shape.detail;
 
   // Blender "Object" coordinates for a cloud layer (Z-up).
   // World Y is treated as Blender Z.
@@ -142,7 +184,7 @@ const BOX_MIN = vec3f(-4.5, 0.0, -4.5); // Reduced bounds
 const BOX_MAX_XZ = 4.5;
 
 fn getBoxMax() -> vec3f {
-  return vec3f(BOX_MAX_XZ, params.bounds_pack.x, BOX_MAX_XZ);
+  return vec3f(BOX_MAX_XZ, params.shape.cloudHeight, BOX_MAX_XZ);
 }
 
 struct HitInfo {
@@ -174,13 +216,13 @@ fn hgPhase(cosTheta: f32, g: f32) -> f32 {
 
 fn lightMarch(pos : vec3f) -> f32 {
   var shadow = 0.0;
-  let steps = i32(params.cache_pack.y);
+  let steps = i32(params.render.lightMarchSteps);
   let stepSize = 0.15;
   for (var i = 1; i <= steps; i++) {
     let p = pos + SUN_DIR * (f32(i) * stepSize);
     shadow += sampleDensity(p) * stepSize;
   }
-  return exp(-shadow * params.cache_pack.z); 
+  return exp(-shadow * params.render.shadowDarkness); 
 }
 
 fn interleavedGradientNoise(uv: vec2f) -> f32 {
@@ -190,8 +232,8 @@ fn interleavedGradientNoise(uv: vec2f) -> f32 {
 
 @fragment
 fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
-  let skipLight = params.extra_pack.w > 0.5;
-  let numSteps = i32(params.extra_pack.z);
+  let skipLight = params.render.skipLight > 0.5;
+  let numSteps = i32(params.render.rayMarchSteps);
   let world_near = camera.invViewProj * vec4f(uv, 0.0, 1.0);
   let world_far  = camera.invViewProj * vec4f(uv, 1.0, 1.0);
   let ro = camera.position;
@@ -222,7 +264,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let step_trans = exp(-d * stepSize);
         let shadow = select(lightMarch(pos), 1.0, skipLight);
         let scattering = shadow * phase * (1.0 - exp(-d * 1.0));
-        let litColor = SUN_COLOR * scattering * params.cache_pack.w + AMBIENT * 0.5;
+        let litColor = SUN_COLOR * scattering * params.render.sunIntensity + AMBIENT * 0.5;
 
         color += transmittance * (1.0 - step_trans) * litColor;
         transmittance *= step_trans;
