@@ -1,6 +1,6 @@
 // ============================================================
 // Blender-Compatible 4D Noise & Voronoi (WGSL Port)
-// Based on Blender GPU shader sources in ref/
+// Based on Blender GPU shader sources in blender/ref/
 // ============================================================
 
 // ------------------------------------------------------------

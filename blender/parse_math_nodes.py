@@ -70,6 +70,6 @@ for node in ng.nodes:
             entry["dimensions"] = node.noise_dimensions
         results[node.name] = entry
 
-with open("/Users/jeantimex/Workspace/github/procedural-clouds/math_nodes.json", "w") as f:
+with open(__import__("pathlib").Path(__file__).parent / "math_nodes.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
 print(f"Extracted {len(results)} nodes")

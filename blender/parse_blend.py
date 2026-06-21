@@ -261,7 +261,7 @@ def default_serializer(obj):
         return list(obj)
     return str(obj)
 
-output_path = "/Users/jeantimex/Workspace/github/procedural-clouds/blend_parsed.json"
+output_path = __import__("pathlib").Path(__file__).parent / "blend_parsed.json"
 with open(output_path, "w") as f:
     json.dump(output, f, indent=2, default=default_serializer)
 
