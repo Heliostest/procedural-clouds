@@ -20,18 +20,22 @@ struct RenderParams {
 };
 
 struct CloudShape {
-  density       : f32,
-  coverage      : f32,
-  altitude      : f32,
-  scale         : f32,
-  detail        : f32,
-  lowAltDensity : f32,
-  factorShaper  : f32,
-  factorDetail  : f32,
-  cloudHeight   : f32,
-  _pad0         : f32,
-  _pad1         : f32,
-  _pad2         : f32,
+  density           : f32,
+  coverage          : f32,
+  altitude          : f32,
+  scale             : f32,
+  detail            : f32,
+  lowAltDensity     : f32,
+  factorShaper      : f32,
+  factorDetail      : f32,
+  cloudHeight       : f32,
+  coverageThreshold : f32,
+  edgeSharpness     : f32,
+  baseRoundness     : f32,
+  worleyBlend       : f32,
+  detailStrength    : f32,
+  altBase           : f32,
+  altTop            : f32,
 };
 
 struct Wind {
@@ -98,6 +102,16 @@ fn clamp01(v: f32) -> f32 {
   return clamp(v, 0.0, 1.0);
 }
 
+fn sharpen(x: f32, amount: f32) -> f32 {
+  let a = clamp01(amount);
+  let k = mix(1.0, 6.0, a);
+  let xc = clamp01(x);
+  let p = pow(xc, k);
+  let q = pow(1.0 - xc, k);
+  let y = p / (p + q + 1e-5);
+  return mix(xc, y, a);
+}
+
 fn sampleDensity(pos: vec3f) -> f32 {
   let uvw = (pos - BOX_MIN) / (getBoxMax() - BOX_MIN);
   if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
@@ -133,6 +147,14 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let scaleVoronoi2 = params.shape.scale;
   let detail        = params.shape.detail;
 
+  let coverageThreshold = params.shape.coverageThreshold;
+  let edgeSharpness     = params.shape.edgeSharpness;
+  let baseRoundness     = params.shape.baseRoundness;
+  let worleyBlend       = params.shape.worleyBlend;
+  let detailStrength    = params.shape.detailStrength;
+  let altBase           = params.shape.altBase;
+  let altTop            = params.shape.altTop;
+
   // Blender "Object" coordinates for a cloud layer (Z-up).
   // World Y is treated as Blender Z.
   let objPos = vec3f(pos.x, pos.z, pos.y);
@@ -156,24 +178,34 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let v1dist = node_tex_voronoi_f1_4d_distance(v1Coord, timeVoronoi1, 5.0, detail, 0.5, 3.0, 1.0, 0.5, 1.0, 0.0, 1.0);
   let v1mapped = mapRange(v1dist, 0.0, 0.75, factorMacro * -0.4, factorMacro);
   let v1scaled = clamp01(v1mapped * 0.5); // Math.012
-  let stage2 = clamp01(altitudeMask + v1scaled); // Math.003
+  let stage2 = sharpen(clamp01(altitudeMask + v1scaled), edgeSharpness); // Math.003
 
   // --- STAGE 3: Medium Voronoi Detail ---
   let v2Coord = objPos / scaleVoronoi2;
   let v2dist = node_tex_voronoi_f1_4d_distance(v2Coord, timeVoronoi2, 2.0, detail * 5.0, 0.75, 2.5, 1.0, 0.5, 1.0, 0.0, 1.0);
   let v2mapped = mapRange(v2dist, 0.0, 1.0, factorDetail * -0.25, factorDetail);
-  let stage3 = clamp01(stage2 + v2mapped); // Math.004
+  let stage3v = clamp01(stage2 + v2mapped * detailStrength); // Math.004 (cellular path)
+
+  // Puffy (Perlin FBM) path — blended via worleyBlend
+  let fbmVal = noise_fbm(vec4f(objPos / scaleVoronoi1, timeVoronoi1), 4.0, 0.5, 2.0, true);
+  let puffAdd = clamp01((fbmVal * 0.5 + 0.5) * factorMacro);
+  let stage3p = clamp01(altitudeMask + puffAdd);
+
+  let stage3 = sharpen(mix(stage3p, stage3v, clamp01(worleyBlend)), edgeSharpness);
 
   // --- STAGE 4: Upper Altitude Cutoff ---
   let cutoffFromMin = altitude * scaleAlt;
   let cutoff = mapRange(Z, cutoffFromMin, 0.0, 0.0, 1.0); // Map Range.008 (Blender)
   let shaped = clamp01(stage3 - cutoff); // Math.020
-  let finalShaped = clamp01(shaped - (1.0 - factorShaper)); // Math.005
+  let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold); // Math.005
 
   // --- STAGE 5: Final Multipliers ---
-  let falloff = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
+  let falloffRaw = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
+  let falloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
+  let bandHi = max(altTop, altBase + 1e-3);
+  let band = smoothstep(altBase, altBase + 0.04, zNorm) - smoothstep(bandHi - 0.04, bandHi, zNorm);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
-  return finalShaped * falloff * densityScale; // Math.016
+  return finalShaped * falloff * clamp01(band) * densityScale; // Math.016
 }
 
 // ============================================================

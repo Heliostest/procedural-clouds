@@ -28,10 +28,10 @@
 
 现有 `Params` 紧凑打包难以扩展，先重构成可维护结构。
 
-- [ ] `cloud.wgsl` 的 `Params` 拆分为分组 struct：`RenderParams`（步数/光照）、`CloudShape`（形态）、`Wind`、`SceneTime`。
-- [ ] `main.js` 用对象 → `ArrayBuffer` 的显式 writer 替换 `buildParams()` 的魔法索引（封装 `packParams(views)`，每字段命名）。
-- [ ] 保持 ping-pong 缓存与渲染管线不变，仅换 uniform 布局。
-- [ ] 新增 `SceneTime`：`{ sceneTime, deltaTime }`（区别于噪声 W 轴时间）。
+- [x] `cloud.wgsl` 的 `Params` 拆分为分组 struct：`RenderParams`（步数/光照）、`CloudShape`（形态）、`Wind`、`SceneTime`。
+- [x] `main.js` 用对象 → `ArrayBuffer` 的显式 writer 替换 `buildParams()` 的魔法索引（封装 `packParams(views)`，每字段命名）。
+- [x] 保持 ping-pong 缓存与渲染管线不变，仅换 uniform 布局。
+- [x] 新增 `SceneTime`：`{ sceneTime, deltaTime }`（区别于噪声 W 轴时间）。
 
 **验收**：重构后画面与重构前一致，参数可按名读写。
 
@@ -41,13 +41,13 @@
 
 把 `../procedural-clouds-threejs/cloud-types.md` 的 10 种云属映射到密度场可调量。
 
-- [ ] 扩展 `CloudShape` 暴露：`coverageThreshold`、`edgeSharpness`（Voronoi remap 锐度）、`baseRoundness`（底部平整度，影响阶段 5 falloff 曲线）、`worleyBlend`（Voronoi 与 Perlin 权重）、`detailStrength`、`altBase/altTop`（归一化高度带）。
-- [ ] `cloudDensity()` 内：
+- [x] 扩展 `CloudShape` 暴露：`coverageThreshold`、`edgeSharpness`（Voronoi remap 锐度）、`baseRoundness`（底部平整度，影响阶段 5 falloff 曲线）、`worleyBlend`（Voronoi 与 Perlin 权重）、`detailStrength`、`altBase/altTop`（归一化高度带）。
+- [x] `cloudDensity()` 内：
   - 阶段 2/3 的 `mapRange(... factor ...)` 引入 `edgeSharpness` 做 `pow`/`smoothstep` 锐化。
   - 阶段 1 高度掩膜按 `baseRoundness` 改变底部曲率（平底 vs 圆底）。
   - 引入 `worleyBlend` 在 Voronoi 距离场与 `noise_fbm` 之间 `mix`，控制「细胞感 vs 蓬松感」。
-- [ ] `main.js` 建 `CLOUD_PRESETS` 表（cumulus/stratus/stratocumulus/cumulonimbus/altocumulus/altostratus/nimbostratus/cirrus/cirrostratus/cirrocumulus），数值参考 cloud-types.md。
-- [ ] GUI 加预设下拉，切换时把预设值插值到 `CloudShape`（平滑过渡，避免突变）。
+- [x] `main.js` 建 `CLOUD_PRESETS` 表（cumulus/stratus/stratocumulus/cumulonimbus/altocumulus/altostratus/nimbostratus/cirrus/cirrostratus/cirrocumulus），数值参考 cloud-types.md。
+- [x] GUI 加预设下拉，切换时把预设值插值到 `CloudShape`（平滑过渡，避免突变）。
 
 **验收**：能切出 cumulus（平底圆顶蓬松）、stratus（均匀薄毯）、cirrus（高空细丝）、cumulonimbus（暗底高耸）四类肉眼可辨形态。
 

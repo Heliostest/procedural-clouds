@@ -25,15 +25,41 @@ const PARAM_OFFSETS = {
   factorShaper: 14,
   factorDetail: 15,
   cloudHeight: 16,
-  windSpeed: 20,
-  sceneTime: 24,
-  deltaTime: 25,
-  noiseTime: 26,
-  timeVoronoi1: 27,
-  timeVoronoi2: 28,
+  coverageThreshold: 17,
+  edgeSharpness: 18,
+  baseRoundness: 19,
+  worleyBlend: 20,
+  detailStrength: 21,
+  altBase: 22,
+  altTop: 23,
+  windSpeed: 24,
+  sceneTime: 28,
+  deltaTime: 29,
+  noiseTime: 30,
+  timeVoronoi1: 31,
+  timeVoronoi2: 32,
 };
-const PARAMS_FLOAT_COUNT = 32;
+const PARAMS_FLOAT_COUNT = 36;
 const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
+
+const SHAPE_PRESET_KEYS = [
+  'density', 'coverage', 'altitude', 'scale', 'detail', 'cloudHeight',
+  'coverageThreshold', 'edgeSharpness', 'baseRoundness', 'worleyBlend',
+  'detailStrength', 'altBase', 'altTop',
+];
+
+const CLOUD_PRESETS = {
+  cumulus:       { density: 1.0, coverage: 0.55, altitude: 0.5, scale: 3.75, detail: 1.0, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.6,  baseRoundness: 0.35, worleyBlend: 0.5,  detailStrength: 1.0, altBase: 0.0,  altTop: 0.7 },
+  stratus:       { density: 1.2, coverage: 0.9,  altitude: 0.35, scale: 6.0,  detail: 0.5, cloudHeight: 1.0, coverageThreshold: 0.0,  edgeSharpness: 0.15, baseRoundness: 0.0,  worleyBlend: 0.1,  detailStrength: 0.4, altBase: 0.0,  altTop: 0.45 },
+  stratocumulus: { density: 1.1, coverage: 0.7,  altitude: 0.45, scale: 4.5,  detail: 1.0, cloudHeight: 1.3, coverageThreshold: 0.0,  edgeSharpness: 0.4,  baseRoundness: 0.2,  worleyBlend: 0.4,  detailStrength: 0.8, altBase: 0.0,  altTop: 0.6 },
+  cumulonimbus:  { density: 2.2, coverage: 0.5,  altitude: 0.7,  scale: 5.0,  detail: 2.0, cloudHeight: 3.5, coverageThreshold: 0.1,  edgeSharpness: 0.8,  baseRoundness: 0.5,  worleyBlend: 0.65, detailStrength: 1.1, altBase: 0.0,  altTop: 1.0 },
+  altocumulus:   { density: 0.9, coverage: 0.55, altitude: 0.4, scale: 2.5,  detail: 1.0, cloudHeight: 1.5, coverageThreshold: 0.05, edgeSharpness: 0.5,  baseRoundness: 0.1,  worleyBlend: 0.7,  detailStrength: 0.7, altBase: 0.3,  altTop: 0.8 },
+  altostratus:   { density: 1.0, coverage: 0.85, altitude: 0.35, scale: 6.0,  detail: 0.5, cloudHeight: 1.2, coverageThreshold: 0.0,  edgeSharpness: 0.15, baseRoundness: 0.0,  worleyBlend: 0.05, detailStrength: 0.3, altBase: 0.3,  altTop: 0.8 },
+  nimbostratus:  { density: 1.8, coverage: 0.95, altitude: 0.5,  scale: 6.5,  detail: 0.5, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.1,  baseRoundness: 0.0,  worleyBlend: 0.1,  detailStrength: 0.4, altBase: 0.1,  altTop: 0.75 },
+  cirrus:        { density: 0.6, coverage: 0.35, altitude: 0.3, scale: 2.2,  detail: 2.5, cloudHeight: 1.2, coverageThreshold: 0.15, edgeSharpness: 0.7,  baseRoundness: 0.0,  worleyBlend: 0.15, detailStrength: 1.3, altBase: 0.65, altTop: 1.0 },
+  cirrostratus:  { density: 0.5, coverage: 0.7,  altitude: 0.3, scale: 5.0,  detail: 0.5, cloudHeight: 1.1, coverageThreshold: 0.0,  edgeSharpness: 0.1,  baseRoundness: 0.0,  worleyBlend: 0.0,  detailStrength: 0.3, altBase: 0.65, altTop: 1.0 },
+  cirrocumulus:  { density: 0.6, coverage: 0.4,  altitude: 0.3, scale: 1.5,  detail: 1.5, cloudHeight: 1.1, coverageThreshold: 0.1,  edgeSharpness: 0.6,  baseRoundness: 0.0,  worleyBlend: 0.8,  detailStrength: 0.9, altBase: 0.6,  altTop: 1.0 },
+};
 
 function packParams(dst, values) {
   for (const key in values) {
@@ -299,11 +325,19 @@ async function initWebGPU() {
 
   // --- UI Controls (lil-gui) ---
   const params = {
+    preset: 'cumulus',
     density: 1.0,
     coverage: 0.8,
     scale: 3.75,
     altitude: 0.5,
     detail: 1.0,
+    coverageThreshold: 0.0,
+    edgeSharpness: 0.0,
+    baseRoundness: 0.0,
+    worleyBlend: 1.0,
+    detailStrength: 1.0,
+    altBase: 0.0,
+    altTop: 1.0,
     windSpeed: 0.05,
     skipLight: false,
     rayMarchSteps: 48,
@@ -316,19 +350,46 @@ async function initWebGPU() {
     cacheSmooth: 0,
   };
 
+  // Preset transition state
+  let transitionFrom = null;
+  let transitionTo = null;
+  let transitionT = 1.0;
+  const TRANSITION_DURATION = 1.2;
+
+  function applyPreset(name) {
+    const preset = CLOUD_PRESETS[name];
+    if (!preset) return;
+    transitionFrom = {};
+    transitionTo = {};
+    for (const k of SHAPE_PRESET_KEYS) {
+      transitionFrom[k] = params[k];
+      transitionTo[k] = preset[k];
+    }
+    transitionT = 0.0;
+  }
+
   const gui = new GUI({ title: 'Cloud Parameters' });
-  gui.add(params, 'density', 0.1, 4.0, 0.05);
-  gui.add(params, 'coverage', 0.0, 1.0, 0.01);
-  gui.add(params, 'scale', 0.2, 15.0, 0.05);
-  gui.add(params, 'altitude', 0.1, 1.0, 0.01);
-  gui.add(params, 'detail', 0.0, 15.0, 0.5);
+  gui.add(params, 'preset', Object.keys(CLOUD_PRESETS)).name('Preset').onChange(applyPreset);
+  const shapeFolder = gui.addFolder('Shape');
+  shapeFolder.add(params, 'density', 0.1, 4.0, 0.05);
+  shapeFolder.add(params, 'coverage', 0.0, 1.0, 0.01);
+  shapeFolder.add(params, 'scale', 0.2, 15.0, 0.05);
+  shapeFolder.add(params, 'altitude', 0.1, 1.0, 0.01);
+  shapeFolder.add(params, 'detail', 0.0, 15.0, 0.5);
+  shapeFolder.add(params, 'coverageThreshold', 0.0, 0.8, 0.01).name('Cov Threshold');
+  shapeFolder.add(params, 'edgeSharpness', 0.0, 1.0, 0.01).name('Edge Sharp');
+  shapeFolder.add(params, 'baseRoundness', 0.0, 1.0, 0.01).name('Base Round');
+  shapeFolder.add(params, 'worleyBlend', 0.0, 1.0, 0.01).name('Worley Blend');
+  shapeFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name('Detail Str');
+  shapeFolder.add(params, 'altBase', 0.0, 1.0, 0.01).name('Alt Base');
+  shapeFolder.add(params, 'altTop', 0.0, 1.0, 0.01).name('Alt Top');
+  shapeFolder.add(params, 'cloudHeight', 0.5, 5.0, 0.1).name('Cloud Height');
   gui.add(params, 'windSpeed', 0.0, 2.0, 0.05);
   gui.add(params, 'skipLight').name('Skip Light March');
   gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
   gui.add(params, 'lightMarchSteps', 1, 8, 1).name('Light Steps');
   gui.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name('Shadow Dark');
   gui.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name('Sun Intensity');
-  gui.add(params, 'cloudHeight', 0.5, 5.0, 0.1).name('Cloud Height');
   gui.add(params, 'cacheResolution', 32, 128, 1).name('Cache Res').onFinishChange(v => {
     const next = Math.max(32, Math.min(128, Math.round(v)));
     params.cacheResolution = next;
@@ -364,6 +425,13 @@ async function initWebGPU() {
       factorShaper: 1.0,
       scale: params.scale,
       detail: params.detail,
+      coverageThreshold: params.coverageThreshold,
+      edgeSharpness: params.edgeSharpness,
+      baseRoundness: params.baseRoundness,
+      worleyBlend: params.worleyBlend,
+      detailStrength: params.detailStrength,
+      altBase: params.altBase,
+      altTop: params.altTop,
       rayMarchSteps: params.rayMarchSteps,
       skipLight: params.skipLight,
       cacheBlend: cacheBlend,
@@ -423,6 +491,16 @@ async function initWebGPU() {
 
     const deltaTime = elapsed - prevSceneTime;
     prevSceneTime = elapsed;
+
+    if (transitionT < 1.0 && transitionFrom && transitionTo) {
+      transitionT = Math.min(1.0, transitionT + deltaTime / TRANSITION_DURATION);
+      const e = transitionT * transitionT * (3.0 - 2.0 * transitionT);
+      for (const k of SHAPE_PRESET_KEYS) {
+        params[k] = transitionFrom[k] + (transitionTo[k] - transitionFrom[k]) * e;
+      }
+      shapeFolder.controllers.forEach(c => c.updateDisplay());
+    }
+
     device.queue.writeBuffer(paramsBuffer, 0, buildParams(time, cacheBlend, elapsed, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
