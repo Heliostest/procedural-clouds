@@ -17,7 +17,7 @@ export function createOrbitCamera(canvas: HTMLCanvasElement): OrbitCamera {
   let targetTheta = camTheta;
   let targetPhi = camPhi;
   let targetDist = camDist;
-  const target: [number, number, number] = [0.0, 0.5, 0.0];
+  const target: [number, number, number] = [0.0, 2.0, 0.0];
   const up: [number, number, number] = [0.0, 1.0, 0.0];
 
   let isDragging = false;

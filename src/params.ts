@@ -30,8 +30,10 @@ export const PARAM_OFFSETS: Record<string, number> = {
   noiseTime: 34,
   timeVoronoi1: 35,
   timeVoronoi2: 36,
+  layerBase: 40,
+  layerThickness: 41,
 };
-export const PARAMS_FLOAT_COUNT = 40;
+export const PARAMS_FLOAT_COUNT = 44;
 export const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
 
 export const SHAPE_PRESET_KEYS = [
@@ -99,6 +101,8 @@ export interface CloudParams {
   altBase: number;
   altTop: number;
   cloudHeight: number;
+  layerBase: number;
+  layerThickness: number;
   windDeg: number;
   windSpeed: number;
   morphRate: number;
@@ -152,7 +156,9 @@ export function createDefaultParams(): CloudParams {
     lightMarchSteps: 4,
     shadowDarkness: 5,
     sunIntensity: 17,
-    cloudHeight: 1.5,
+    cloudHeight: 5.0,
+    layerBase: 0.25,
+    layerThickness: 0.4,
     cacheResolution: 96,
     cacheUpdateRate: 2,
     cacheSmooth: 0,

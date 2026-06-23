@@ -58,11 +58,19 @@ struct SceneTime {
   _pad2        : f32,
 };
 
+struct CloudLayer {
+  base      : f32,
+  thickness : f32,
+  _pad0     : f32,
+  _pad1     : f32,
+};
+
 struct Params {
   render : RenderParams,
   shape  : CloudShape,
   wind   : Wind,
   time   : SceneTime,
+  layer  : CloudLayer,
 };
 
 struct PresetShape {
@@ -241,8 +249,10 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let baseRoundness     = shape.baseRoundness;
   let worleyBlend       = shape.worleyBlend;
   let detailStrength    = shape.detailStrength;
-  let altBase           = shape.altBase;
-  let altTop            = shape.altTop;
+  // Vertical placement is a global control (layer height + thickness), so clouds
+  // float at a chosen altitude with empty space below them.
+  let altBase           = clamp(params.layer.base, 0.0, 0.98);
+  let altTop            = clamp(altBase + max(params.layer.thickness, 0.02), altBase + 0.02, 1.0);
 
   let zNorm = (pos.y - BOX_MIN.y) / (getBoxMax().y - BOX_MIN.y);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);

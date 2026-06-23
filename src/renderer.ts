@@ -186,6 +186,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       shadowDarkness: params.shadowDarkness,
       sunIntensity: params.sunIntensity,
       cloudHeight: params.cloudHeight,
+      layerBase: params.layerBase,
+      layerThickness: params.layerThickness,
       windDir: [Math.cos(rad), Math.sin(rad), 0.0],
       windSpeed: params.windSpeed,
       morphRate: params.morphRate,

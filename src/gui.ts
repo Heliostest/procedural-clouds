@@ -29,7 +29,11 @@ export function createGui(params: CloudParams, weather: WeatherConfig, hooks: Gu
   shapeFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name('Detail Str');
   shapeFolder.add(params, 'altBase', 0.0, 1.0, 0.01).name('Alt Base');
   shapeFolder.add(params, 'altTop', 0.0, 1.0, 0.01).name('Alt Top');
-  shapeFolder.add(params, 'cloudHeight', 0.5, 5.0, 0.1).name('Cloud Height');
+
+  const layerFolder = gui.addFolder('Layer');
+  layerFolder.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name('Box Height');
+  layerFolder.add(params, 'layerBase', 0.0, 0.95, 0.01).name('Layer Height');
+  layerFolder.add(params, 'layerThickness', 0.05, 1.0, 0.01).name('Layer Thickness');
 
   const windFolder = gui.addFolder('Wind');
   windFolder.add(params, 'windDeg', 0, 360, 1).name('Direction °');
