@@ -57,6 +57,32 @@ export const CLOUD_PRESETS: Record<string, ShapePreset> = {
 
 export type PresetKey = keyof typeof CLOUD_PRESETS;
 
+export const PRESET_ORDER = Object.keys(CLOUD_PRESETS);
+export const PRESET_COUNT = PRESET_ORDER.length;
+export const PRESET_FLOAT_COUNT = PRESET_COUNT * 16;
+export const PRESET_BYTE_SIZE = PRESET_FLOAT_COUNT * 4;
+
+export function presetIndex(name: string): number {
+  const i = PRESET_ORDER.indexOf(name);
+  return i < 0 ? 0 : i;
+}
+
+export function packPresetArray(): Float32Array {
+  const out = new Float32Array(PRESET_FLOAT_COUNT);
+  PRESET_ORDER.forEach((key, i) => {
+    const p = CLOUD_PRESETS[key];
+    const o = i * 16;
+    out[o + 0] = p.density;           out[o + 1] = p.coverage;
+    out[o + 2] = p.altitude;          out[o + 3] = p.scale;
+    out[o + 4] = p.detail;            out[o + 5] = p.cloudHeight;
+    out[o + 6] = p.coverageThreshold; out[o + 7] = p.edgeSharpness;
+    out[o + 8] = p.baseRoundness;     out[o + 9] = p.worleyBlend;
+    out[o + 10] = p.detailStrength;   out[o + 11] = p.altBase;
+    out[o + 12] = p.altTop;
+  });
+  return out;
+}
+
 export interface CloudParams {
   preset: string;
   density: number;

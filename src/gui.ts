@@ -1,16 +1,18 @@
 import GUI from 'lil-gui';
 import { CLOUD_PRESETS, type CloudParams } from './params';
+import type { WeatherConfig } from './weather';
 
 export interface GuiHooks {
   onPreset(name: string): void;
   onCacheResolution(res: number): void;
+  onWeather(): void;
 }
 
 export interface CloudGui {
   refreshShape(): void;
 }
 
-export function createGui(params: CloudParams, hooks: GuiHooks): CloudGui {
+export function createGui(params: CloudParams, weather: WeatherConfig, hooks: GuiHooks): CloudGui {
   const gui = new GUI({ title: 'Cloud Parameters' });
   gui.add(params, 'preset', Object.keys(CLOUD_PRESETS)).name('Preset').onChange(hooks.onPreset);
 
@@ -33,6 +35,24 @@ export function createGui(params: CloudParams, hooks: GuiHooks): CloudGui {
   windFolder.add(params, 'windDeg', 0, 360, 1).name('Direction °');
   windFolder.add(params, 'windSpeed', 0.0, 2.0, 0.01).name('Speed');
   windFolder.add(params, 'morphRate', 0.0, 1.0, 0.01).name('Morph Rate');
+
+  const presetKeys = Object.keys(CLOUD_PRESETS);
+  const weatherFolder = gui.addFolder('Weather Regions');
+  const rA = weatherFolder.addFolder('Region A (rect)');
+  rA.add(weather, 'aType', presetKeys).name('Type').onChange(hooks.onWeather);
+  rA.add(weather, 'aCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);
+  rA.add(weather, 'aCenterX', -4.5, 4.5, 0.1).name('Center X').onChange(hooks.onWeather);
+  rA.add(weather, 'aCenterZ', -4.5, 4.5, 0.1).name('Center Z').onChange(hooks.onWeather);
+  rA.add(weather, 'aSizeX', 0.2, 4.5, 0.1).name('Half W').onChange(hooks.onWeather);
+  rA.add(weather, 'aSizeZ', 0.2, 4.5, 0.1).name('Half D').onChange(hooks.onWeather);
+  rA.add(weather, 'aFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
+  const rB = weatherFolder.addFolder('Region B (circle)');
+  rB.add(weather, 'bType', presetKeys).name('Type').onChange(hooks.onWeather);
+  rB.add(weather, 'bCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);
+  rB.add(weather, 'bCenterX', -4.5, 4.5, 0.1).name('Center X').onChange(hooks.onWeather);
+  rB.add(weather, 'bCenterZ', -4.5, 4.5, 0.1).name('Center Z').onChange(hooks.onWeather);
+  rB.add(weather, 'bRadius', 0.2, 4.5, 0.1).name('Radius').onChange(hooks.onWeather);
+  rB.add(weather, 'bFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
 
   gui.add(params, 'skipLight').name('Skip Light March');
   gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');

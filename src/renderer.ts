@@ -2,10 +2,13 @@ import noiseSource from '../shaders/noise.wgsl?raw';
 import cloudSource from '../shaders/cloud.wgsl?raw';
 import {
   packParams,
+  packPresetArray,
   PARAMS_FLOAT_COUNT,
   PARAMS_BYTE_SIZE,
+  PRESET_BYTE_SIZE,
   type CloudParams,
 } from './params';
+import { WEATHER_SIZE, createWeatherData, paintRegions, type Region } from './weather';
 import type { CameraFrame } from './camera';
 
 const shaderSource = noiseSource + cloudSource;
@@ -13,6 +16,7 @@ const shaderSource = noiseSource + cloudSource;
 export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
+  setRegions(regions: Region[]): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number): void;
 }
 
@@ -71,6 +75,30 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     addressModeW: 'clamp-to-edge',
   });
 
+  const presetBuffer = device.createBuffer({
+    size: PRESET_BYTE_SIZE,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
+
+  const weatherTexture = device.createTexture({
+    size: [WEATHER_SIZE, WEATHER_SIZE],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+  });
+  const weatherData = createWeatherData();
+  weatherData.fill(0);
+
+  function setRegions(regions: Region[]): void {
+    paintRegions(weatherData, regions);
+    device.queue.writeTexture(
+      { texture: weatherTexture },
+      weatherData,
+      { bytesPerRow: WEATHER_SIZE * 4, rowsPerImage: WEATHER_SIZE },
+      { width: WEATHER_SIZE, height: WEATHER_SIZE },
+    );
+  }
+
   let densityRes = 96;
   let densityTextures: [GPUTexture, GPUTexture] | null = null;
   let densitySampleBindGroup: GPUBindGroup;
@@ -108,6 +136,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     layout: computePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 1, resource: { buffer: paramsBuffer } },
+      { binding: 2, resource: weatherTexture.createView() },
+      { binding: 3, resource: linearSampler },
+      { binding: 4, resource: { buffer: presetBuffer } },
     ],
   });
 
@@ -227,5 +258,5 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     device.queue.submit([commandEncoder.finish()]);
   }
 
-  return { resizeCanvas, setDensityResolution, renderFrame };
+  return { resizeCanvas, setDensityResolution, setRegions, renderFrame };
 }

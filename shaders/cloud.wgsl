@@ -65,12 +65,64 @@ struct Params {
   time   : SceneTime,
 };
 
+struct PresetShape {
+  p0 : vec4f,
+  p1 : vec4f,
+  p2 : vec4f,
+  p3 : vec4f,
+};
+
+const PRESET_COUNT = 10;
+
 @group(0) @binding(0) var<uniform> camera : Camera;
 @group(0) @binding(1) var<uniform> params : Params;
+@group(0) @binding(2) var weatherTex : texture_2d<f32>;
+@group(0) @binding(3) var weatherSampler : sampler;
+@group(0) @binding(4) var<uniform> presets : array<PresetShape, PRESET_COUNT>;
 @group(1) @binding(0) var densitySampler : sampler;
 @group(1) @binding(1) var densityTex0 : texture_3d<f32>;
 @group(1) @binding(2) var densityTex1 : texture_3d<f32>;
 @group(2) @binding(0) var densityStore : texture_storage_3d<rgba16float, write>;
+
+struct Shape13 {
+  density           : f32,
+  coverage          : f32,
+  altitude          : f32,
+  scale             : f32,
+  detail            : f32,
+  cloudHeight       : f32,
+  coverageThreshold : f32,
+  edgeSharpness     : f32,
+  baseRoundness     : f32,
+  worleyBlend       : f32,
+  detailStrength    : f32,
+  altBase           : f32,
+  altTop            : f32,
+};
+
+fn presetShape(i : i32) -> Shape13 {
+  let idx = clamp(i, 0, PRESET_COUNT - 1);
+  let p = presets[idx];
+  return Shape13(p.p0.x, p.p0.y, p.p0.z, p.p0.w, p.p1.x, p.p1.y, p.p1.z, p.p1.w, p.p2.x, p.p2.y, p.p2.z, p.p2.w, p.p3.x);
+}
+
+fn mixShape(a : Shape13, b : Shape13, t : f32) -> Shape13 {
+  return Shape13(
+    mix(a.density, b.density, t),
+    mix(a.coverage, b.coverage, t),
+    mix(a.altitude, b.altitude, t),
+    mix(a.scale, b.scale, t),
+    mix(a.detail, b.detail, t),
+    mix(a.cloudHeight, b.cloudHeight, t),
+    mix(a.coverageThreshold, b.coverageThreshold, t),
+    mix(a.edgeSharpness, b.edgeSharpness, t),
+    mix(a.baseRoundness, b.baseRoundness, t),
+    mix(a.worleyBlend, b.worleyBlend, t),
+    mix(a.detailStrength, b.detailStrength, t),
+    mix(a.altBase, b.altBase, t),
+    mix(a.altTop, b.altTop, t),
+  );
+}
 
 // ============================================================
 // Vertex
@@ -134,37 +186,47 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let timeNoise     = params.time.noiseTime;
   let timeVoronoi1  = params.time.timeVoronoi1;
   let timeVoronoi2  = params.time.timeVoronoi2;
-  let densityParam  = params.shape.density;
 
   let lowAltDens    = params.shape.lowAltDensity;
-  let altitude      = params.shape.altitude;
-  let factorMacro   = params.shape.coverage;
   let factorDetail  = params.shape.factorDetail;
-
   let factorShaper  = params.shape.factorShaper;
-  let scaleAlt      = params.shape.scale;
-  let scaleNoise    = params.shape.scale;
-  let scaleVoronoi1 = params.shape.scale;
-
-  let scaleVoronoi2 = params.shape.scale;
-  let detail        = params.shape.detail;
-
-  let coverageThreshold = params.shape.coverageThreshold;
-  let edgeSharpness     = params.shape.edgeSharpness;
-  let baseRoundness     = params.shape.baseRoundness;
-  let worleyBlend       = params.shape.worleyBlend;
-  let detailStrength    = params.shape.detailStrength;
-  let altBase           = params.shape.altBase;
-  let altTop            = params.shape.altTop;
 
   // Blender "Object" coordinates for a cloud layer (Z-up).
   // World Y is treated as Blender Z.
   let objPosRaw = vec3f(pos.x, pos.z, pos.y);
   // Horizontal advection: shift the (infinite) procedural sampling domain along
-  // the wind direction. Vertical structure is untouched. The procedural field is
-  // unbounded, so the box stays fully covered (no empty region) as it drifts.
+  // the wind direction. Vertical structure is untouched.
   let advect = params.wind.dir * (params.wind.speed * params.time.sceneTime);
   let objPos = objPosRaw - advect;
+
+  // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
+  // stay put while wind only drives the procedural detail.
+  let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
+  let w = textureSampleLevel(weatherTex, weatherSampler, wUv, 0.0);
+  let localCoverage = w.r;
+  if (localCoverage < 0.01) { return 0.0; }
+  let wDensityScale = w.b;
+  let typeF = w.g * f32(PRESET_COUNT - 1);
+  let idx0 = i32(floor(typeF));
+  let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
+  let shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
+
+  let densityParam  = shape.density;
+  let altitude      = shape.altitude;
+  let factorMacro   = localCoverage;
+  let scaleAlt      = shape.scale;
+  let scaleNoise    = shape.scale;
+  let scaleVoronoi1 = shape.scale;
+  let scaleVoronoi2 = shape.scale;
+  let detail        = shape.detail;
+  let coverageThreshold = shape.coverageThreshold;
+  let edgeSharpness     = shape.edgeSharpness;
+  let baseRoundness     = shape.baseRoundness;
+  let worleyBlend       = shape.worleyBlend;
+  let detailStrength    = shape.detailStrength;
+  let altBase           = shape.altBase;
+  let altTop            = shape.altTop;
+
   let zNorm = (pos.y - BOX_MIN.y) / (getBoxMax().y - BOX_MIN.y);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
 
@@ -212,7 +274,7 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let bandHi = max(altTop, altBase + 1e-3);
   let band = smoothstep(altBase, altBase + 0.04, zNorm) - smoothstep(bandHi - 0.04, bandHi, zNorm);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
-  return finalShaped * falloff * clamp01(band) * densityScale; // Math.016
+  return finalShaped * falloff * clamp01(band) * densityScale * wDensityScale; // Math.016
 }
 
 // ============================================================

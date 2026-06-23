@@ -8,13 +8,16 @@ import {
   SHAPE_PRESET_KEYS,
   type ShapeKey,
 } from './params';
+import { createDefaultWeather, buildRegions } from './weather';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
   const params = createDefaultParams();
+  const weather = createDefaultWeather();
   const camera = createOrbitCamera(canvas);
   const renderer = await createRenderer(canvas);
+  renderer.setRegions(buildRegions(weather));
 
   window.addEventListener('resize', renderer.resizeCanvas);
   renderer.resizeCanvas();
@@ -24,7 +27,7 @@ async function main(): Promise<void> {
   let transitionT = 1.0;
   const TRANSITION_DURATION = 1.2;
 
-  const gui = createGui(params, {
+  const gui = createGui(params, weather, {
     onPreset(name) {
       const preset = CLOUD_PRESETS[name];
       if (!preset) return;
@@ -40,6 +43,9 @@ async function main(): Promise<void> {
     },
     onCacheResolution(res) {
       renderer.setDensityResolution(res);
+    },
+    onWeather() {
+      renderer.setRegions(buildRegions(weather));
     },
   });
 
