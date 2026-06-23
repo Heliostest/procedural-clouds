@@ -9,6 +9,7 @@ import {
   type CloudParams,
 } from './params';
 import { WEATHER_SIZE, createWeatherData, paintRegions, type Region } from './weather';
+import type { RegionMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 
 const shaderSource = noiseSource + cloudSource;
@@ -16,7 +17,7 @@ const shaderSource = noiseSource + cloudSource;
 export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
-  setRegions(regions: Region[]): void;
+  setRegions(regions: Region[], mods?: RegionMod[]): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number): void;
 }
 
@@ -89,8 +90,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const weatherData = createWeatherData();
   weatherData.fill(0);
 
-  function setRegions(regions: Region[]): void {
-    paintRegions(weatherData, regions);
+  function setRegions(regions: Region[], mods?: RegionMod[]): void {
+    paintRegions(weatherData, regions, mods);
     device.queue.writeTexture(
       { texture: weatherTexture },
       weatherData,

@@ -81,6 +81,7 @@ struct PresetShape {
 };
 
 const PRESET_COUNT = 10;
+const DENSITY_SCALE_MAX = 2.0;
 const VERTICAL_EDGE_RANGE = 0.55;
 const VERTICAL_EDGE_SHAPE = 2.0;
 
@@ -220,7 +221,8 @@ fn cloudDensity(pos : vec3f) -> f32 {
     let w = textureSampleLevel(weatherTex, weatherSampler, wUv, 0.0);
     localCoverage = w.r;
     if (localCoverage < 0.01) { return 0.0; }
-    wDensityScale = w.b;
+    wDensityScale = w.b * DENSITY_SCALE_MAX;
+    if (wDensityScale < 0.001) { return 0.0; }
     let typeF = w.g * f32(PRESET_COUNT - 1);
     let idx0 = i32(floor(typeF));
     let idx1 = min(idx0 + 1, PRESET_COUNT - 1);

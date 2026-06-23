@@ -93,10 +93,10 @@
 
 > 代码落点：新增 `src/lifecycle.ts`（包络求值）；每帧 `phase` 由 `src/main.ts` 帧循环按 `elapsed` 驱动，回写 `src/weather.ts` 的天气图。
 
-- [ ] `src/lifecycle.ts`：定义包络 `envelope(t) = phase ∈ [0,1]`，分段 `birth → grow → mature → decay → death`（线性或 smoothstep 关键帧）。
-- [ ] `src/main.ts` 帧循环按 `elapsed`（现有 sceneTime 基）求各区域 `phase`，调 `src/weather.ts` 写入 `weatherMap` 的 B 通道（densityScale）与 R 通道（coverage 渐变）。
-- [ ] 出现 = phase 0→1 时密度淡入；消失 = 1→0 淡出并最终 coverage=0。
-- [ ] 加重/减淡 = 调 mature 段的目标 densityScale。
+- [x] `src/lifecycle.ts`：定义包络 `envelope(t) = phase ∈ [0,1]`，分段 `birth → grow → mature → decay → death`（线性或 smoothstep 关键帧）。
+- [x] `src/main.ts` 帧循环按 `elapsed`（现有 sceneTime 基）求各区域 `phase`，调 `src/weather.ts` 写入 `weatherMap` 的 B 通道（densityScale）与 R 通道（coverage 渐变）。
+- [x] 出现 = phase 0→1 时密度淡入；消失 = 1→0 淡出并最终 coverage=0。
+- [x] 加重/减淡 = 调 mature 段的目标 densityScale。
 - [ ] 形态随阶段微变（可选）：grow 阶段 `detailStrength` 渐增，decay 阶段边缘侵蚀增强（接 `worleyBlend`，均在 `shaders/cloud.wgsl`）。
 
 **验收**：一团云能在指定时刻凭空出现、30s 内增厚到最浓、之后缓慢变淡直到消失。

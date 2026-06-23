@@ -9,15 +9,18 @@ import {
   type ShapeKey,
 } from './params';
 import { createDefaultWeather, buildRegions } from './weather';
+import { evalRegionMod, type RegionMod } from './lifecycle';
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
   const params = createDefaultParams();
   const weather = createDefaultWeather();
+  const timeline = { scrub: false, time: 0 };
   const camera = createOrbitCamera(canvas);
   const renderer = await createRenderer(canvas);
-  renderer.setRegions(buildRegions(weather));
+  let regions = buildRegions(weather);
+  renderer.setRegions(regions);
 
   window.addEventListener('resize', renderer.resizeCanvas);
   renderer.resizeCanvas();
@@ -27,7 +30,7 @@ async function main(): Promise<void> {
   let transitionT = 1.0;
   const TRANSITION_DURATION = 1.2;
 
-  const gui = createGui(params, weather, {
+  const gui = createGui(params, weather, timeline, {
     onPreset(name) {
       const preset = CLOUD_PRESETS[name];
       if (!preset) return;
@@ -45,7 +48,17 @@ async function main(): Promise<void> {
       renderer.setDensityResolution(res);
     },
     onWeather() {
-      renderer.setRegions(buildRegions(weather));
+      regions = buildRegions(weather);
+      const hasLife = regions.some((r) => r.lifecycle);
+      if (!hasLife) renderer.setRegions(regions);
+      lastMods = null;
+    },
+    onTrigger() {
+      timeBase = (performance.now() - startTime) / 1000.0;
+      timeline.scrub = false;
+      timeline.time = 0;
+      lastMods = null;
+      gui.refreshTimeline();
     },
   });
 
@@ -55,12 +68,27 @@ async function main(): Promise<void> {
 
   const startTime = performance.now();
   let prevSceneTime = 0.0;
+  let timeBase = 0.0;
+  let lastMods: RegionMod[] | null = null;
+  const MOD_EPS = 1 / 255;
 
   function frame(): void {
     stats.begin();
     const elapsed = (performance.now() - startTime) / 1000.0;
     const deltaTime = elapsed - prevSceneTime;
     prevSceneTime = elapsed;
+
+    const sceneTime = timeline.scrub ? timeline.time : elapsed - timeBase;
+    if (regions.some((r) => r.lifecycle)) {
+      const mods = regions.map((r) => evalRegionMod(r.lifecycle, sceneTime));
+      const changed = !lastMods || mods.some((m, i) =>
+        Math.abs(m.coverageMul - lastMods![i].coverageMul) > MOD_EPS ||
+        Math.abs(m.densityScale - lastMods![i].densityScale) > MOD_EPS);
+      if (changed) {
+        renderer.setRegions(regions, mods);
+        lastMods = mods;
+      }
+    }
 
     camera.update();
 

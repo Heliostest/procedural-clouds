@@ -6,13 +6,20 @@ export interface GuiHooks {
   onPreset(name: string): void;
   onCacheResolution(res: number): void;
   onWeather(): void;
+  onTrigger(): void;
 }
 
 export interface CloudGui {
   refreshShape(): void;
+  refreshTimeline(): void;
 }
 
-export function createGui(params: CloudParams, weather: WeatherConfig, hooks: GuiHooks): CloudGui {
+export interface TimelineState {
+  scrub: boolean;
+  time: number;
+}
+
+export function createGui(params: CloudParams, weather: WeatherConfig, timeline: TimelineState, hooks: GuiHooks): CloudGui {
   const gui = new GUI({ title: 'Cloud Parameters' });
   gui.add(params, 'preset', Object.keys(CLOUD_PRESETS)).name('Preset').onChange(hooks.onPreset);
 
@@ -51,6 +58,13 @@ export function createGui(params: CloudParams, weather: WeatherConfig, hooks: Gu
   rA.add(weather, 'aSizeX', 0.2, 4.5, 0.1).name('Half W').onChange(hooks.onWeather);
   rA.add(weather, 'aSizeZ', 0.2, 4.5, 0.1).name('Half D').onChange(hooks.onWeather);
   rA.add(weather, 'aFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
+  const lA = rA.addFolder('Lifecycle');
+  lA.add(weather, 'aLifeEnabled').name('Enable').onChange(hooks.onWeather);
+  lA.add(weather, 'aBirth', 0, 120, 0.5).name('Birth').onChange(hooks.onWeather);
+  lA.add(weather, 'aGrow', 0, 120, 0.5).name('Grow').onChange(hooks.onWeather);
+  lA.add(weather, 'aDecay', 0, 120, 0.5).name('Decay').onChange(hooks.onWeather);
+  lA.add(weather, 'aDeath', 0, 120, 0.5).name('Death').onChange(hooks.onWeather);
+  lA.add(weather, 'aPeak', 0.0, 2.0, 0.05).name('Peak Density').onChange(hooks.onWeather);
   const rB = weatherFolder.addFolder('Region B (circle)');
   rB.add(weather, 'bType', presetKeys).name('Type').onChange(hooks.onWeather);
   rB.add(weather, 'bCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);
@@ -58,6 +72,18 @@ export function createGui(params: CloudParams, weather: WeatherConfig, hooks: Gu
   rB.add(weather, 'bCenterZ', -4.5, 4.5, 0.1).name('Center Z').onChange(hooks.onWeather);
   rB.add(weather, 'bRadius', 0.2, 4.5, 0.1).name('Radius').onChange(hooks.onWeather);
   rB.add(weather, 'bFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
+  const lB = rB.addFolder('Lifecycle');
+  lB.add(weather, 'bLifeEnabled').name('Enable').onChange(hooks.onWeather);
+  lB.add(weather, 'bBirth', 0, 120, 0.5).name('Birth').onChange(hooks.onWeather);
+  lB.add(weather, 'bGrow', 0, 120, 0.5).name('Grow').onChange(hooks.onWeather);
+  lB.add(weather, 'bDecay', 0, 120, 0.5).name('Decay').onChange(hooks.onWeather);
+  lB.add(weather, 'bDeath', 0, 120, 0.5).name('Death').onChange(hooks.onWeather);
+  lB.add(weather, 'bPeak', 0.0, 2.0, 0.05).name('Peak Density').onChange(hooks.onWeather);
+
+  const timeFolder = weatherFolder.addFolder('Timeline');
+  timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name('Trigger Now (t=0)');
+  timeFolder.add(timeline, 'scrub').name('Scrub Time');
+  timeFolder.add(timeline, 'time', 0, 120, 0.1).name('Scene Time');
 
   gui.add(params, 'skipLight').name('Skip Light March');
   gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
@@ -75,6 +101,9 @@ export function createGui(params: CloudParams, weather: WeatherConfig, hooks: Gu
   return {
     refreshShape() {
       shapeFolder.controllers.forEach((c) => c.updateDisplay());
+    },
+    refreshTimeline() {
+      timeFolder.controllers.forEach((c) => c.updateDisplay());
     },
   };
 }

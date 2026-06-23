@@ -1,4 +1,5 @@
 import { PRESET_COUNT, presetIndex } from './params';
+import { DENSITY_SCALE_MAX, type LifecycleEnvelope, type RegionMod } from './lifecycle';
 
 export const WEATHER_SIZE = 256;
 
@@ -13,6 +14,7 @@ export interface Region {
   type: string;
   coverage: number;
   feather: number;
+  lifecycle?: LifecycleEnvelope;
 }
 
 export interface WeatherConfig {
@@ -29,6 +31,18 @@ export interface WeatherConfig {
   bCenterZ: number;
   bRadius: number;
   bFeather: number;
+  aLifeEnabled: boolean;
+  aBirth: number;
+  aGrow: number;
+  aDecay: number;
+  aDeath: number;
+  aPeak: number;
+  bLifeEnabled: boolean;
+  bBirth: number;
+  bGrow: number;
+  bDecay: number;
+  bDeath: number;
+  bPeak: number;
 }
 
 export function createDefaultWeather(): WeatherConfig {
@@ -46,7 +60,26 @@ export function createDefaultWeather(): WeatherConfig {
     bCenterZ: 0.0,
     bRadius: 1.8,
     bFeather: 1.5,
+    aLifeEnabled: false,
+    aBirth: 2,
+    aGrow: 32,
+    aDecay: 60,
+    aDeath: 90,
+    aPeak: 1.0,
+    bLifeEnabled: false,
+    bBirth: 2,
+    bGrow: 32,
+    bDecay: 60,
+    bDeath: 90,
+    bPeak: 1.0,
   };
+}
+
+function envFrom(
+  enabled: boolean, birth: number, grow: number, decay: number, death: number, peak: number,
+): LifecycleEnvelope | undefined {
+  if (!enabled) return undefined;
+  return { birth, grow, mature: decay, decay, death, peakDensity: peak };
 }
 
 export function buildRegions(c: WeatherConfig): Region[] {
@@ -57,6 +90,7 @@ export function buildRegions(c: WeatherConfig): Region[] {
       type: c.aType,
       coverage: c.aCoverage,
       feather: c.aFeather,
+      lifecycle: envFrom(c.aLifeEnabled, c.aBirth, c.aGrow, c.aDecay, c.aDeath, c.aPeak),
     },
     {
       shape: 'circle',
@@ -64,6 +98,7 @@ export function buildRegions(c: WeatherConfig): Region[] {
       type: c.bType,
       coverage: c.bCoverage,
       feather: c.bFeather,
+      lifecycle: envFrom(c.bLifeEnabled, c.bBirth, c.bGrow, c.bDecay, c.bDeath, c.bPeak),
     },
   ];
 }
@@ -93,7 +128,7 @@ export function createWeatherData(): Uint8Array {
   return new Uint8Array(WEATHER_SIZE * WEATHER_SIZE * 4);
 }
 
-export function paintRegions(data: Uint8Array, regions: Region[]): void {
+export function paintRegions(data: Uint8Array, regions: Region[], mods?: RegionMod[]): void {
   const typeDenom = Math.max(1, PRESET_COUNT - 1);
   for (let py = 0; py < WEATHER_SIZE; py++) {
     const wz = BOX_MIN_XZ + ((py + 0.5) / WEATHER_SIZE) * BOX_SPAN_XZ;
@@ -101,18 +136,22 @@ export function paintRegions(data: Uint8Array, regions: Region[]): void {
       const wx = BOX_MIN_XZ + ((px + 0.5) / WEATHER_SIZE) * BOX_SPAN_XZ;
       let bestCov = 0;
       let bestType = 0;
+      let bestScale = 1;
       for (let id = 0; id < regions.length; id++) {
         const r = regions[id];
-        const cov = r.coverage * regionAlpha(r, wx, wz);
+        const m = mods?.[id];
+        const covMul = m ? m.coverageMul : 1;
+        const cov = r.coverage * covMul * regionAlpha(r, wx, wz);
         if (cov > bestCov) {
           bestCov = cov;
           bestType = presetIndex(r.type);
+          bestScale = m ? m.densityScale : 1;
         }
       }
       const o = (py * WEATHER_SIZE + px) * 4;
       data[o + 0] = Math.round(Math.min(1, bestCov) * 255);
       data[o + 1] = Math.round((bestType / typeDenom) * 255);
-      data[o + 2] = 255;
+      data[o + 2] = Math.round(Math.min(1, bestScale / DENSITY_SCALE_MAX) * 255);
       data[o + 3] = 0;
     }
   }
