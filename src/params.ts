@@ -5,6 +5,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   sunIntensity: 3,
   skipLight: 4,
   cacheBlend: 5,
+  weatherEnabled: 6,
   density: 8,
   coverage: 9,
   altitude: 10,
@@ -101,6 +102,7 @@ export interface CloudParams {
   windDeg: number;
   windSpeed: number;
   morphRate: number;
+  weatherEnabled: boolean;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
@@ -144,6 +146,7 @@ export function createDefaultParams(): CloudParams {
     windDeg: 45,
     windSpeed: 0.15,
     morphRate: 0.05,
+    weatherEnabled: true,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,

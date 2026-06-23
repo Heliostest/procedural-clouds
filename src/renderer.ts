@@ -180,6 +180,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       altTop: params.altTop,
       rayMarchSteps: params.rayMarchSteps,
       skipLight: params.skipLight,
+      weatherEnabled: params.weatherEnabled,
       cacheBlend,
       lightMarchSteps: params.lightMarchSteps,
       shadowDarkness: params.shadowDarkness,

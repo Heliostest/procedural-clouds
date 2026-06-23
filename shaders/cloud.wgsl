@@ -15,7 +15,7 @@ struct RenderParams {
   sunIntensity    : f32,
   skipLight       : f32,
   cacheBlend      : f32,
-  _pad0           : f32,
+  weatherEnabled  : f32,
   _pad1           : f32,
 };
 
@@ -199,17 +199,30 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let advect = params.wind.dir * (params.wind.speed * params.time.sceneTime);
   let objPos = objPosRaw - advect;
 
-  // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
-  // stay put while wind only drives the procedural detail.
-  let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
-  let w = textureSampleLevel(weatherTex, weatherSampler, wUv, 0.0);
-  let localCoverage = w.r;
-  if (localCoverage < 0.01) { return 0.0; }
-  let wDensityScale = w.b;
-  let typeF = w.g * f32(PRESET_COUNT - 1);
-  let idx0 = i32(floor(typeF));
-  let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
-  let shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
+  var localCoverage : f32;
+  var wDensityScale : f32;
+  var shape : Shape13;
+  if (params.render.weatherEnabled > 0.5) {
+    // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
+    // stay put while wind only drives the procedural detail.
+    let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
+    let w = textureSampleLevel(weatherTex, weatherSampler, wUv, 0.0);
+    localCoverage = w.r;
+    if (localCoverage < 0.01) { return 0.0; }
+    wDensityScale = w.b;
+    let typeF = w.g * f32(PRESET_COUNT - 1);
+    let idx0 = i32(floor(typeF));
+    let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
+    shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
+  } else {
+    localCoverage = params.shape.coverage;
+    wDensityScale = 1.0;
+    shape = Shape13(
+      params.shape.density, params.shape.coverage, params.shape.altitude, params.shape.scale,
+      params.shape.detail, params.shape.cloudHeight, params.shape.coverageThreshold, params.shape.edgeSharpness,
+      params.shape.baseRoundness, params.shape.worleyBlend, params.shape.detailStrength, params.shape.altBase,
+      params.shape.altTop);
+  }
 
   let densityParam  = shape.density;
   let altitude      = shape.altitude;
