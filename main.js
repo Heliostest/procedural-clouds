@@ -32,14 +32,16 @@ const PARAM_OFFSETS = {
   detailStrength: 21,
   altBase: 22,
   altTop: 23,
-  windSpeed: 24,
-  sceneTime: 28,
-  deltaTime: 29,
-  noiseTime: 30,
-  timeVoronoi1: 31,
-  timeVoronoi2: 32,
+  windDir: 24,
+  windSpeed: 27,
+  morphRate: 28,
+  sceneTime: 32,
+  deltaTime: 33,
+  noiseTime: 34,
+  timeVoronoi1: 35,
+  timeVoronoi2: 36,
 };
-const PARAMS_FLOAT_COUNT = 36;
+const PARAMS_FLOAT_COUNT = 40;
 const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
 
 const SHAPE_PRESET_KEYS = [
@@ -64,7 +66,12 @@ const CLOUD_PRESETS = {
 function packParams(dst, values) {
   for (const key in values) {
     const v = values[key];
-    dst[PARAM_OFFSETS[key]] = typeof v === 'boolean' ? (v ? 1 : 0) : v;
+    const off = PARAM_OFFSETS[key];
+    if (Array.isArray(v)) {
+      for (let i = 0; i < v.length; i++) dst[off + i] = v[i];
+    } else {
+      dst[off] = typeof v === 'boolean' ? (v ? 1 : 0) : v;
+    }
   }
   return dst;
 }
@@ -338,7 +345,9 @@ async function initWebGPU() {
     detailStrength: 1.0,
     altBase: 0.0,
     altTop: 1.0,
-    windSpeed: 0.05,
+    windDeg: 45,
+    windSpeed: 0.15,
+    morphRate: 0.05,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,
@@ -384,7 +393,10 @@ async function initWebGPU() {
   shapeFolder.add(params, 'altBase', 0.0, 1.0, 0.01).name('Alt Base');
   shapeFolder.add(params, 'altTop', 0.0, 1.0, 0.01).name('Alt Top');
   shapeFolder.add(params, 'cloudHeight', 0.5, 5.0, 0.1).name('Cloud Height');
-  gui.add(params, 'windSpeed', 0.0, 2.0, 0.05);
+  const windFolder = gui.addFolder('Wind');
+  windFolder.add(params, 'windDeg', 0, 360, 1).name('Direction °');
+  windFolder.add(params, 'windSpeed', 0.0, 2.0, 0.01).name('Speed');
+  windFolder.add(params, 'morphRate', 0.0, 1.0, 0.01).name('Morph Rate');
   gui.add(params, 'skipLight').name('Skip Light March');
   gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
   gui.add(params, 'lightMarchSteps', 1, 8, 1).name('Light Steps');
@@ -412,11 +424,12 @@ async function initWebGPU() {
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(time, cacheBlend, sceneTime, deltaTime) {
+  function buildParams(morphTime, cacheBlend, sceneTime, deltaTime) {
+    const rad = params.windDeg * Math.PI / 180.0;
     return packParams(paramsData, {
-      noiseTime: time,
-      timeVoronoi1: time,
-      timeVoronoi2: time,
+      noiseTime: morphTime,
+      timeVoronoi1: morphTime,
+      timeVoronoi2: morphTime,
       density: params.density,
       lowAltDensity: 0.2,
       altitude: params.altitude,
@@ -439,7 +452,9 @@ async function initWebGPU() {
       shadowDarkness: params.shadowDarkness,
       sunIntensity: params.sunIntensity,
       cloudHeight: params.cloudHeight,
+      windDir: [Math.cos(rad), Math.sin(rad), 0.0],
       windSpeed: params.windSpeed,
+      morphRate: params.morphRate,
       sceneTime: sceneTime,
       deltaTime: deltaTime,
     });
@@ -453,7 +468,6 @@ async function initWebGPU() {
     frameIndex++;
 
     const elapsed = (performance.now() - startTime) / 1000.0;
-    const windSpeed = params.windSpeed;
 
     // Smooth camera inertia
     camTheta += (targetTheta - camTheta) * 0.12;
@@ -480,10 +494,11 @@ async function initWebGPU() {
     cameraData[18] = eye[2];
     device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
-    // Sync params with UI
-    const time = elapsed * windSpeed;
+    // Sync params with UI. Cache blend tracks real elapsed time so advection drift
+    // interpolates smoothly even when morphRate is 0; noise W-axis uses morph time.
+    const morphTime = elapsed * params.morphRate;
     const blendDenom = Math.max(1e-5, nextCacheTime - prevCacheTime);
-    const linearBlend = Math.min(1.0, Math.max(0.0, (time - prevCacheTime) / blendDenom));
+    const linearBlend = Math.min(1.0, Math.max(0.0, (elapsed - prevCacheTime) / blendDenom));
     let cacheBlend = linearBlend;
     if (params.cacheSmooth > 0.0) {
       cacheBlend = Math.pow(linearBlend, 1.0 / (1.0 + params.cacheSmooth * 4.0));
@@ -501,14 +516,14 @@ async function initWebGPU() {
       shapeFolder.controllers.forEach(c => c.updateDisplay());
     }
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(time, cacheBlend, elapsed, deltaTime));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(morphTime, cacheBlend, elapsed, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
 
     // --- Compute density cache ---
     if (frameIndex % params.cacheUpdateRate === 0) {
       prevCacheTime = nextCacheTime;
-      nextCacheTime = time;
+      nextCacheTime = elapsed;
       cacheIndex = 1 - cacheIndex;
 
       densityStoreBindGroup = device.createBindGroup({

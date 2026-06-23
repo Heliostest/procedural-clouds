@@ -39,10 +39,12 @@ struct CloudShape {
 };
 
 struct Wind {
-  speed : f32,
-  _pad0 : f32,
-  _pad1 : f32,
-  _pad2 : f32,
+  dir       : vec3f,
+  speed     : f32,
+  morphRate : f32,
+  _pad0     : f32,
+  _pad1     : f32,
+  _pad2     : f32,
 };
 
 struct SceneTime {
@@ -157,7 +159,12 @@ fn cloudDensity(pos : vec3f) -> f32 {
 
   // Blender "Object" coordinates for a cloud layer (Z-up).
   // World Y is treated as Blender Z.
-  let objPos = vec3f(pos.x, pos.z, pos.y);
+  let objPosRaw = vec3f(pos.x, pos.z, pos.y);
+  // Horizontal advection: shift the (infinite) procedural sampling domain along
+  // the wind direction. Vertical structure is untouched. The procedural field is
+  // unbounded, so the box stays fully covered (no empty region) as it drifts.
+  let advect = params.wind.dir * (params.wind.speed * params.time.sceneTime);
+  let objPos = objPosRaw - advect;
   let zNorm = (pos.y - BOX_MIN.y) / (getBoxMax().y - BOX_MIN.y);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
 

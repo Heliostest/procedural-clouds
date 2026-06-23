@@ -57,11 +57,11 @@
 
 当前 wind 只推进噪声 W（形变）。需分离「平流位移」与「形变」。
 
-- [ ] 新增 `Wind { dir: vec3f, speed: f32, morphRate: f32 }`。
-- [ ] `cloudDensity()` 采样坐标做域偏移：`objPos_advected = objPos - wind.dir * wind.speed * sceneTime`。
-- [ ] W 轴时间改用 `morphRate * sceneTime`（缓慢形变），与平流解耦。
-- [ ] 处理包围盒边界：平流时云飘出 box → 用周期性环绕（`fract` 域重复）或扩大 box + 入口淡入。
-- [ ] GUI：风向（方位角滑杆）+ 风速 + 形变速率。
+- [x] 新增 `Wind { dir: vec3f, speed: f32, morphRate: f32 }`。
+- [x] `cloudDensity()` 采样坐标做域偏移：`objPos_advected = objPos - wind.dir * wind.speed * sceneTime`。
+- [x] W 轴时间改用 `morphRate * sceneTime`（缓慢形变），与平流解耦。
+- [x] 处理包围盒边界：程序噪声场无界，平流沿无限域偏移采样，box 始终满覆盖（无需环绕/淡入）。
+- [x] GUI：风向（方位角滑杆）+ 风速 + 形变速率。
 
 **验收**：云团整体沿风向水平漂移，同时边缘细节缓慢演化，不是整体闪烁。
 
