@@ -71,15 +71,17 @@
 
 让密度场按位置查询「这里有没有云、是什么云、多浓」。
 
-- [ ] CPU 生成 **天气图纹理** `weatherMap`（2D，覆盖 box 的 XZ 平面，建议 256×256 `rgba8unorm`）：
+> 代码落点：新增 `src/weather.ts`（天气图生成/写入 + Region API）；纹理/bind group 创建归 `src/renderer.ts`；采样逻辑归 `shaders/cloud.wgsl`；预设数组打包归 `src/params.ts`。
+
+- [ ] `src/weather.ts`：CPU 生成 **天气图纹理** `weatherMap`（2D，覆盖 box 的 XZ 平面，建议 256×256 `rgba8unorm`），用 `device.queue.writeTexture` 上传：
   - R = coverage（局部覆盖度）
   - G = cloudType 索引（量化到预设表）
   - B = densityScale（局部浓度乘子，供生命周期写入）
   - A = 备用 / 区域 id
-- [ ] 新增 bind group：compute 阶段绑定 `weatherMap` + sampler。
-- [ ] `cloudDensity()`：用 `objPos.xz` 归一化采样 `weatherMap`，得到局部 `coverage/type/densityScale`，覆盖全局值。
-- [ ] type 索引 → 在 shader 内对 2~3 个候选预设参数做 `mix`（避免分支爆炸，用预设参数数组 uniform）。
-- [ ] `main.js` 提供 `Region` API：`{ shape: rect|circle, bounds, type, coverage }` → 软笔刷绘制进 `weatherMap`（带边缘羽化 `feather`）。
+- [ ] `src/renderer.ts`：创建 `weatherMap` 纹理 + sampler，扩展 compute bind group layout 绑定（注意现有 `computeBindGroup` 仅绑 params buffer，需加 binding）。
+- [ ] `shaders/cloud.wgsl` 的 `cloudDensity()`：用 `objPos.xz` 归一化采样 `weatherMap`，得到局部 `coverage/type/densityScale`，覆盖全局值（需把 weatherMap 纹理/sampler 加进 compute 绑定声明）。
+- [ ] type 索引 → 在 `shaders/cloud.wgsl` 内对 2~3 个候选预设参数做 `mix`（避免分支爆炸）；预设参数数组由 `src/params.ts` 打包为 uniform（复用 `CLOUD_PRESETS`/`packParams`）。
+- [ ] `src/weather.ts` 提供 `Region` API：`{ shape: rect|circle, bounds, type, coverage }` → 软笔刷绘制进 `weatherMap`（带边缘羽化 `feather`）；GUI 区域控件加进 `src/gui.ts`（经 hooks 注入）。
 
 **验收**：能在矩形区域 A 只生成 cumulus、圆形区域 B 生成 cirrus，区域外晴空，区域边缘自然过渡。
 
@@ -89,11 +91,13 @@
 
 给每个区域/云团一条随时间的密度曲线。
 
-- [ ] 定义包络 `envelope(t) = phase ∈ [0,1]`，分段：`birth → grow → mature → decay → death`（线性或 smoothstep 关键帧）。
-- [ ] CPU 每帧按 `sceneTime` 求各区域 `phase`，写入 `weatherMap` 的 B 通道（densityScale）与 R 通道（coverage 渐变）。
+> 代码落点：新增 `src/lifecycle.ts`（包络求值）；每帧 `phase` 由 `src/main.ts` 帧循环按 `elapsed` 驱动，回写 `src/weather.ts` 的天气图。
+
+- [ ] `src/lifecycle.ts`：定义包络 `envelope(t) = phase ∈ [0,1]`，分段 `birth → grow → mature → decay → death`（线性或 smoothstep 关键帧）。
+- [ ] `src/main.ts` 帧循环按 `elapsed`（现有 sceneTime 基）求各区域 `phase`，调 `src/weather.ts` 写入 `weatherMap` 的 B 通道（densityScale）与 R 通道（coverage 渐变）。
 - [ ] 出现 = phase 0→1 时密度淡入；消失 = 1→0 淡出并最终 coverage=0。
 - [ ] 加重/减淡 = 调 mature 段的目标 densityScale。
-- [ ] 形态随阶段微变（可选）：grow 阶段 `detailStrength` 渐增，decay 阶段边缘侵蚀增强（接 worleyBlend）。
+- [ ] 形态随阶段微变（可选）：grow 阶段 `detailStrength` 渐增，decay 阶段边缘侵蚀增强（接 `worleyBlend`，均在 `shaders/cloud.wgsl`）。
 
 **验收**：一团云能在指定时刻凭空出现、30s 内增厚到最浓、之后缓慢变淡直到消失。
 
@@ -103,7 +107,9 @@
 
 把前述能力用数据驱动串起来。
 
-- [ ] 定义 `Scenario` JSON：
+> 代码落点：新增 `src/scenario.ts`（`Scenario` 类型 + `ScenarioPlayer`）；时间轴 GUI 加进 `src/gui.ts`；`src/main.ts` 帧循环驱动 player。
+
+- [ ] `src/scenario.ts` 定义 `Scenario` 类型（TS interface）与 JSON 结构：
   ```json
   {
     "duration": 120,
@@ -116,8 +122,8 @@
     "regions": { "A": { "shape": "rect", "bounds": [...] } }
   }
   ```
-- [ ] 运行时 `ScenarioPlayer`：按 `sceneTime` 在事件间插值 → 调阶段 4/5 的区域 API。
-- [ ] GUI：时间轴 scrubber（拖动预览任意时刻）、播放/暂停/倍速、加载/导出 Scenario JSON。
+- [ ] `src/scenario.ts` 的 `ScenarioPlayer`：按 `sceneTime` 在事件间插值 → 调阶段 4/5 的区域 API（`src/weather.ts`）。
+- [ ] `src/gui.ts`：时间轴 scrubber（拖动预览任意时刻）、播放/暂停/倍速、加载/导出 Scenario JSON。
 
 **验收**：加载一个脚本即可自动播放一整段「积云生成→增厚→被风吹过→消散」的演化。
 
@@ -125,28 +131,30 @@
 
 ## 阶段 7 — 多高度层共存（可选增强）
 
-- [ ] box 高度按 cloud-types 的 low/mid/high 分带，或叠加多张 density volume。
+> 代码落点：`src/renderer.ts` 管理多张 density volume 与多次 compute/采样；`src/params.ts` 扩展每层参数。
+
+- [ ] box 高度按 cloud-types 的 low/mid/high 分带，或在 `src/renderer.ts` 叠加多张 density volume（现为单对 ping-pong 纹理）。
 - [ ] 同一时刻支持「高空 cirrus + 中层 altocumulus + 低层 cumulus」。
-- [ ] 各层独立风速（高层更快）。
+- [ ] 各层独立风速（高层更快）：`src/params.ts` 的 `Wind` 按层扩展。
 
 ---
 
 ## 阶段 8 — 光照与画质（配合形态，可选）
 
-借鉴 `../procedural-clouds-threejs/cloud-shaders.md`：
+借鉴 `../procedural-clouds-threejs/cloud-shaders.md`（着色逻辑均在 `shaders/cloud.wgsl`，后处理与 BG 色归 `src/renderer.ts`）：
 
-- [ ] Time-of-day 调色（`SUN_COLOR/AMBIENT/BG` 随太阳高度角）。
-- [ ] Silver lining（背光边缘）、Beer-powder 亮边、双瓣 HG 相函数微调。
-- [ ] cumulonimbus 暗底亮顶随密度梯度增强。
-- [ ] God rays 后处理（屏幕空间径向模糊）。
+- [ ] Time-of-day 调色（`SUN_COLOR/AMBIENT/BG` 随太阳高度角）：参数加进 `src/params.ts`，`renderPass` 的 `clearValue` 改由 `src/renderer.ts` 按时间算。
+- [ ] Silver lining（背光边缘）、Beer-powder 亮边、双瓣 HG 相函数微调（`shaders/cloud.wgsl`）。
+- [ ] cumulonimbus 暗底亮顶随密度梯度增强（`shaders/cloud.wgsl`）。
+- [ ] God rays 后处理（屏幕空间径向模糊）：`src/renderer.ts` 增后处理 pass。
 
 ---
 
 ## 阶段 9 — 性能与工具
 
-- [ ] `weatherMap` 全空区域跳过 compute（区域包围盒裁剪 dispatch）。
-- [ ] 缓存分辨率/更新频率随相机距离 LOD。
-- [ ] 调试视图：叠加显示 `weatherMap`、区域边界、当前 `sceneTime`。
+- [ ] `weatherMap` 全空区域跳过 compute（区域包围盒裁剪 dispatch）：改 `src/renderer.ts` 的 `dispatchWorkgroups` 范围。
+- [ ] 缓存分辨率/更新频率随相机距离 LOD：`src/renderer.ts` 用相机距离调 `setDensityResolution`/`cacheUpdateRate`。
+- [ ] 调试视图：叠加显示 `weatherMap`、区域边界、当前 `sceneTime`（`src/renderer.ts` 增 debug pass 或 `src/gui.ts` 面板）。
 - [ ] 远距离 fallback：烘焙到 cubemap（极远背景）。
 
 ---
@@ -163,20 +171,36 @@
 - 3（风）可与 2 并行。
 - 7/8/9 为增强，随时插入。
 
+## 代码结构（迁移后，TypeScript 模块）
+
+```
+src/
+ ├─ main.ts        入口：装配模块 + rAF 循环 + 预设过渡（后续接 ScenarioPlayer/lifecycle）
+ ├─ renderer.ts    WebGPU 设备/管线/缓冲/密度缓存/bind group/帧逻辑（天气图、后处理、LOD 落点）
+ ├─ camera.ts      轨道相机 + 指针/滚轮输入
+ ├─ params.ts      PARAM_OFFSETS / packParams / CLOUD_PRESETS / 类型（预设数组 uniform 落点）
+ ├─ gui.ts         lil-gui 控件 + hooks（区域/时间轴控件落点）
+ ├─ math/mat4.ts   矩阵数学
+ └─ (新增) weather.ts / lifecycle.ts / scenario.ts  ← 阶段 4/5/6
+shaders/
+ ├─ cloud.wgsl     cloudDensity / raymarch / 光照（采样天气图、形态、光照落点）
+ └─ noise.wgsl     噪声函数
+```
+
 ## 数据模型总览
 
 ```
-Scenario
+Scenario (src/scenario.ts)
  ├─ duration, wind
  ├─ regions[]  { id, shape, bounds, feather }
  └─ events[]   { t, regionId, type, coverage, densityScale, ease }
-        │ 运行时插值
+        │ ScenarioPlayer 运行时插值 (src/scenario.ts)
         ▼
-weatherMap (GPU 纹理: R=coverage G=type B=densityScale A=id)
-        │ compute 采样
+weatherMap (GPU 纹理: R=coverage G=type B=densityScale A=id) ← src/weather.ts 写入
+        │ compute 采样 (shaders/cloud.wgsl)
         ▼
-cloudDensity(pos)  ←─ CloudShape 预设(type) + Wind 平流 + 包络(densityScale)
+cloudDensity(pos)  ←─ CloudShape 预设(type) + Wind 平流 + 包络(densityScale, src/lifecycle.ts)
         │
         ▼
-3D density cache (ping-pong) ─→ raymarch ─→ 画面
+3D density cache (ping-pong, src/renderer.ts) ─→ raymarch ─→ 画面
 ```
