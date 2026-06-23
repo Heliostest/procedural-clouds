@@ -12,6 +12,7 @@ export interface LifecycleEnvelope {
 export interface RegionMod {
   coverageMul: number;
   densityScale: number;
+  morph: number;
 }
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
@@ -28,7 +29,13 @@ export function evalEnvelope(env: LifecycleEnvelope, t: number): number {
 }
 
 export function evalRegionMod(env: LifecycleEnvelope | undefined, t: number): RegionMod {
-  if (!env) return { coverageMul: 1, densityScale: 1 };
+  if (!env) return { coverageMul: 1, densityScale: 1, morph: 0 };
   const phase = evalEnvelope(env, t);
-  return { coverageMul: phase, densityScale: phase * env.peakDensity };
+  let morph = 0;
+  if (t >= env.birth && t < env.death) {
+    if (t < env.grow) morph = smoothstep(env.birth, env.grow, t);
+    else if (t < env.decay) morph = 1;
+    else morph = 1 - 2 * smoothstep(env.decay, env.death, t);
+  }
+  return { coverageMul: phase, densityScale: phase * env.peakDensity, morph };
 }

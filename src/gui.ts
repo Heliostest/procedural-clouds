@@ -51,6 +51,7 @@ export function createGui(params: CloudParams, weather: WeatherConfig, timeline:
   const weatherFolder = gui.addFolder('Weather Regions');
   weatherFolder.add(params, 'weatherEnabled').name('Enable Regions');
   weatherFolder.add(params, 'showRegionBounds').name('Show Wireframe');
+  weatherFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name('Morph Strength');
   const rA = weatherFolder.addFolder('Region A (rect)');
   rA.add(weather, 'aType', presetKeys).name('Type').onChange(hooks.onWeather);
   rA.add(weather, 'aCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);

@@ -281,6 +281,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       cloudHeight: params.cloudHeight,
       layerBase: params.layerBase,
       layerThickness: params.layerThickness,
+      morphStrength: params.morphStrength,
       windDir: [Math.cos(rad), Math.sin(rad), 0.0],
       windSpeed: params.windSpeed,
       morphRate: params.morphRate,

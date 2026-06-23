@@ -97,7 +97,7 @@
 - [x] `src/main.ts` 帧循环按 `elapsed`（现有 sceneTime 基）求各区域 `phase`，调 `src/weather.ts` 写入 `weatherMap` 的 B 通道（densityScale）与 R 通道（coverage 渐变）。
 - [x] 出现 = phase 0→1 时密度淡入；消失 = 1→0 淡出并最终 coverage=0。
 - [x] 加重/减淡 = 调 mature 段的目标 densityScale。
-- [ ] 形态随阶段微变（可选）：grow 阶段 `detailStrength` 渐增，decay 阶段边缘侵蚀增强（接 `worleyBlend`，均在 `shaders/cloud.wgsl`）。
+- [x] 形态随阶段微变（可选）：grow 阶段 `detailStrength` 渐增，decay 阶段边缘侵蚀增强（接 `worleyBlend`，均在 `shaders/cloud.wgsl`）。
 
 **验收**：一团云能在指定时刻凭空出现、30s 内增厚到最浓、之后缓慢变淡直到消失。
 

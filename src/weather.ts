@@ -140,6 +140,7 @@ export function paintRegions(data: Uint8Array, regions: Region[], mods?: RegionM
       let bestCov = 0;
       let bestType = 0;
       let bestScale = 1;
+      let bestMorph = 0;
       for (let id = 0; id < regions.length; id++) {
         const r = regions[id];
         const m = mods?.[id];
@@ -149,13 +150,14 @@ export function paintRegions(data: Uint8Array, regions: Region[], mods?: RegionM
           bestCov = cov;
           bestType = presetIndex(r.type);
           bestScale = m ? m.densityScale : 1;
+          bestMorph = m ? m.morph : 0;
         }
       }
       const o = (py * WEATHER_SIZE + px) * 4;
       data[o + 0] = Math.round(Math.min(1, bestCov) * 255);
       data[o + 1] = Math.round((bestType / typeDenom) * 255);
       data[o + 2] = Math.round(Math.min(1, bestScale / DENSITY_SCALE_MAX) * 255);
-      data[o + 3] = 0;
+      data[o + 3] = Math.round((Math.max(-1, Math.min(1, bestMorph)) + 1) * 0.5 * 255);
     }
   }
 }

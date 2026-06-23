@@ -32,6 +32,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   timeVoronoi2: 36,
   layerBase: 40,
   layerThickness: 41,
+  morphStrength: 42,
 };
 export const PARAMS_FLOAT_COUNT = 44;
 export const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
@@ -108,6 +109,7 @@ export interface CloudParams {
   morphRate: number;
   weatherEnabled: boolean;
   showRegionBounds: boolean;
+  morphStrength: number;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
@@ -153,6 +155,7 @@ export function createDefaultParams(): CloudParams {
     morphRate: 0.05,
     weatherEnabled: true,
     showRegionBounds: true,
+    morphStrength: 0,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,

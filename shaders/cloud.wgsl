@@ -59,10 +59,10 @@ struct SceneTime {
 };
 
 struct CloudLayer {
-  base      : f32,
-  thickness : f32,
-  _pad0     : f32,
-  _pad1     : f32,
+  base          : f32,
+  thickness     : f32,
+  morphStrength : f32,
+  _pad1         : f32,
 };
 
 struct Params {
@@ -214,6 +214,7 @@ fn cloudDensity(pos : vec3f) -> f32 {
   var wDensityScale : f32;
   var shape : Shape13;
   var edgeSoft : f32 = 1.0;
+  var wMorph : f32 = 0.0;
   if (params.render.weatherEnabled > 0.5) {
     // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
     // stay put while wind only drives the procedural detail.
@@ -227,6 +228,7 @@ fn cloudDensity(pos : vec3f) -> f32 {
     let idx0 = i32(floor(typeF));
     let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
     shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
+    wMorph = w.a * 2.0 - 1.0;
     // Soften morphology where coverage fades out (region edge): keep the core
     // crisp, relax sharpening/threshold toward the feathered border.
     edgeSoft = smoothstep(0.05, 0.45, localCoverage);
@@ -251,8 +253,10 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let coverageThreshold = shape.coverageThreshold;
   let edgeSharpness     = shape.edgeSharpness * edgeSoft;
   let baseRoundness     = shape.baseRoundness;
-  let worleyBlend       = shape.worleyBlend;
-  let detailStrength    = shape.detailStrength;
+  let detailBoost       = max(wMorph, 0.0);
+  let erosion           = max(-wMorph, 0.0);
+  let worleyBlend       = clamp01(shape.worleyBlend + params.layer.morphStrength * erosion);
+  let detailStrength    = shape.detailStrength * (1.0 + params.layer.morphStrength * detailBoost);
   // Vertical placement is a global control (layer height + thickness), so clouds
   // float at a chosen altitude with empty space below them.
   let altBase           = clamp(params.layer.base, 0.0, 0.98);
