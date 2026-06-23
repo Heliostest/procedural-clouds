@@ -81,6 +81,8 @@ struct PresetShape {
 };
 
 const PRESET_COUNT = 10;
+const VERTICAL_EDGE_RANGE = 0.55;
+const VERTICAL_EDGE_SHAPE = 2.0;
 
 @group(0) @binding(0) var<uniform> camera : Camera;
 @group(0) @binding(1) var<uniform> params : Params;
@@ -293,18 +295,24 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let cutoffFromMin = altitude * scaleAlt;
   let cutoff = mapRange(Z, cutoffFromMin, 0.0, 0.0, 1.0); // Map Range.008 (Blender)
   let shaped = clamp01(stage3 - cutoff); // Math.020
-  let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold); // Math.005
+
+  // Vertical limits folded into the same density-vs-threshold competition that
+  // forms horizontal edges: a height envelope raises the threshold toward the
+  // top/bottom, so those surfaces fall on the 3D-noise iso-surface and stay
+  // irregular instead of being clipped to flat planes.
+  let bandHi = max(altTop, altBase + 1e-3);
+  let vMid = (altBase + bandHi) * 0.5;
+  let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
+  let vT = clamp01(abs(zNorm - vMid) / vHalf);
+  let vEnvelope = pow(vT, VERTICAL_EDGE_SHAPE) * VERTICAL_EDGE_RANGE;
+  let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
 
   // --- STAGE 5: Final Multipliers ---
   let falloffRaw = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
   let falloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
-  let bandHi = max(altTop, altBase + 1e-3);
-  let band = smoothstep(altBase, altBase + 0.04, zNorm) - smoothstep(bandHi - 0.04, bandHi, zNorm);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
-  // Smooth density fade across the region border so the feathered coverage does
-  // not get re-hardened into a visible cut.
   let edgeFade = smoothstep(0.0, 0.25, localCoverage);
-  return finalShaped * falloff * clamp01(band) * densityScale * wDensityScale * edgeFade; // Math.016
+  return finalShaped * falloff * densityScale * wDensityScale * edgeFade; // Math.016
 }
 
 // ============================================================
