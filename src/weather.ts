@@ -79,7 +79,10 @@ function envFrom(
   enabled: boolean, birth: number, grow: number, decay: number, death: number, peak: number,
 ): LifecycleEnvelope | undefined {
   if (!enabled) return undefined;
-  return { birth, grow, mature: decay, decay, death, peakDensity: peak };
+  const g = Math.max(birth, grow);
+  const dc = Math.max(g, decay);
+  const dt = Math.max(dc, death);
+  return { birth, grow: g, mature: dc, decay: dc, death: dt, peakDensity: peak };
 }
 
 export function buildRegions(c: WeatherConfig): Region[] {

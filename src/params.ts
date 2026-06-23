@@ -107,6 +107,7 @@ export interface CloudParams {
   windSpeed: number;
   morphRate: number;
   weatherEnabled: boolean;
+  showRegionBounds: boolean;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
@@ -151,6 +152,7 @@ export function createDefaultParams(): CloudParams {
     windSpeed: 0.15,
     morphRate: 0.05,
     weatherEnabled: true,
+    showRegionBounds: true,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,

@@ -14,6 +14,64 @@ import type { CameraFrame } from './camera';
 
 const shaderSource = noiseSource + cloudSource;
 
+const lineShaderSource = /* wgsl */ `
+struct LineCam { viewProj : mat4x4f, tint : vec4f };
+@group(0) @binding(0) var<uniform> cam : LineCam;
+struct VOut { @builtin(position) pos : vec4f, @location(0) color : vec3f };
+@vertex fn vsLine(@location(0) p : vec3f, @location(1) c : vec3f) -> VOut {
+  var o : VOut;
+  o.pos = cam.viewProj * vec4f(p, 1.0);
+  o.color = c * cam.tint.x;
+  return o;
+}
+@fragment fn fsLine(i : VOut) -> @location(0) vec4f { return vec4f(i.color, 1.0); }
+`;
+
+const MAX_LINE_VERTS = 2048;
+const REGION_COLORS: [number, number, number][] = [
+  [0.2, 1.0, 0.35],
+  [1.0, 0.6, 0.12],
+  [0.3, 0.7, 1.0],
+  [1.0, 0.3, 0.7],
+];
+
+function buildLineVerts(regions: Region[], cloudHeight: number): Float32Array {
+  const out: number[] = [];
+  const y0 = 0.0;
+  const y1 = cloudHeight;
+  const seg = (ax: number, ay: number, az: number, bx: number, by: number, bz: number, col: [number, number, number]) => {
+    out.push(ax, ay, az, col[0], col[1], col[2]);
+    out.push(bx, by, bz, col[0], col[1], col[2]);
+  };
+  regions.forEach((r, i) => {
+    const col = REGION_COLORS[i % REGION_COLORS.length];
+    if (r.shape === 'rect') {
+      const [minX, minZ, maxX, maxZ] = r.bounds;
+      const corners: [number, number][] = [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
+      for (let k = 0; k < 4; k++) {
+        const [cx, cz] = corners[k];
+        const [nx, nz] = corners[(k + 1) % 4];
+        seg(cx, y0, cz, nx, y0, nz, col);
+        seg(cx, y1, cz, nx, y1, nz, col);
+        seg(cx, y0, cz, cx, y1, cz, col);
+      }
+    } else {
+      const [cx, cz, rad] = r.bounds;
+      const N = 40;
+      for (let k = 0; k < N; k++) {
+        const a0 = (k / N) * Math.PI * 2;
+        const a1 = ((k + 1) / N) * Math.PI * 2;
+        const x0 = cx + Math.cos(a0) * rad, z0 = cz + Math.sin(a0) * rad;
+        const x1 = cx + Math.cos(a1) * rad, z1 = cz + Math.sin(a1) * rad;
+        seg(x0, y0, z0, x1, y0, z1, col);
+        seg(x0, y1, z0, x1, y1, z1, col);
+        if (k % 10 === 0) seg(x0, y0, z0, x0, y1, z0, col);
+      }
+    }
+  });
+  return new Float32Array(out);
+}
+
 export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
@@ -50,6 +108,39 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     layout: 'auto',
     compute: { module: shaderModule, entryPoint: 'cs' },
   });
+
+  const lineModule = device.createShaderModule({ code: lineShaderSource });
+  const linePipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: lineModule,
+      entryPoint: 'vsLine',
+      buffers: [{
+        arrayStride: 24,
+        attributes: [
+          { shaderLocation: 0, offset: 0, format: 'float32x3' },
+          { shaderLocation: 1, offset: 12, format: 'float32x3' },
+        ],
+      }],
+    },
+    fragment: { module: lineModule, entryPoint: 'fsLine', targets: [{ format }] },
+    primitive: { topology: 'line-list' },
+  });
+  const lineCamBuffer = device.createBuffer({
+    size: 80,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const lineVertexBuffer = device.createBuffer({
+    size: MAX_LINE_VERTS * 24,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+  });
+  const lineBindGroup = device.createBindGroup({
+    layout: linePipeline.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: lineCamBuffer } }],
+  });
+  const lineCamData = new Float32Array(20);
+  let lineVertCount = 0;
+  let currentRegions: Region[] = [];
 
   const cameraBuffer = device.createBuffer({
     size: 80,
@@ -91,6 +182,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   weatherData.fill(0);
 
   function setRegions(regions: Region[], mods?: RegionMod[]): void {
+    currentRegions = regions;
     paintRegions(weatherData, regions, mods);
     device.queue.writeTexture(
       { texture: weatherTexture },
@@ -206,6 +298,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cameraData[18] = cam.eye[2];
     device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
+    const showLines = params.showRegionBounds && params.weatherEnabled && currentRegions.length > 0;
+    if (showLines) {
+      const verts = buildLineVerts(currentRegions, params.cloudHeight);
+      lineVertCount = Math.min(verts.length / 6, MAX_LINE_VERTS);
+      device.queue.writeBuffer(lineVertexBuffer, 0, verts, 0, lineVertCount * 6);
+      lineCamData.set(cam.viewProj, 0);
+      lineCamData[16] = 0.65 + 0.35 * Math.sin(elapsed * 3.0);
+      device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
+    } else {
+      lineVertCount = 0;
+    }
+
     const morphTime = elapsed * params.morphRate;
     const blendDenom = Math.max(1e-5, nextCacheTime - prevCacheTime);
     const linearBlend = Math.min(1.0, Math.max(0.0, (elapsed - prevCacheTime) / blendDenom));
@@ -257,6 +361,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     renderPass.setBindGroup(0, bindGroup);
     renderPass.setBindGroup(1, densitySampleBindGroup);
     renderPass.draw(3);
+
+    if (lineVertCount > 0) {
+      renderPass.setPipeline(linePipeline);
+      renderPass.setBindGroup(0, lineBindGroup);
+      renderPass.setVertexBuffer(0, lineVertexBuffer);
+      renderPass.draw(lineVertCount);
+    }
     renderPass.end();
 
     device.queue.submit([commandEncoder.finish()]);

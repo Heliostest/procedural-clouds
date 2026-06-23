@@ -2,6 +2,7 @@ import { mat4Perspective, mat4LookAt, mat4Multiply, mat4Invert } from './math/ma
 
 export interface CameraFrame {
   invViewProj: Float32Array;
+  viewProj: Float32Array;
   eye: [number, number, number];
 }
 
@@ -64,7 +65,7 @@ export function createOrbitCamera(canvas: HTMLCanvasElement): OrbitCamera {
       const view = mat4LookAt(eye, target, up);
       const viewProj = mat4Multiply(proj, view);
       const invViewProj = mat4Invert(viewProj);
-      return { invViewProj, eye };
+      return { invViewProj, viewProj, eye };
     },
   };
 }

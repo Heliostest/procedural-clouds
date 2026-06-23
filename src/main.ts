@@ -48,8 +48,15 @@ async function main(): Promise<void> {
       renderer.setDensityResolution(res);
     },
     onWeather() {
+      const prevHasLife = regions.some((r) => r.lifecycle);
       regions = buildRegions(weather);
       const hasLife = regions.some((r) => r.lifecycle);
+      if (hasLife && !prevHasLife) {
+        timeBase = (performance.now() - startTime) / 1000.0;
+        timeline.scrub = false;
+        timeline.time = 0;
+        gui.refreshTimeline();
+      }
       if (!hasLife) renderer.setRegions(regions);
       lastMods = null;
     },
