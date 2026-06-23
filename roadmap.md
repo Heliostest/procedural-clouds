@@ -73,15 +73,15 @@
 
 > 代码落点：新增 `src/weather.ts`（天气图生成/写入 + Region API）；纹理/bind group 创建归 `src/renderer.ts`；采样逻辑归 `shaders/cloud.wgsl`；预设数组打包归 `src/params.ts`。
 
-- [ ] `src/weather.ts`：CPU 生成 **天气图纹理** `weatherMap`（2D，覆盖 box 的 XZ 平面，建议 256×256 `rgba8unorm`），用 `device.queue.writeTexture` 上传：
+- [x] `src/weather.ts`：CPU 生成 **天气图纹理** `weatherMap`（2D，覆盖 box 的 XZ 平面，建议 256×256 `rgba8unorm`），用 `device.queue.writeTexture` 上传：
   - R = coverage（局部覆盖度）
   - G = cloudType 索引（量化到预设表）
   - B = densityScale（局部浓度乘子，供生命周期写入）
   - A = 备用 / 区域 id
-- [ ] `src/renderer.ts`：创建 `weatherMap` 纹理 + sampler，扩展 compute bind group layout 绑定（注意现有 `computeBindGroup` 仅绑 params buffer，需加 binding）。
-- [ ] `shaders/cloud.wgsl` 的 `cloudDensity()`：用 `objPos.xz` 归一化采样 `weatherMap`，得到局部 `coverage/type/densityScale`，覆盖全局值（需把 weatherMap 纹理/sampler 加进 compute 绑定声明）。
-- [ ] type 索引 → 在 `shaders/cloud.wgsl` 内对 2~3 个候选预设参数做 `mix`（避免分支爆炸）；预设参数数组由 `src/params.ts` 打包为 uniform（复用 `CLOUD_PRESETS`/`packParams`）。
-- [ ] `src/weather.ts` 提供 `Region` API：`{ shape: rect|circle, bounds, type, coverage }` → 软笔刷绘制进 `weatherMap`（带边缘羽化 `feather`）；GUI 区域控件加进 `src/gui.ts`（经 hooks 注入）。
+- [x] `src/renderer.ts`：创建 `weatherMap` 纹理 + sampler，扩展 compute bind group layout 绑定（注意现有 `computeBindGroup` 仅绑 params buffer，需加 binding）。
+- [x] `shaders/cloud.wgsl` 的 `cloudDensity()`：用 `objPos.xz` 归一化采样 `weatherMap`，得到局部 `coverage/type/densityScale`，覆盖全局值（需把 weatherMap 纹理/sampler 加进 compute 绑定声明）。
+- [x] type 索引 → 在 `shaders/cloud.wgsl` 内对 2~3 个候选预设参数做 `mix`（避免分支爆炸）；预设参数数组由 `src/params.ts` 打包为 uniform（复用 `CLOUD_PRESETS`/`packParams`）。
+- [x] `src/weather.ts` 提供 `Region` API：`{ shape: rect|circle, bounds, type, coverage }` → 软笔刷绘制进 `weatherMap`（带边缘羽化 `feather`）；GUI 区域控件加进 `src/gui.ts`（经 hooks 注入）。
 
 **验收**：能在矩形区域 A 只生成 cumulus、圆形区域 B 生成 cirrus，区域外晴空，区域边缘自然过渡。
 

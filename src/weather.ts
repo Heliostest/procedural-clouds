@@ -39,13 +39,13 @@ export function createDefaultWeather(): WeatherConfig {
     aCenterZ: 0.0,
     aSizeX: 2.0,
     aSizeZ: 2.0,
-    aFeather: 0.8,
+    aFeather: 1.5,
     bType: 'cirrus',
     bCoverage: 0.5,
     bCenterX: 2.0,
     bCenterZ: 0.0,
     bRadius: 1.8,
-    bFeather: 0.8,
+    bFeather: 1.5,
   };
 }
 

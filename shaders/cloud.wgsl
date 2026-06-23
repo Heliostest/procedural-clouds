@@ -202,6 +202,7 @@ fn cloudDensity(pos : vec3f) -> f32 {
   var localCoverage : f32;
   var wDensityScale : f32;
   var shape : Shape13;
+  var edgeSoft : f32 = 1.0;
   if (params.render.weatherEnabled > 0.5) {
     // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
     // stay put while wind only drives the procedural detail.
@@ -214,6 +215,9 @@ fn cloudDensity(pos : vec3f) -> f32 {
     let idx0 = i32(floor(typeF));
     let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
     shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
+    // Soften morphology where coverage fades out (region edge): keep the core
+    // crisp, relax sharpening/threshold toward the feathered border.
+    edgeSoft = smoothstep(0.05, 0.45, localCoverage);
   } else {
     localCoverage = params.shape.coverage;
     wDensityScale = 1.0;
@@ -233,7 +237,7 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let scaleVoronoi2 = shape.scale;
   let detail        = shape.detail;
   let coverageThreshold = shape.coverageThreshold;
-  let edgeSharpness     = shape.edgeSharpness;
+  let edgeSharpness     = shape.edgeSharpness * edgeSoft;
   let baseRoundness     = shape.baseRoundness;
   let worleyBlend       = shape.worleyBlend;
   let detailStrength    = shape.detailStrength;
@@ -287,7 +291,10 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let bandHi = max(altTop, altBase + 1e-3);
   let band = smoothstep(altBase, altBase + 0.04, zNorm) - smoothstep(bandHi - 0.04, bandHi, zNorm);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
-  return finalShaped * falloff * clamp01(band) * densityScale * wDensityScale; // Math.016
+  // Smooth density fade across the region border so the feathered coverage does
+  // not get re-hardened into a visible cut.
+  let edgeFade = smoothstep(0.0, 0.25, localCoverage);
+  return finalShaped * falloff * clamp01(band) * densityScale * wDensityScale * edgeFade; // Math.016
 }
 
 // ============================================================
