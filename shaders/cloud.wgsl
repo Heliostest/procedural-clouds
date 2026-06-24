@@ -8,69 +8,32 @@ struct Camera {
   _pad        : f32,
 };
 
-struct RenderParams {
+struct Globals {
   rayMarchSteps   : f32,
   lightMarchSteps : f32,
   shadowDarkness  : f32,
   sunIntensity    : f32,
   skipLight       : f32,
   cacheBlend      : f32,
-  weatherEnabled  : f32,
-  _pad1           : f32,
+  activeBodyCount : f32,
+  cloudHeight     : f32,
+  sceneTime       : f32,
+  deltaTime       : f32,
+  weatherMorph    : f32,
+  _pad            : f32,
 };
 
-struct CloudShape {
-  density           : f32,
-  coverage          : f32,
-  altitude          : f32,
-  scale             : f32,
-  detail            : f32,
-  lowAltDensity     : f32,
-  factorShaper      : f32,
-  factorDetail      : f32,
-  cloudHeight       : f32,
-  coverageThreshold : f32,
-  edgeSharpness     : f32,
-  baseRoundness     : f32,
-  worleyBlend       : f32,
-  detailStrength    : f32,
-  altBase           : f32,
-  altTop            : f32,
+struct BodyGPU {
+  geom : vec4f, // x=base, y=altTop, z=typeIdx, w=enabled
+  wind : vec4f, // x=dirX, y=dirY, z=speed, w=morphRate
+  intensity : vec4f, // x=coverage, y=densityScale, z=morph
 };
 
-struct Wind {
-  dir       : vec3f,
-  speed     : f32,
-  morphRate : f32,
-  _pad0     : f32,
-  _pad1     : f32,
-  _pad2     : f32,
-};
-
-struct SceneTime {
-  sceneTime    : f32,
-  deltaTime    : f32,
-  noiseTime    : f32,
-  timeVoronoi1 : f32,
-  timeVoronoi2 : f32,
-  _pad0        : f32,
-  _pad1        : f32,
-  _pad2        : f32,
-};
-
-struct CloudLayer {
-  base          : f32,
-  thickness     : f32,
-  morphStrength : f32,
-  _pad1         : f32,
-};
+const MAX_BODIES = 12;
 
 struct Params {
-  render : RenderParams,
-  shape  : CloudShape,
-  wind   : Wind,
-  time   : SceneTime,
-  layer  : CloudLayer,
+  g      : Globals,
+  bodies : array<BodyGPU, MAX_BODIES>,
 };
 
 struct PresetShape {
@@ -87,7 +50,7 @@ const VERTICAL_EDGE_SHAPE = 2.0;
 
 @group(0) @binding(0) var<uniform> camera : Camera;
 @group(0) @binding(1) var<uniform> params : Params;
-@group(0) @binding(2) var weatherTex : texture_2d<f32>;
+@group(0) @binding(2) var weatherTex : texture_2d_array<f32>;
 @group(0) @binding(3) var weatherSampler : sampler;
 @group(0) @binding(4) var<uniform> presets : array<PresetShape, PRESET_COUNT>;
 @group(1) @binding(0) var densitySampler : sampler;
@@ -184,7 +147,7 @@ fn sampleDensity(pos: vec3f) -> f32 {
   }
   let a = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0).r;
   let b = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).r;
-  let blend = clamp(params.render.cacheBlend, 0.0, 1.0);
+  let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
   let density = mix(a, b, blend);
   return density;
 }
@@ -194,53 +157,43 @@ fn sampleDensity(pos: vec3f) -> f32 {
 // ------------------------------------------------------------
 
 fn cloudDensity(pos : vec3f) -> f32 {
-  let timeNoise     = params.time.noiseTime;
-  let timeVoronoi1  = params.time.timeVoronoi1;
-  let timeVoronoi2  = params.time.timeVoronoi2;
-
-  let lowAltDens    = params.shape.lowAltDensity;
-  let factorDetail  = params.shape.factorDetail;
-  let factorShaper  = params.shape.factorShaper;
-
-  // Blender "Object" coordinates for a cloud layer (Z-up).
-  // World Y is treated as Blender Z.
+  // Blender "Object" coordinates for a cloud body (Z-up). World Y is Blender Z.
   let objPosRaw = vec3f(pos.x, pos.z, pos.y);
-  // Horizontal advection: shift the (infinite) procedural sampling domain along
-  // the wind direction. Vertical structure is untouched.
-  let advect = params.wind.dir * (params.wind.speed * params.time.sceneTime);
+  var total = 0.0;
+  for (var i = 0; i < MAX_BODIES; i++) {
+    if (params.bodies[i].geom.w < 0.5) { continue; }
+    total += evalBody(pos, objPosRaw, i);
+  }
+  return total;
+}
+
+fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
+  let b = params.bodies[i];
+
+  let mt = params.g.sceneTime * b.wind.w;
+  let timeNoise     = mt;
+  let timeVoronoi1  = mt;
+  let timeVoronoi2  = mt;
+
+  let lowAltDens    = 0.2;
+  let factorDetail  = 1.0;
+  let factorShaper  = 1.0;
+
+  // Per-body horizontal advection of the (infinite) procedural sampling domain.
+  let advect = vec3f(b.wind.x, b.wind.y, 0.0) * (b.wind.z * params.g.sceneTime);
   let objPos = objPosRaw - advect;
 
-  var localCoverage : f32;
-  var wDensityScale : f32;
-  var shape : Shape13;
-  var edgeSoft : f32 = 1.0;
-  var wMorph : f32 = 0.0;
-  if (params.render.weatherEnabled > 0.5) {
-    // Weather map lookup on the fixed (non-advected) horizontal plane, so regions
-    // stay put while wind only drives the procedural detail.
-    let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
-    let w = textureSampleLevel(weatherTex, weatherSampler, wUv, 0.0);
-    localCoverage = w.r;
-    if (localCoverage < 0.01) { return 0.0; }
-    wDensityScale = w.b * DENSITY_SCALE_MAX;
-    if (wDensityScale < 0.001) { return 0.0; }
-    let typeF = w.g * f32(PRESET_COUNT - 1);
-    let idx0 = i32(floor(typeF));
-    let idx1 = min(idx0 + 1, PRESET_COUNT - 1);
-    shape = mixShape(presetShape(idx0), presetShape(idx1), typeF - f32(idx0));
-    wMorph = w.a * 2.0 - 1.0;
-    // Soften morphology where coverage fades out (region edge): keep the core
-    // crisp, relax sharpening/threshold toward the feathered border.
-    edgeSoft = smoothstep(0.05, 0.45, localCoverage);
-  } else {
-    localCoverage = params.shape.coverage;
-    wDensityScale = 1.0;
-    shape = Shape13(
-      params.shape.density, params.shape.coverage, params.shape.altitude, params.shape.scale,
-      params.shape.detail, params.shape.cloudHeight, params.shape.coverageThreshold, params.shape.edgeSharpness,
-      params.shape.baseRoundness, params.shape.worleyBlend, params.shape.detailStrength, params.shape.altBase,
-      params.shape.altTop);
-  }
+  // Normalized horizontal silhouette from this body's shape layer.
+  let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
+  let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
+  if (alpha < 0.01) { return 0.0; }
+  let localCoverage = clamp01(alpha * b.intensity.x);
+  if (localCoverage < 0.01) { return 0.0; }
+  let wDensityScale = b.intensity.y;
+  if (wDensityScale < 0.001) { return 0.0; }
+  let wMorph = b.intensity.z;
+  let edgeSoft = smoothstep(0.05, 0.45, alpha);
+  let shape = presetShape(i32(round(b.geom.z)));
 
   let densityParam  = shape.density;
   let altitude      = shape.altitude;
@@ -255,12 +208,12 @@ fn cloudDensity(pos : vec3f) -> f32 {
   let baseRoundness     = shape.baseRoundness;
   let detailBoost       = max(wMorph, 0.0);
   let erosion           = max(-wMorph, 0.0);
-  let worleyBlend       = clamp01(shape.worleyBlend + params.layer.morphStrength * erosion);
-  let detailStrength    = shape.detailStrength * (1.0 + params.layer.morphStrength * detailBoost);
-  // Vertical placement is a global control (layer height + thickness), so clouds
-  // float at a chosen altitude with empty space below them.
-  let altBase           = clamp(params.layer.base, 0.0, 0.98);
-  let altTop            = clamp(altBase + max(params.layer.thickness, 0.02), altBase + 0.02, 1.0);
+  let weatherMorph      = params.g.weatherMorph;
+  let worleyBlend       = clamp01(shape.worleyBlend + weatherMorph * erosion);
+  let detailStrength    = shape.detailStrength * (1.0 + weatherMorph * detailBoost);
+  // Per-body vertical band: clouds float within [base, altTop].
+  let altBase           = clamp(b.geom.x, 0.0, 0.98);
+  let altTop            = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
 
   let zNorm = (pos.y - BOX_MIN.y) / (getBoxMax().y - BOX_MIN.y);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
@@ -329,7 +282,7 @@ const BOX_MIN = vec3f(-4.5, 0.0, -4.5); // Reduced bounds
 const BOX_MAX_XZ = 4.5;
 
 fn getBoxMax() -> vec3f {
-  return vec3f(BOX_MAX_XZ, params.shape.cloudHeight, BOX_MAX_XZ);
+  return vec3f(BOX_MAX_XZ, params.g.cloudHeight, BOX_MAX_XZ);
 }
 
 struct HitInfo {
@@ -361,13 +314,13 @@ fn hgPhase(cosTheta: f32, g: f32) -> f32 {
 
 fn lightMarch(pos : vec3f) -> f32 {
   var shadow = 0.0;
-  let steps = i32(params.render.lightMarchSteps);
+  let steps = i32(params.g.lightMarchSteps);
   let stepSize = 0.15;
   for (var i = 1; i <= steps; i++) {
     let p = pos + SUN_DIR * (f32(i) * stepSize);
     shadow += sampleDensity(p) * stepSize;
   }
-  return exp(-shadow * params.render.shadowDarkness); 
+  return exp(-shadow * params.g.shadowDarkness); 
 }
 
 fn interleavedGradientNoise(uv: vec2f) -> f32 {
@@ -377,8 +330,8 @@ fn interleavedGradientNoise(uv: vec2f) -> f32 {
 
 @fragment
 fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
-  let skipLight = params.render.skipLight > 0.5;
-  let numSteps = i32(params.render.rayMarchSteps);
+  let skipLight = params.g.skipLight > 0.5;
+  let numSteps = i32(params.g.rayMarchSteps);
   let world_near = camera.invViewProj * vec4f(uv, 0.0, 1.0);
   let world_far  = camera.invViewProj * vec4f(uv, 1.0, 1.0);
   let ro = camera.position;
@@ -409,7 +362,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let step_trans = exp(-d * stepSize);
         let shadow = select(lightMarch(pos), 1.0, skipLight);
         let scattering = shadow * phase * (1.0 - exp(-d * 1.0));
-        let litColor = SUN_COLOR * scattering * params.render.sunIntensity + AMBIENT * 0.5;
+        let litColor = SUN_COLOR * scattering * params.g.sunIntensity + AMBIENT * 0.5;
 
         color += transmittance * (1.0 - step_trans) * litColor;
         transmittance *= step_trans;

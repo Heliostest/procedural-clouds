@@ -1,8 +1,5 @@
-# cloud-scenario Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change cloud-scenario. Update Purpose after archive.
-## Requirements
 ### Requirement: 场景数据模型
 系统 SHALL 提供 `Scenario` 数据模型，包含 `duration`、可选 `wind`、`bodies`（id → 云体定义：横向 `shape`/`bounds`/`feather`、垂直 `base`/`thickness`、`type`）与 `events`（关键帧数组，每条含 `t`、`bodyId`，可选 `coverage`/`densityScale`/`type`/`base`/`thickness`/`windDeg`/`windSpeed`/`ease`）。系统 SHALL 提供 JSON 的解析与导出，解析 MUST 校验必填字段并对事件按时间排序、补默认 `ease`。解析 SHALL 向后兼容旧版 `regions` 字段：见到 `regions`/`regionId` 时映射为 `bodies`/`bodyId` 并补默认垂直参数。
 
@@ -33,21 +30,6 @@ TBD - created by archiving change cloud-scenario. Update Purpose after archive.
 - **WHEN** `sceneTime` 超过某云体最后一个事件的 `t`
 - **THEN** 该云体 SHALL 保持该末帧值（如 coverage=0 即消散后晴空）
 
-### Requirement: 播放控制
-系统 SHALL 提供播放控制：播放/暂停、倍速、以及拖动 scrubber 预览任意时刻。播放时 `playhead` SHALL 按 `deltaTime × speed` 推进并受 `duration` 约束（截断或循环）；scrub 时 SHALL 直接采用拖动时刻。
-
-#### Scenario: 暂停冻结画面
-- **WHEN** 处于暂停状态
-- **THEN** `playhead` SHALL 不推进，画面停在当前时刻
-
-#### Scenario: 倍速改变推进速度
-- **WHEN** 设置 speed 大于 1 并播放
-- **THEN** `playhead` 推进速度 SHALL 按倍速加快，演化相应加速
-
-#### Scenario: 拖动预览任意时刻
-- **WHEN** 拖动 scrubber 到某时刻
-- **THEN** 渲染 SHALL 立即反映该时刻的场景状态
-
 ### Requirement: 场景启用与回退
 系统 SHALL 提供场景启用开关。启用时云体集合 SHALL 由播放器驱动；禁用时 SHALL 回退到手动云体列表，画面与未启用场景时一致。
 
@@ -58,4 +40,3 @@ TBD - created by archiving change cloud-scenario. Update Purpose after archive.
 #### Scenario: 禁用回退手动
 - **WHEN** 关闭场景开关
 - **THEN** 系统 SHALL 恢复手动云体列表，画面与未启用场景时一致
-

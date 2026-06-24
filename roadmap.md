@@ -133,9 +133,9 @@
 
 > 代码落点：`src/renderer.ts` 管理多张 density volume 与多次 compute/采样；`src/params.ts` 扩展每层参数。
 
-- [ ] box 高度按 cloud-types 的 low/mid/high 分带，或在 `src/renderer.ts` 叠加多张 density volume（现为单对 ping-pong 纹理）。
-- [ ] 同一时刻支持「高空 cirrus + 中层 altocumulus + 低层 cumulus」。
-- [ ] 各层独立风速（高层更快）：`src/params.ts` 的 `Wind` 按层扩展。
+- [x] box 高度按 cloud-types 的 low/mid/high 分带（单 volume 内按归一化高度 band 求值，复用单对 ping-pong）。
+- [x] 同一时刻支持「高空 cirrus + 中层 altocumulus + 低层 cumulus」。
+- [x] 各层独立风速（高层更快）：`src/params.ts` 的 `Wind` 按层扩展为 `array<Wind, LAYER_COUNT>`。
 
 ---
 

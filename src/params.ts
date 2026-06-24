@@ -1,3 +1,10 @@
+import type { CloudBody } from './body';
+import type { RegionMod } from './lifecycle';
+
+export const MAX_BODIES = 12;
+export const BODY_BASE = 12;
+export const BODY_STRIDE = 12;
+
 export const PARAM_OFFSETS: Record<string, number> = {
   rayMarchSteps: 0,
   lightMarchSteps: 1,
@@ -5,36 +12,14 @@ export const PARAM_OFFSETS: Record<string, number> = {
   sunIntensity: 3,
   skipLight: 4,
   cacheBlend: 5,
-  weatherEnabled: 6,
-  density: 8,
-  coverage: 9,
-  altitude: 10,
-  scale: 11,
-  detail: 12,
-  lowAltDensity: 13,
-  factorShaper: 14,
-  factorDetail: 15,
-  cloudHeight: 16,
-  coverageThreshold: 17,
-  edgeSharpness: 18,
-  baseRoundness: 19,
-  worleyBlend: 20,
-  detailStrength: 21,
-  altBase: 22,
-  altTop: 23,
-  windDir: 24,
-  windSpeed: 27,
-  morphRate: 28,
-  sceneTime: 32,
-  deltaTime: 33,
-  noiseTime: 34,
-  timeVoronoi1: 35,
-  timeVoronoi2: 36,
-  layerBase: 40,
-  layerThickness: 41,
-  morphStrength: 42,
+  activeBodyCount: 6,
+  cloudHeight: 7,
+  sceneTime: 8,
+  deltaTime: 9,
+  weatherMorph: 10,
 };
-export const PARAMS_FLOAT_COUNT = 44;
+
+export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
 export const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
 
 export const SHAPE_PRESET_KEYS = [
@@ -88,28 +73,10 @@ export function packPresetArray(): Float32Array {
 }
 
 export interface CloudParams {
-  preset: string;
-  density: number;
-  coverage: number;
-  scale: number;
-  altitude: number;
-  detail: number;
-  coverageThreshold: number;
-  edgeSharpness: number;
-  baseRoundness: number;
-  worleyBlend: number;
-  detailStrength: number;
-  altBase: number;
-  altTop: number;
   cloudHeight: number;
-  layerBase: number;
-  layerThickness: number;
-  windDeg: number;
-  windSpeed: number;
-  morphRate: number;
-  weatherEnabled: boolean;
-  showRegionBounds: boolean;
   morphStrength: number;
+  showBodyBounds: boolean;
+  selectedBody: string | null;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
@@ -126,6 +93,7 @@ export function packParams(dst: Float32Array, values: Record<string, PackValue>)
   for (const key in values) {
     const v = values[key];
     const off = PARAM_OFFSETS[key];
+    if (off === undefined) continue;
     if (Array.isArray(v)) {
       for (let i = 0; i < v.length; i++) dst[off + i] = v[i];
     } else {
@@ -135,35 +103,45 @@ export function packParams(dst: Float32Array, values: Record<string, PackValue>)
   return dst;
 }
 
+export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: RegionMod[]): void {
+  const n = Math.min(bodies.length, MAX_BODIES);
+  dst[PARAM_OFFSETS.activeBodyCount] = n;
+  for (let i = 0; i < MAX_BODIES; i++) {
+    const o = BODY_BASE + i * BODY_STRIDE;
+    if (i < n) {
+      const b = bodies[i];
+      const m = mods?.[i];
+      const rad = b.windDeg * Math.PI / 180.0;
+      const altTop = Math.min(1.0, b.base + Math.max(0.02, b.thickness));
+      dst[o + 0] = b.base;
+      dst[o + 1] = altTop;
+      dst[o + 2] = presetIndex(b.type);
+      dst[o + 3] = 1.0;
+      dst[o + 4] = Math.cos(rad);
+      dst[o + 5] = Math.sin(rad);
+      dst[o + 6] = b.windSpeed;
+      dst[o + 7] = b.morphRate;
+      dst[o + 8] = b.coverage * (m ? m.coverageMul : 1);
+      dst[o + 9] = b.densityScale * (m ? m.densityScale : 1);
+      dst[o + 10] = m ? m.morph : 0;
+      dst[o + 11] = 0;
+    } else {
+      for (let k = 0; k < BODY_STRIDE; k++) dst[o + k] = 0;
+    }
+  }
+}
+
 export function createDefaultParams(): CloudParams {
   return {
-    preset: 'cumulus',
-    density: 1.0,
-    coverage: 0.8,
-    scale: 3.75,
-    altitude: 0.5,
-    detail: 1.0,
-    coverageThreshold: 0.0,
-    edgeSharpness: 0.0,
-    baseRoundness: 0.0,
-    worleyBlend: 1.0,
-    detailStrength: 1.0,
-    altBase: 0.0,
-    altTop: 1.0,
-    windDeg: 45,
-    windSpeed: 0.15,
-    morphRate: 0.05,
-    weatherEnabled: true,
-    showRegionBounds: true,
+    cloudHeight: 8.0,
     morphStrength: 0,
+    showBodyBounds: true,
+    selectedBody: null,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,
     shadowDarkness: 5,
     sunIntensity: 17,
-    cloudHeight: 5.0,
-    layerBase: 0.25,
-    layerThickness: 0.4,
     cacheResolution: 96,
     cacheUpdateRate: 2,
     cacheSmooth: 0,

@@ -2,13 +2,16 @@ import noiseSource from '../shaders/noise.wgsl?raw';
 import cloudSource from '../shaders/cloud.wgsl?raw';
 import {
   packParams,
+  packBodies,
   packPresetArray,
   PARAMS_FLOAT_COUNT,
   PARAMS_BYTE_SIZE,
   PRESET_BYTE_SIZE,
+  MAX_BODIES,
   type CloudParams,
 } from './params';
-import { WEATHER_SIZE, createWeatherData, paintRegions, type Region } from './weather';
+import { WEATHER_SIZE, createShapeData, paintBodyShapes } from './weather';
+import { geometrySignature, type CloudBody } from './body';
 import type { RegionMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 
@@ -27,26 +30,32 @@ struct VOut { @builtin(position) pos : vec4f, @location(0) color : vec3f };
 @fragment fn fsLine(i : VOut) -> @location(0) vec4f { return vec4f(i.color, 1.0); }
 `;
 
-const MAX_LINE_VERTS = 2048;
-const REGION_COLORS: [number, number, number][] = [
+const MAX_LINE_VERTS = 4096;
+const BODY_COLORS: [number, number, number][] = [
   [0.2, 1.0, 0.35],
   [1.0, 0.6, 0.12],
   [0.3, 0.7, 1.0],
   [1.0, 0.3, 0.7],
+  [0.9, 0.9, 0.2],
+  [0.5, 0.4, 1.0],
 ];
 
-function buildLineVerts(regions: Region[], cloudHeight: number): Float32Array {
+function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: string | null): Float32Array {
   const out: number[] = [];
-  const y0 = 0.0;
-  const y1 = cloudHeight;
   const seg = (ax: number, ay: number, az: number, bx: number, by: number, bz: number, col: [number, number, number]) => {
     out.push(ax, ay, az, col[0], col[1], col[2]);
     out.push(bx, by, bz, col[0], col[1], col[2]);
   };
-  regions.forEach((r, i) => {
-    const col = REGION_COLORS[i % REGION_COLORS.length];
-    if (r.shape === 'rect') {
-      const [minX, minZ, maxX, maxZ] = r.bounds;
+  bodies.forEach((b, i) => {
+    const baseCol = BODY_COLORS[i % BODY_COLORS.length];
+    const sel = b.id === selectedId;
+    const col: [number, number, number] = sel
+      ? [Math.min(1, baseCol[0] + 0.4), Math.min(1, baseCol[1] + 0.4), Math.min(1, baseCol[2] + 0.4)]
+      : [baseCol[0] * 0.5, baseCol[1] * 0.5, baseCol[2] * 0.5];
+    const y0 = b.base * cloudHeight;
+    const y1 = Math.min(1, b.base + b.thickness) * cloudHeight;
+    if (b.shape === 'rect') {
+      const [minX, minZ, maxX, maxZ] = b.bounds;
       const corners: [number, number][] = [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
       for (let k = 0; k < 4; k++) {
         const [cx, cz] = corners[k];
@@ -56,7 +65,7 @@ function buildLineVerts(regions: Region[], cloudHeight: number): Float32Array {
         seg(cx, y0, cz, cx, y1, cz, col);
       }
     } else {
-      const [cx, cz, rad] = r.bounds;
+      const [cx, cz, rad] = b.bounds;
       const N = 40;
       for (let k = 0; k < N; k++) {
         const a0 = (k / N) * Math.PI * 2;
@@ -75,7 +84,8 @@ function buildLineVerts(regions: Region[], cloudHeight: number): Float32Array {
 export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
-  setRegions(regions: Region[], mods?: RegionMod[]): void;
+  setBodies(bodies: CloudBody[]): void;
+  setBodyMods(mods: RegionMod[]): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
 }
 
@@ -140,7 +150,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   const lineCamData = new Float32Array(20);
   let lineVertCount = 0;
-  let currentRegions: Region[] = [];
+
+  let currentBodies: CloudBody[] = [];
+  let currentMods: RegionMod[] = [];
+  let shapeSignature = '';
 
   const cameraBuffer = device.createBuffer({
     size: 80,
@@ -173,23 +186,34 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
 
-  const weatherTexture = device.createTexture({
-    size: [WEATHER_SIZE, WEATHER_SIZE],
-    format: 'rgba8unorm',
+  const shapeTexture = device.createTexture({
+    size: [WEATHER_SIZE, WEATHER_SIZE, MAX_BODIES],
+    format: 'r8unorm',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
   });
-  const weatherData = createWeatherData();
-  weatherData.fill(0);
+  const shapeData = createShapeData();
 
-  function setRegions(regions: Region[], mods?: RegionMod[]): void {
-    currentRegions = regions;
-    paintRegions(weatherData, regions, mods);
+  function uploadShapes(): void {
+    paintBodyShapes(shapeData, currentBodies);
     device.queue.writeTexture(
-      { texture: weatherTexture },
-      weatherData,
-      { bytesPerRow: WEATHER_SIZE * 4, rowsPerImage: WEATHER_SIZE },
-      { width: WEATHER_SIZE, height: WEATHER_SIZE },
+      { texture: shapeTexture },
+      shapeData,
+      { bytesPerRow: WEATHER_SIZE, rowsPerImage: WEATHER_SIZE },
+      { width: WEATHER_SIZE, height: WEATHER_SIZE, depthOrArrayLayers: MAX_BODIES },
     );
+  }
+
+  function setBodies(bodies: CloudBody[]): void {
+    currentBodies = bodies;
+    const sig = geometrySignature(bodies);
+    if (sig !== shapeSignature) {
+      shapeSignature = sig;
+      uploadShapes();
+    }
+  }
+
+  function setBodyMods(mods: RegionMod[]): void {
+    currentMods = mods;
   }
 
   let densityRes = 96;
@@ -229,7 +253,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     layout: computePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 1, resource: { buffer: paramsBuffer } },
-      { binding: 2, resource: weatherTexture.createView() },
+      { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
       { binding: 3, resource: linearSampler },
       { binding: 4, resource: { buffer: presetBuffer } },
     ],
@@ -250,44 +274,21 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, morphTime: number, cacheBlend: number, sceneTime: number, deltaTime: number): Float32Array {
-    const rad = params.windDeg * Math.PI / 180.0;
-    return packParams(paramsData, {
-      noiseTime: morphTime,
-      timeVoronoi1: morphTime,
-      timeVoronoi2: morphTime,
-      density: params.density,
-      lowAltDensity: 0.2,
-      altitude: params.altitude,
-      coverage: params.coverage,
-      factorDetail: 1.0,
-      factorShaper: 1.0,
-      scale: params.scale,
-      detail: params.detail,
-      coverageThreshold: params.coverageThreshold,
-      edgeSharpness: params.edgeSharpness,
-      baseRoundness: params.baseRoundness,
-      worleyBlend: params.worleyBlend,
-      detailStrength: params.detailStrength,
-      altBase: params.altBase,
-      altTop: params.altTop,
+  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number): Float32Array {
+    packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
-      skipLight: params.skipLight,
-      weatherEnabled: params.weatherEnabled,
-      cacheBlend,
       lightMarchSteps: params.lightMarchSteps,
       shadowDarkness: params.shadowDarkness,
       sunIntensity: params.sunIntensity,
+      skipLight: params.skipLight,
+      cacheBlend,
       cloudHeight: params.cloudHeight,
-      layerBase: params.layerBase,
-      layerThickness: params.layerThickness,
-      morphStrength: params.morphStrength,
-      windDir: [Math.cos(rad), Math.sin(rad), 0.0],
-      windSpeed: params.windSpeed,
-      morphRate: params.morphRate,
+      weatherMorph: params.morphStrength,
       sceneTime,
       deltaTime,
     });
+    packBodies(paramsData, currentBodies, currentMods);
+    return paramsData;
   }
 
   function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
@@ -300,19 +301,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cameraData[18] = cam.eye[2];
     device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
-    const showLines = params.showRegionBounds && params.weatherEnabled && currentRegions.length > 0;
+    const showLines = params.showBodyBounds && currentBodies.length > 0;
     if (showLines) {
-      const verts = buildLineVerts(currentRegions, params.cloudHeight);
+      const verts = buildLineVerts(currentBodies, params.cloudHeight, params.selectedBody);
       lineVertCount = Math.min(verts.length / 6, MAX_LINE_VERTS);
       device.queue.writeBuffer(lineVertexBuffer, 0, verts, 0, lineVertCount * 6);
       lineCamData.set(cam.viewProj, 0);
-      lineCamData[16] = 0.65 + 0.35 * Math.sin(elapsed * 3.0);
+      lineCamData[16] = 1.0;
       device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
     } else {
       lineVertCount = 0;
     }
 
-    const morphTime = clock * params.morphRate;
     const blendDenom = Math.max(1e-5, nextCacheTime - prevCacheTime);
     const linearBlend = Math.min(1.0, Math.max(0.0, (elapsed - prevCacheTime) / blendDenom));
     let cacheBlend = linearBlend;
@@ -323,7 +323,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, morphTime, cacheBlend, clock, deltaTime));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
 
@@ -375,5 +375,5 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     device.queue.submit([commandEncoder.finish()]);
   }
 
-  return { resizeCanvas, setDensityResolution, setRegions, renderFrame };
+  return { resizeCanvas, setDensityResolution, setBodies, setBodyMods, renderFrame };
 }

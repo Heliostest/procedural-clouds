@@ -1,11 +1,10 @@
 import GUI from 'lil-gui';
 import { CLOUD_PRESETS, type CloudParams } from './params';
-import type { WeatherConfig } from './weather';
+import type { BodyStore, CloudBody } from './body';
 
 export interface GuiHooks {
-  onPreset(name: string): void;
+  onBodiesChanged(): void;
   onCacheResolution(res: number): void;
-  onWeather(): void;
   onTrigger(): void;
   onScenarioDemo(): void;
   onScenarioLoad(text: string): void;
@@ -20,9 +19,9 @@ export interface ScenarioState {
 }
 
 export interface CloudGui {
-  refreshShape(): void;
   refreshTimeline(): void;
   refreshScenario(): void;
+  refreshBodies(): void;
 }
 
 export interface TimelineState {
@@ -30,79 +29,87 @@ export interface TimelineState {
   time: number;
 }
 
-export function createGui(params: CloudParams, weather: WeatherConfig, timeline: TimelineState, scenario: ScenarioState, hooks: GuiHooks): CloudGui {
+export function createGui(params: CloudParams, store: BodyStore, timeline: TimelineState, scenario: ScenarioState, hooks: GuiHooks): CloudGui {
   const gui = new GUI({ title: 'Cloud Parameters' });
-  gui.add(params, 'preset', Object.keys(CLOUD_PRESETS)).name('Preset').onChange(hooks.onPreset);
-
-  const shapeFolder = gui.addFolder('Shape');
-  shapeFolder.add(params, 'density', 0.1, 4.0, 0.05);
-  shapeFolder.add(params, 'coverage', 0.0, 1.0, 0.01);
-  shapeFolder.add(params, 'scale', 0.2, 15.0, 0.05);
-  shapeFolder.add(params, 'altitude', 0.1, 1.0, 0.01);
-  shapeFolder.add(params, 'detail', 0.0, 15.0, 0.5);
-  shapeFolder.add(params, 'coverageThreshold', 0.0, 0.8, 0.01).name('Cov Threshold');
-  shapeFolder.add(params, 'edgeSharpness', 0.0, 1.0, 0.01).name('Edge Sharp');
-  shapeFolder.add(params, 'baseRoundness', 0.0, 1.0, 0.01).name('Base Round');
-  shapeFolder.add(params, 'worleyBlend', 0.0, 1.0, 0.01).name('Worley Blend');
-  shapeFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name('Detail Str');
-  shapeFolder.add(params, 'altBase', 0.0, 1.0, 0.01).name('Alt Base');
-  shapeFolder.add(params, 'altTop', 0.0, 1.0, 0.01).name('Alt Top');
-
-  const layerFolder = gui.addFolder('Layer');
-  layerFolder.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name('Box Height');
-  layerFolder.add(params, 'layerBase', 0.0, 0.95, 0.01).name('Layer Height');
-  layerFolder.add(params, 'layerThickness', 0.05, 1.0, 0.01).name('Layer Thickness');
-
-  const windFolder = gui.addFolder('Wind');
-  windFolder.add(params, 'windDeg', 0, 360, 1).name('Direction °');
-  windFolder.add(params, 'windSpeed', 0.0, 2.0, 0.01).name('Speed');
-  windFolder.add(params, 'morphRate', 0.0, 1.0, 0.01).name('Morph Rate');
-
   const presetKeys = Object.keys(CLOUD_PRESETS);
-  const weatherFolder = gui.addFolder('Weather Regions');
-  weatherFolder.add(params, 'weatherEnabled').name('Enable Regions');
-  weatherFolder.add(params, 'showRegionBounds').name('Show Wireframe');
-  weatherFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name('Morph Strength');
-  const rA = weatherFolder.addFolder('Region A (rect)');
-  rA.add(weather, 'aType', presetKeys).name('Type').onChange(hooks.onWeather);
-  rA.add(weather, 'aCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);
-  rA.add(weather, 'aCenterX', -4.5, 4.5, 0.1).name('Center X').onChange(hooks.onWeather);
-  rA.add(weather, 'aCenterZ', -4.5, 4.5, 0.1).name('Center Z').onChange(hooks.onWeather);
-  rA.add(weather, 'aSizeX', 0.2, 4.5, 0.1).name('Half W').onChange(hooks.onWeather);
-  rA.add(weather, 'aSizeZ', 0.2, 4.5, 0.1).name('Half D').onChange(hooks.onWeather);
-  rA.add(weather, 'aFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
-  const lA = rA.addFolder('Lifecycle');
-  lA.add(weather, 'aLifeEnabled').name('Enable').onChange(hooks.onWeather);
-  lA.add(weather, 'aBirth', 0, 120, 0.5).name('Birth').onChange(hooks.onWeather);
-  lA.add(weather, 'aGrow', 0, 120, 0.5).name('Grow').onChange(hooks.onWeather);
-  lA.add(weather, 'aDecay', 0, 120, 0.5).name('Decay').onChange(hooks.onWeather);
-  lA.add(weather, 'aDeath', 0, 120, 0.5).name('Death').onChange(hooks.onWeather);
-  lA.add(weather, 'aPeak', 0.0, 2.0, 0.05).name('Peak Density').onChange(hooks.onWeather);
-  const rB = weatherFolder.addFolder('Region B (circle)');
-  rB.add(weather, 'bType', presetKeys).name('Type').onChange(hooks.onWeather);
-  rB.add(weather, 'bCoverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onWeather);
-  rB.add(weather, 'bCenterX', -4.5, 4.5, 0.1).name('Center X').onChange(hooks.onWeather);
-  rB.add(weather, 'bCenterZ', -4.5, 4.5, 0.1).name('Center Z').onChange(hooks.onWeather);
-  rB.add(weather, 'bRadius', 0.2, 4.5, 0.1).name('Radius').onChange(hooks.onWeather);
-  rB.add(weather, 'bFeather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onWeather);
-  const lB = rB.addFolder('Lifecycle');
-  lB.add(weather, 'bLifeEnabled').name('Enable').onChange(hooks.onWeather);
-  lB.add(weather, 'bBirth', 0, 120, 0.5).name('Birth').onChange(hooks.onWeather);
-  lB.add(weather, 'bGrow', 0, 120, 0.5).name('Grow').onChange(hooks.onWeather);
-  lB.add(weather, 'bDecay', 0, 120, 0.5).name('Decay').onChange(hooks.onWeather);
-  lB.add(weather, 'bDeath', 0, 120, 0.5).name('Death').onChange(hooks.onWeather);
-  lB.add(weather, 'bPeak', 0.0, 2.0, 0.05).name('Peak Density').onChange(hooks.onWeather);
 
-  const timeFolder = weatherFolder.addFolder('Timeline');
-  timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name('Trigger Now (t=0)');
-  timeFolder.add(timeline, 'scrub').name('Scrub Time');
-  timeFolder.add(timeline, 'time', 0, 120, 0.1).name('Scene Time');
+  const bodiesFolder = gui.addFolder('Cloud Bodies');
+  let subFolders: GUI[] = [];
+
+  function rebuildBodies(): void {
+    for (const f of subFolders) f.destroy();
+    subFolders = [];
+    for (const b of store.list()) {
+      const f = bodiesFolder.addFolder(`${b.id} (${b.shape}) · ${b.type}`);
+      subFolders.push(f);
+
+      f.add({ select: () => { params.selectedBody = b.id; } }, 'select').name('◉ Select');
+
+      if (b.shape === 'rect') {
+        const proxy = {
+          cx: (b.bounds[0] + b.bounds[2]) / 2,
+          cz: (b.bounds[1] + b.bounds[3]) / 2,
+          hw: (b.bounds[2] - b.bounds[0]) / 2,
+          hd: (b.bounds[3] - b.bounds[1]) / 2,
+        };
+        const apply = () => {
+          b.bounds = [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd];
+          hooks.onBodiesChanged();
+        };
+        f.add(proxy, 'cx', -4.5, 4.5, 0.1).name('Center X').onChange(apply);
+        f.add(proxy, 'cz', -4.5, 4.5, 0.1).name('Center Z').onChange(apply);
+        f.add(proxy, 'hw', 0.2, 4.5, 0.1).name('Half W').onChange(apply);
+        f.add(proxy, 'hd', 0.2, 4.5, 0.1).name('Half D').onChange(apply);
+      } else {
+        const proxy = { cx: b.bounds[0], cz: b.bounds[1], r: b.bounds[2] };
+        const apply = () => {
+          b.bounds = [proxy.cx, proxy.cz, proxy.r, 0];
+          hooks.onBodiesChanged();
+        };
+        f.add(proxy, 'cx', -4.5, 4.5, 0.1).name('Center X').onChange(apply);
+        f.add(proxy, 'cz', -4.5, 4.5, 0.1).name('Center Z').onChange(apply);
+        f.add(proxy, 'r', 0.2, 4.5, 0.1).name('Radius').onChange(apply);
+      }
+      f.add(b, 'feather', 0.0, 3.0, 0.05).name('Feather').onChange(hooks.onBodiesChanged);
+      f.add(b, 'base', 0.0, 0.95, 0.01).name('Height').onChange(hooks.onBodiesChanged);
+      f.add(b, 'thickness', 0.05, 1.0, 0.01).name('Thickness').onChange(hooks.onBodiesChanged);
+      f.add(b, 'type', presetKeys).name('Type').onChange((v: string) => { b.type = v; f.title(`${b.id} (${b.shape}) · ${v}`); hooks.onBodiesChanged(); });
+      f.add(b, 'coverage', 0.0, 1.0, 0.01).name('Coverage').onChange(hooks.onBodiesChanged);
+      f.add(b, 'densityScale', 0.0, 2.0, 0.01).name('Density').onChange(hooks.onBodiesChanged);
+      f.add(b, 'windDeg', 0, 360, 1).name('Wind Dir °').onChange(hooks.onBodiesChanged);
+      f.add(b, 'windSpeed', 0.0, 2.0, 0.01).name('Wind Speed').onChange(hooks.onBodiesChanged);
+      f.add(b, 'morphRate', 0.0, 1.0, 0.01).name('Morph Rate').onChange(hooks.onBodiesChanged);
+
+      const lf = f.addFolder('Lifecycle');
+      lf.add(b.life, 'enabled').name('Enable').onChange(hooks.onTrigger);
+      lf.add(b.life, 'birth', 0, 120, 0.5).name('Birth').onChange(hooks.onBodiesChanged);
+      lf.add(b.life, 'grow', 0, 120, 0.5).name('Grow').onChange(hooks.onBodiesChanged);
+      lf.add(b.life, 'decay', 0, 120, 0.5).name('Decay').onChange(hooks.onBodiesChanged);
+      lf.add(b.life, 'death', 0, 120, 0.5).name('Death').onChange(hooks.onBodiesChanged);
+      lf.add(b.life, 'peak', 0.0, 2.0, 0.05).name('Peak').onChange(hooks.onBodiesChanged);
+
+      f.add({ del: () => { store.remove(b.id); if (params.selectedBody === b.id) params.selectedBody = null; rebuildBodies(); hooks.onBodiesChanged(); } }, 'del').name('✕ Remove');
+    }
+  }
+
+  bodiesFolder.add({ addRect: () => { const b = store.add('rect'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addRect').name('+ Add Rect');
+  bodiesFolder.add({ addCircle: () => { const b = store.add('circle'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addCircle').name('+ Add Circle');
+  rebuildBodies();
+
+  gui.add(params, 'showBodyBounds').name('Show Wireframe');
+  gui.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name('Box Height');
+  gui.add(params, 'morphStrength', 0.0, 1.0, 0.01).name('Morph Strength');
 
   const scenarioFolder = gui.addFolder('Scenario');
   scenarioFolder.add(scenario, 'enabled').name('Enable Scenario');
   scenarioFolder.add(scenario, 'playing').name('Play / Pause');
   scenarioFolder.add(scenario, 'speed', 0.1, 8.0, 0.1).name('Speed');
   scenarioFolder.add(scenario, 'loop').name('Loop');
+  const timeFolder = scenarioFolder.addFolder('Timeline');
+  timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name('Trigger Now (t=0)');
+  timeFolder.add(timeline, 'scrub').name('Scrub Time');
+  timeFolder.add(timeline, 'time', 0, 120, 0.1).name('Scene Time');
+
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'application/json';
@@ -137,29 +144,24 @@ export function createGui(params: CloudParams, weather: WeatherConfig, timeline:
 
   scenarioFolder.add({ demo: hooks.onScenarioDemo }, 'demo').name('Load Demo');
   scenarioFolder.add({ load: () => fileInput.click() }, 'load').name('Load JSON…');
-  scenarioFolder.add({ paste: () => {
-    pastePanel.style.display = 'flex';
-    pasteTa.focus();
-  } }, 'paste').name('Paste JSON…');
+  scenarioFolder.add({ paste: () => { pastePanel.style.display = 'flex'; pasteTa.focus(); } }, 'paste').name('Paste JSON…');
   scenarioFolder.add({ exp: hooks.onScenarioExport }, 'exp').name('Export JSON');
 
-  gui.add(params, 'skipLight').name('Skip Light March');
-  gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
-  gui.add(params, 'lightMarchSteps', 1, 8, 1).name('Light Steps');
-  gui.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name('Shadow Dark');
-  gui.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name('Sun Intensity');
-  gui.add(params, 'cacheResolution', 32, 128, 1).name('Cache Res').onFinishChange((v: number) => {
+  const renderFolder = gui.addFolder('Render');
+  renderFolder.add(params, 'skipLight').name('Skip Light March');
+  renderFolder.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
+  renderFolder.add(params, 'lightMarchSteps', 1, 8, 1).name('Light Steps');
+  renderFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name('Shadow Dark');
+  renderFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name('Sun Intensity');
+  renderFolder.add(params, 'cacheResolution', 32, 128, 1).name('Cache Res').onFinishChange((v: number) => {
     const next = Math.max(32, Math.min(128, Math.round(v)));
     params.cacheResolution = next;
     hooks.onCacheResolution(next);
   });
-  gui.add(params, 'cacheUpdateRate', 1, 4, 1).name('Cache Update');
-  gui.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name('Cache Smooth');
+  renderFolder.add(params, 'cacheUpdateRate', 1, 4, 1).name('Cache Update');
+  renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name('Cache Smooth');
 
   return {
-    refreshShape() {
-      shapeFolder.controllers.forEach((c) => c.updateDisplay());
-    },
     refreshTimeline() {
       timeFolder.controllers.forEach((c) => c.updateDisplay());
     },
@@ -167,5 +169,10 @@ export function createGui(params: CloudParams, weather: WeatherConfig, timeline:
       scenarioFolder.controllers.forEach((c) => c.updateDisplay());
       timeFolder.controllers.forEach((c) => c.updateDisplay());
     },
+    refreshBodies() {
+      rebuildBodies();
+    },
   };
 }
+
+export type { CloudBody };
