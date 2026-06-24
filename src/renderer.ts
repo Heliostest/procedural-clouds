@@ -76,7 +76,7 @@ export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
   setRegions(regions: Region[], mods?: RegionMod[]): void;
-  renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number): void;
+  renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
 }
 
 export async function createRenderer(canvas: HTMLCanvasElement): Promise<Renderer> {
@@ -290,8 +290,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     });
   }
 
-  function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number): void {
+  function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
     frameIndex++;
+    const clock = sceneClock ?? elapsed;
 
     cameraData.set(cam.invViewProj, 0);
     cameraData[16] = cam.eye[0];
@@ -311,7 +312,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
-    const morphTime = elapsed * params.morphRate;
+    const morphTime = clock * params.morphRate;
     const blendDenom = Math.max(1e-5, nextCacheTime - prevCacheTime);
     const linearBlend = Math.min(1.0, Math.max(0.0, (elapsed - prevCacheTime) / blendDenom));
     let cacheBlend = linearBlend;
@@ -319,10 +320,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       cacheBlend = Math.pow(linearBlend, 1.0 / (1.0 + params.cacheSmooth * 4.0));
     }
 
-    const deltaTime = elapsed - prevSceneTime;
-    prevSceneTime = elapsed;
+    const deltaTime = clock - prevSceneTime;
+    prevSceneTime = clock;
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, morphTime, cacheBlend, elapsed, deltaTime));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, morphTime, cacheBlend, clock, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
 

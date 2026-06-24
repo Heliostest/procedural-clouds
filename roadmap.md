@@ -109,7 +109,7 @@
 
 > 代码落点：新增 `src/scenario.ts`（`Scenario` 类型 + `ScenarioPlayer`）；时间轴 GUI 加进 `src/gui.ts`；`src/main.ts` 帧循环驱动 player。
 
-- [ ] `src/scenario.ts` 定义 `Scenario` 类型（TS interface）与 JSON 结构：
+- [x] `src/scenario.ts` 定义 `Scenario` 类型（TS interface）与 JSON 结构：
   ```json
   {
     "duration": 120,
@@ -122,8 +122,8 @@
     "regions": { "A": { "shape": "rect", "bounds": [...] } }
   }
   ```
-- [ ] `src/scenario.ts` 的 `ScenarioPlayer`：按 `sceneTime` 在事件间插值 → 调阶段 4/5 的区域 API（`src/weather.ts`）。
-- [ ] `src/gui.ts`：时间轴 scrubber（拖动预览任意时刻）、播放/暂停/倍速、加载/导出 Scenario JSON。
+- [x] `src/scenario.ts` 的 `ScenarioPlayer`：按 `sceneTime` 在事件间插值 → 调阶段 4/5 的区域 API（`src/weather.ts`）。
+- [x] `src/gui.ts`：时间轴 scrubber（拖动预览任意时刻）、播放/暂停/倍速、加载/导出 Scenario JSON。
 
 **验收**：加载一个脚本即可自动播放一整段「积云生成→增厚→被风吹过→消散」的演化。
 

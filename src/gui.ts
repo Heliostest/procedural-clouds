@@ -7,11 +7,22 @@ export interface GuiHooks {
   onCacheResolution(res: number): void;
   onWeather(): void;
   onTrigger(): void;
+  onScenarioDemo(): void;
+  onScenarioLoad(text: string): void;
+  onScenarioExport(): void;
+}
+
+export interface ScenarioState {
+  enabled: boolean;
+  playing: boolean;
+  speed: number;
+  loop: boolean;
 }
 
 export interface CloudGui {
   refreshShape(): void;
   refreshTimeline(): void;
+  refreshScenario(): void;
 }
 
 export interface TimelineState {
@@ -19,7 +30,7 @@ export interface TimelineState {
   time: number;
 }
 
-export function createGui(params: CloudParams, weather: WeatherConfig, timeline: TimelineState, hooks: GuiHooks): CloudGui {
+export function createGui(params: CloudParams, weather: WeatherConfig, timeline: TimelineState, scenario: ScenarioState, hooks: GuiHooks): CloudGui {
   const gui = new GUI({ title: 'Cloud Parameters' });
   gui.add(params, 'preset', Object.keys(CLOUD_PRESETS)).name('Preset').onChange(hooks.onPreset);
 
@@ -87,6 +98,51 @@ export function createGui(params: CloudParams, weather: WeatherConfig, timeline:
   timeFolder.add(timeline, 'scrub').name('Scrub Time');
   timeFolder.add(timeline, 'time', 0, 120, 0.1).name('Scene Time');
 
+  const scenarioFolder = gui.addFolder('Scenario');
+  scenarioFolder.add(scenario, 'enabled').name('Enable Scenario');
+  scenarioFolder.add(scenario, 'playing').name('Play / Pause');
+  scenarioFolder.add(scenario, 'speed', 0.1, 8.0, 0.1).name('Speed');
+  scenarioFolder.add(scenario, 'loop').name('Loop');
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'application/json';
+  fileInput.style.display = 'none';
+  document.body.appendChild(fileInput);
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files?.[0];
+    if (!f) return;
+    f.text().then((t) => hooks.onScenarioLoad(t));
+    fileInput.value = '';
+  });
+  const pastePanel = document.createElement('div');
+  pastePanel.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10000;background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:10px;display:none;flex-direction:column;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6)';
+  const pasteTa = document.createElement('textarea');
+  pasteTa.placeholder = '粘贴 Scenario JSON 后点 Apply';
+  pasteTa.style.cssText = 'width:60ch;height:40vh;font:12px/1.4 monospace;background:#0e0e0e;color:#cfe;border:1px solid #333;border-radius:4px;padding:8px;resize:both';
+  const pasteRow = document.createElement('div');
+  pasteRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
+  const pasteApply = document.createElement('button');
+  pasteApply.textContent = 'Apply';
+  const pasteClose = document.createElement('button');
+  pasteClose.textContent = 'Close';
+  for (const b of [pasteApply, pasteClose]) b.style.cssText = 'padding:4px 14px;cursor:pointer';
+  pasteRow.append(pasteApply, pasteClose);
+  pastePanel.append(pasteTa, pasteRow);
+  document.body.appendChild(pastePanel);
+  pasteClose.addEventListener('click', () => { pastePanel.style.display = 'none'; });
+  pasteApply.addEventListener('click', () => {
+    hooks.onScenarioLoad(pasteTa.value);
+    pastePanel.style.display = 'none';
+  });
+
+  scenarioFolder.add({ demo: hooks.onScenarioDemo }, 'demo').name('Load Demo');
+  scenarioFolder.add({ load: () => fileInput.click() }, 'load').name('Load JSON…');
+  scenarioFolder.add({ paste: () => {
+    pastePanel.style.display = 'flex';
+    pasteTa.focus();
+  } }, 'paste').name('Paste JSON…');
+  scenarioFolder.add({ exp: hooks.onScenarioExport }, 'exp').name('Export JSON');
+
   gui.add(params, 'skipLight').name('Skip Light March');
   gui.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');
   gui.add(params, 'lightMarchSteps', 1, 8, 1).name('Light Steps');
@@ -105,6 +161,10 @@ export function createGui(params: CloudParams, weather: WeatherConfig, timeline:
       shapeFolder.controllers.forEach((c) => c.updateDisplay());
     },
     refreshTimeline() {
+      timeFolder.controllers.forEach((c) => c.updateDisplay());
+    },
+    refreshScenario() {
+      scenarioFolder.controllers.forEach((c) => c.updateDisplay());
       timeFolder.controllers.forEach((c) => c.updateDisplay());
     },
   };
