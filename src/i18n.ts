@@ -70,6 +70,9 @@ const DICT: Dict = {
   cacheRes: { en: 'Cache Res', zh: '缓存分辨率' },
   cacheUpdate: { en: 'Cache Update', zh: '缓存更新' },
   cacheSmooth: { en: 'Cache Smooth', zh: '缓存平滑' },
+  qualityMode: { en: 'Quality Mode', zh: '质量模式' },
+  detailFreq: { en: 'Detail Freq', zh: '细节频率' },
+  detailStrength: { en: 'Detail Strength', zh: '细节强度' },
 
   pastePlaceholder: { en: 'Paste Scenario JSON then click Apply', zh: '粘贴 Scenario JSON 后点 Apply' },
   apply: { en: 'Apply', zh: '应用' },

@@ -28,7 +28,11 @@ struct Globals {
   hgBackward      : f32,
   hgBlend         : f32,
   godrayStrength  : f32,
-  _pad            : f32,
+  qualityMode     : f32,
+  detailFreq      : f32,
+  detailStrength  : f32,
+  _pad0           : f32,
+  _pad1           : f32,
 };
 
 struct BodyGPU {
@@ -343,6 +347,23 @@ fn dualHG(cosTheta: f32) -> f32 {
     return mix(hgPhase(cosTheta, params.g.hgBackward), hgPhase(cosTheta, params.g.hgForward), clamp01(params.g.hgBlend));
 }
 
+fn detailNoise(pos : vec3f) -> f32 {
+  let f = max(params.g.detailFreq, 0.01);
+  return perlin_noise_4d(vec4f(pos * f, params.g.sceneTime * 0.1));
+}
+
+fn densityAt(pos : vec3f) -> f32 {
+  let mode = i32(params.g.qualityMode);
+  if (mode == 2) {
+    return cloudDensity(pos);
+  }
+  var base = sampleDensity(pos);
+  if (mode == 1 && base > 0.01) {
+    base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
+  }
+  return max(base, 0.0);
+}
+
 fn lightMarch(pos : vec3f) -> f32 {
   var shadow = 0.0;
   let steps = i32(params.g.lightMarchSteps);
@@ -350,7 +371,7 @@ fn lightMarch(pos : vec3f) -> f32 {
   let sd = sunDir();
   for (var i = 1; i <= steps; i++) {
     let p = pos + sd * (f32(i) * stepSize);
-    shadow += sampleDensity(p) * stepSize;
+    shadow += densityAt(p) * stepSize;
   }
   return exp(-shadow * params.g.shadowDarkness); 
 }
@@ -392,7 +413,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let boxMax = getBoxMax();
 
     for (var i = 0; i < numSteps; i++) {
-      let d = sampleDensity(pos);
+      let d = densityAt(pos);
       if (d > 0.01) {
         let step_trans = exp(-d * stepSize);
         let shadow = select(lightMarch(pos), 1.0, skipLight);

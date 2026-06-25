@@ -236,14 +236,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: cameraBuffer } },
-      { binding: 1, resource: { buffer: paramsBuffer } },
-    ],
-  });
-
   const linearSampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
@@ -331,6 +323,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     ],
   });
 
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: cameraBuffer } },
+      { binding: 1, resource: { buffer: paramsBuffer } },
+      { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
+      { binding: 3, resource: linearSampler },
+      { binding: 4, resource: { buffer: presetBuffer } },
+    ],
+  });
+
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
   let postBindGroup: GPUBindGroup;
@@ -393,6 +396,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       hgBackward: params.hgBackward,
       hgBlend: params.hgBlend,
       godrayStrength: params.godrayStrength,
+      qualityMode: params.qualityMode,
+      detailFreq: params.detailFreq,
+      detailStrength: params.detailStrength,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -434,7 +440,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     const commandEncoder = device.createCommandEncoder();
 
-    if (frameIndex % params.cacheUpdateRate === 0) {
+    if (params.qualityMode !== 2 && frameIndex % params.cacheUpdateRate === 0) {
       prevCacheTime = nextCacheTime;
       nextCacheTime = elapsed;
       cacheIndex = 1 - cacheIndex;

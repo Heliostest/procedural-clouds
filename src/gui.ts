@@ -181,6 +181,9 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     });
     renderFolder.add(params, 'cacheUpdateRate', 1, 4, 1).name(t('cacheUpdate'));
     renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth'));
+    renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode'));
+    renderFolder.add(params, 'detailFreq', 0.5, 8.0, 0.1).name(t('detailFreq'));
+    renderFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name(t('detailStrength'));
 
     api.refreshTimeline = () => timeFolder.controllers.forEach((c) => c.updateDisplay());
     api.refreshScenario = () => {
