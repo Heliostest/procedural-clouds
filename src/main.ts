@@ -6,6 +6,7 @@ import { createDefaultParams } from './params';
 import { createBodyStore, createDefaultBodies, evalBodyMod } from './body';
 import type { RegionMod } from './lifecycle';
 import { createPlayer, parseScenario, serializeScenario, DEMO_SCENARIO, type ScenarioPlayer } from './scenario';
+import { t, onLangChange } from './i18n';
 
 const IDENTITY_MOD: RegionMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
@@ -87,20 +88,25 @@ async function main(): Promise<void> {
   document.body.appendChild(dbg);
   function updateDebug(sceneClock: number): void {
     const lines: string[] = [];
-    lines.push(`mode: ${scenarioState.enabled ? 'SCENARIO' : 'manual'}`);
-    lines.push(`clock: ${sceneClock.toFixed(2)}s`);
+    lines.push(`${t('dbgMode')}: ${scenarioState.enabled ? t('dbgScenario') : t('dbgManual')}`);
+    lines.push(`${t('dbgClock')}: ${sceneClock.toFixed(2)}s`);
     if (scenarioState.enabled) {
       lines.push(`play:${scenarioState.playing ? '▶' : '⏸'} speed:${scenarioState.speed.toFixed(1)} loop:${scenarioState.loop}`);
-      lines.push(`playhead: ${playhead.toFixed(2)} / ${player.duration}s   scrub:${timeline.scrub}`);
+      lines.push(`${t('dbgPlayhead')}: ${playhead.toFixed(2)} / ${player.duration}s   ${t('dbgScrub')}:${timeline.scrub}`);
     } else {
-      lines.push(`bodies: ${store.list().length}  selected:${params.selectedBody ?? '-'}`);
+      lines.push(`${t('dbgBodies')}: ${store.list().length}  ${t('dbgSelected')}:${params.selectedBody ?? '-'}`);
       store.list().forEach((b) => {
         lines.push(`  ${b.id} ${b.shape}/${b.type} h=${b.base.toFixed(2)} cov=${b.coverage.toFixed(2)} life=${b.life.enabled ? 'on' : 'off'}`);
       });
     }
-    if (scenarioError) lines.push(`ERROR: ${scenarioError}`);
+    if (scenarioError) lines.push(`${t('dbgError')}: ${scenarioError}`);
     dbg.textContent = lines.join('\n');
   }
+
+  const infoEl = document.getElementById('info');
+  const applyInfo = () => { if (infoEl) infoEl.textContent = t('info'); };
+  applyInfo();
+  onLangChange(applyInfo);
 
   const startTime = performance.now();
   let timeBase = 0.0;
