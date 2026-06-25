@@ -381,6 +381,52 @@ fn interleavedGradientNoise(uv: vec2f) -> f32 {
     return fract(magic.z * fract(dot(uv, magic.xy)));
 }
 
+const GROUND_Y = 0.0;
+
+fn groundHeight(xz : vec2f) -> f32 {
+  let n = noise_fbm(vec4f(xz * 0.18, 0.0, 0.0), 3.0, 0.5, 2.0, true);
+  return n * 0.35;
+}
+
+fn cloudShadowAt(p : vec3f) -> f32 {
+  let sd = sunDir();
+  if (sd.y <= 0.01) { return 1.0; }
+  let h = intersectBox(p, sd);
+  if (!h.hit) { return 1.0; }
+  let t0 = max(h.tNear, 0.0);
+  let t1 = h.tFar;
+  if (t1 <= t0) { return 1.0; }
+  let steps = 18;
+  let dt = (t1 - t0) / f32(steps);
+  var dens = 0.0;
+  for (var i = 0; i < steps; i++) {
+    let sp = p + sd * (t0 + dt * (f32(i) + 0.5));
+    dens += densityAt(sp) * dt;
+  }
+  return exp(-dens * params.g.shadowDarkness);
+}
+
+fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
+  let e = 0.25;
+  let hL = groundHeight(gp.xz - vec2f(e, 0.0));
+  let hR = groundHeight(gp.xz + vec2f(e, 0.0));
+  let hD = groundHeight(gp.xz - vec2f(0.0, e));
+  let hU = groundHeight(gp.xz + vec2f(0.0, e));
+  let n = normalize(vec3f(hL - hR, 2.0 * e, hD - hU));
+
+  let sd = sunDir();
+  let ndl = clamp(dot(n, sd), 0.0, 1.0);
+  let shadow = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
+
+  let base = vec3f(0.34, 0.40, 0.24);
+  let tint = noise_fbm(vec4f(gp.xz * 0.6, 0.0, 0.0), 4.0, 0.5, 2.0, true) * 0.5 + 0.5;
+  let albedo = base * mix(0.82, 1.12, tint);
+
+  let direct = skyC.sun * (ndl * params.g.sunIntensity * 0.6) * shadow;
+  let ambient = skyC.ambient * 0.55;
+  return albedo * (direct + ambient);
+}
+
 @fragment
 fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
   let skipLight = params.g.skipLight > 0.5;
@@ -398,7 +444,19 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   let sunTheta = dot(rd, SUN_DIR);
   let finalSky = sky + pow(max(sunTheta, 0.0), 64.0) * skyC.sun * 0.8;
 
-  var outColor = finalSky;
+  var background = finalSky;
+  if (rd.y < -0.0001) {
+    let tGround = (GROUND_Y - ro.y) / rd.y;
+    if (tGround > 0.0) {
+      let gp = ro + rd * tGround;
+      let gcol = groundColor(gp, skyC);
+      let fade = clamp(tGround / 80.0, 0.0, 1.0);
+      let horizon = smoothstep(0.0, 0.06, -rd.y);
+      background = mix(finalSky, mix(gcol, finalSky, fade), horizon);
+    }
+  }
+
+  var outColor = background;
 
   if (hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
@@ -433,7 +491,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       }
       pos += rd * stepSize;
     }
-    outColor = color + transmittance * finalSky;
+    outColor = color + transmittance * background;
   }
     
   outColor = outColor / (outColor + vec3f(1.0));
