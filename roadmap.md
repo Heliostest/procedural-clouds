@@ -150,12 +150,32 @@
 
 ---
 
-## 阶段 9 — 性能与工具
+## 阶段 9 — Raymarch 加速（空区跳过，渲染性能核心）
 
-- [ ] `weatherMap` 全空区域跳过 compute（区域包围盒裁剪 dispatch）：改 `src/renderer.ts` 的 `dispatchWorkgroups` 范围。
-- [ ] 缓存分辨率/更新频率随相机距离 LOD：`src/renderer.ts` 用相机距离调 `setDensityResolution`/`cacheUpdateRate`。
-- [ ] 调试视图：叠加显示 `weatherMap`、区域边界、当前 `sceneTime`（`src/renderer.ts` 增 debug pass 或 `src/gui.ts` 面板）。
+对冲阶段 8 着色与「提高步数/缓存分辨率求清晰」带来的开销。采用 **min-max 占据金字塔 + HDDA 层级遍历**，全程 GPU、零回读。
+
+> 代码落点：min-max mip 生成归 `src/renderer.ts`（compute pass + 纹理）；层级遍历归 `shaders/cloud.wgsl` 的 `fs`；质量参数归 `src/params.ts`。
+
+- [ ] min-max 占据金字塔：密度 compute 后顺带生成 mip 链（如 128³→64³→…→8³，每层体素存其覆盖子块的 max[/min]），全程 GPU、零回读。
+- [ ] HDDA 层级遍历：`fs` raymarch 自顶向下——粗层为空则按该层体素尺寸大步跳、非空则下钻到细层精细积分；薄云不被跨过（粗层 max 已「看见」）。
+- [ ] 仅在云内执行 `lightMarch` 与散射累加，空气段只推进 `t`。
+- [ ] 质量参数（云内细步倍率等）+ GUI 控件；默认值复现既有可见质量，循环有静态可终止上界。
+
+**验收**：相同可见质量下总采样/光照行进次数显著下降；提高 `Ray Steps`/`Cache Res` 时新增开销被占据金字塔大部分抵消；空旷视角帧时间明显下降。
+
+---
+
+## 阶段 10 — 调度与 LOD（compute 端，复用阶段 9 占据金字塔）
+
+- [ ] 空区跳过 compute（占据/包围盒裁剪 dispatch 范围）：改 `src/renderer.ts` 的 `dispatchWorkgroups`。
+- [ ] 缓存分辨率/更新频率随相机距离 LOD（可读阶段 9 mip 层级）：`src/renderer.ts` 用相机距离调 `setDensityResolution`/`cacheUpdateRate`。
 - [ ] 远距离 fallback：烘焙到 cubemap（极远背景）。
+
+---
+
+## 阶段 11 — 调试与工具
+
+- [ ] 调试视图：叠加显示 `weatherMap`、区域边界、占据金字塔层级、当前 `sceneTime`（`src/renderer.ts` debug pass 或 `src/gui.ts` 面板）。
 
 ---
 
@@ -164,12 +184,13 @@
 ```
 阶段1(地基) ─┬─ 阶段2(形态) ──┐
              ├─ 阶段3(风)     ├─ 阶段4(空间) ─ 阶段5(生命周期) ─ 阶段6(时间轴) ── 阶段7(多层)
-             └────────────────┘                                              └─ 阶段8/9(画质/性能)
+             └────────────────┘                          └─ 阶段8(画质) ─ 阶段9(raymarch加速) ─ 阶段10(调度/LOD) ─ 阶段11(工具)
 ```
 
 - **核心路径**：1 → 2 → 4 → 5 → 6（完成即满足全部唯象需求）。
 - 3（风）可与 2 并行。
-- 7/8/9 为增强，随时插入。
+- 7/8 为增强，随时插入。
+- 9（raymarch 加速）是 10（调度/LOD）的前置：占据金字塔被 10 复用。
 
 ## 代码结构（迁移后，TypeScript 模块）
 
