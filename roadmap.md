@@ -143,10 +143,10 @@
 
 借鉴 `../procedural-clouds-threejs/cloud-shaders.md`（着色逻辑均在 `shaders/cloud.wgsl`，后处理与 BG 色归 `src/renderer.ts`）：
 
-- [ ] Time-of-day 调色（`SUN_COLOR/AMBIENT/BG` 随太阳高度角）：参数加进 `src/params.ts`，`renderPass` 的 `clearValue` 改由 `src/renderer.ts` 按时间算。
-- [ ] Silver lining（背光边缘）、Beer-powder 亮边、双瓣 HG 相函数微调（`shaders/cloud.wgsl`）。
-- [ ] cumulonimbus 暗底亮顶随密度梯度增强（`shaders/cloud.wgsl`）。
-- [ ] God rays 后处理（屏幕空间径向模糊）：`src/renderer.ts` 增后处理 pass。
+- [x] Time-of-day 调色（`SUN_COLOR/AMBIENT/BG` 随太阳高度角）：参数加进 `src/params.ts`，`renderPass` 的 `clearValue` 改由 `src/renderer.ts` 按时间算。
+- [x] Silver lining（背光边缘）、Beer-powder 亮边、双瓣 HG 相函数微调（`shaders/cloud.wgsl`）。
+- [x] cumulonimbus 暗底亮顶随密度梯度增强（`shaders/cloud.wgsl`）。
+- [x] God rays 后处理（屏幕空间径向模糊）：`src/renderer.ts` 增后处理 pass。
 
 ---
 

@@ -20,6 +20,14 @@ struct Globals {
   sceneTime       : f32,
   deltaTime       : f32,
   weatherMorph    : f32,
+  sunAzimuth      : f32,
+  sunElevation    : f32,
+  silverIntensity : f32,
+  powderStrength  : f32,
+  hgForward       : f32,
+  hgBackward      : f32,
+  hgBlend         : f32,
+  godrayStrength  : f32,
   _pad            : f32,
 };
 
@@ -302,22 +310,46 @@ fn intersectBox(ro : vec3f, rd : vec3f) -> HitInfo {
   return HitInfo(tFar >= max(tNear, 0.0), tNear, tFar);
 }
 
-const SUN_DIR   = vec3f(0.189, 0.943, 0.283); 
-const SUN_COLOR = vec3f(1.0, 1.0, 1.0);
-const AMBIENT   = vec3f(0.26, 0.30, 0.42);
-const BG_COLOR  = vec3f(0.045, 0.10, 0.18);
+fn sunDir() -> vec3f {
+  let a = radians(params.g.sunAzimuth);
+  let e = radians(params.g.sunElevation);
+  let ce = cos(e);
+  return normalize(vec3f(ce * sin(a), sin(e), ce * cos(a)));
+}
+
+struct SkyColors {
+  sun     : vec3f,
+  ambient : vec3f,
+  bg      : vec3f,
+  top     : vec3f,
+};
+
+fn todColors() -> SkyColors {
+  let t = clamp(sin(radians(params.g.sunElevation)), 0.0, 1.0);
+  let tk = smoothstep(0.0, 0.5, t);
+  let sun = mix(vec3f(1.0, 0.55, 0.25), vec3f(1.0, 1.0, 1.0), tk);
+  let amb = mix(vec3f(0.18, 0.16, 0.22), vec3f(0.26, 0.30, 0.42), tk);
+  let bg  = mix(vec3f(0.20, 0.09, 0.10), vec3f(0.045, 0.10, 0.18), tk);
+  let top = mix(vec3f(0.35, 0.20, 0.18), vec3f(0.1, 0.2, 0.4), tk);
+  return SkyColors(sun, amb, bg, top);
+}
 
 fn hgPhase(cosTheta: f32, g: f32) -> f32 {
     let g2 = g * g;
     return (1.0 - g2) / (4.0 * 3.14159 * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
 }
 
+fn dualHG(cosTheta: f32) -> f32 {
+    return mix(hgPhase(cosTheta, params.g.hgBackward), hgPhase(cosTheta, params.g.hgForward), clamp01(params.g.hgBlend));
+}
+
 fn lightMarch(pos : vec3f) -> f32 {
   var shadow = 0.0;
   let steps = i32(params.g.lightMarchSteps);
   let stepSize = 0.15;
+  let sd = sunDir();
   for (var i = 1; i <= steps; i++) {
-    let p = pos + SUN_DIR * (f32(i) * stepSize);
+    let p = pos + sd * (f32(i) * stepSize);
     shadow += sampleDensity(p) * stepSize;
   }
   return exp(-shadow * params.g.shadowDarkness); 
@@ -339,9 +371,11 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
 
   let hit = intersectBox(ro, rd);
 
-  let sky = mix(BG_COLOR, vec3f(0.1, 0.2, 0.4), clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
+  let SUN_DIR = sunDir();
+  let skyC = todColors();
+  let sky = mix(skyC.bg, skyC.top, clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
   let sunTheta = dot(rd, SUN_DIR);
-  let finalSky = sky + pow(max(sunTheta, 0.0), 64.0) * SUN_COLOR * 0.8;
+  let finalSky = sky + pow(max(sunTheta, 0.0), 64.0) * skyC.sun * 0.8;
 
   var outColor = finalSky;
 
@@ -354,15 +388,22 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     var pos = ro + rd * (tEntry + stepSize * dither);
     var transmittance = 1.0;
     var color = vec3f(0.0);
-    let phase = mix(1.0, hgPhase(sunTheta, 0.45), 0.6);
+    let phase = mix(1.0, dualHG(sunTheta), 0.6);
+    let boxMax = getBoxMax();
 
     for (var i = 0; i < numSteps; i++) {
       let d = sampleDensity(pos);
       if (d > 0.01) {
         let step_trans = exp(-d * stepSize);
         let shadow = select(lightMarch(pos), 1.0, skipLight);
-        let scattering = shadow * phase * (1.0 - exp(-d * 1.0));
-        let litColor = SUN_COLOR * scattering * params.g.sunIntensity + AMBIENT * 0.5;
+        var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
+        scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
+        let zN = clamp((pos.y - BOX_MIN.y) / (boxMax.y - BOX_MIN.y), 0.0, 1.0);
+        let densW = smoothstep(0.6, 1.4, d);
+        let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
+        scattering *= heightLight;
+        var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
+        litColor *= 1.0 + params.g.silverIntensity * pow(clamp01(sunTheta), 4.0) * transmittance;
 
         color += transmittance * (1.0 - step_trans) * litColor;
         transmittance *= step_trans;

@@ -147,6 +147,16 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
   scenarioFolder.add({ paste: () => { pastePanel.style.display = 'flex'; pasteTa.focus(); } }, 'paste').name('Paste JSON…');
   scenarioFolder.add({ exp: hooks.onScenarioExport }, 'exp').name('Export JSON');
 
+  const lightFolder = gui.addFolder('Lighting');
+  lightFolder.add(params, 'sunAzimuth', 0, 360, 1).name('Sun Azimuth °');
+  lightFolder.add(params, 'sunElevation', -10, 90, 1).name('Sun Elevation °');
+  lightFolder.add(params, 'silverIntensity', 0.0, 2.0, 0.01).name('Silver Lining');
+  lightFolder.add(params, 'powderStrength', 0.0, 1.0, 0.01).name('Powder');
+  lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name('HG Forward');
+  lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name('HG Backward');
+  lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name('HG Blend');
+  lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name('God Rays');
+
   const renderFolder = gui.addFolder('Render');
   renderFolder.add(params, 'skipLight').name('Skip Light March');
   renderFolder.add(params, 'rayMarchSteps', 16, 64, 1).name('Ray Steps');

@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { RegionMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 12;
+export const BODY_BASE = 20;
 export const BODY_STRIDE = 12;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -17,6 +17,14 @@ export const PARAM_OFFSETS: Record<string, number> = {
   sceneTime: 8,
   deltaTime: 9,
   weatherMorph: 10,
+  sunAzimuth: 11,
+  sunElevation: 12,
+  silverIntensity: 13,
+  powderStrength: 14,
+  hgForward: 15,
+  hgBackward: 16,
+  hgBlend: 17,
+  godrayStrength: 18,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -85,6 +93,14 @@ export interface CloudParams {
   cacheResolution: number;
   cacheUpdateRate: number;
   cacheSmooth: number;
+  sunAzimuth: number;
+  sunElevation: number;
+  silverIntensity: number;
+  powderStrength: number;
+  hgForward: number;
+  hgBackward: number;
+  hgBlend: number;
+  godrayStrength: number;
 }
 
 export type PackValue = number | boolean | number[];
@@ -145,5 +161,13 @@ export function createDefaultParams(): CloudParams {
     cacheResolution: 96,
     cacheUpdateRate: 2,
     cacheSmooth: 0,
+    sunAzimuth: 34,
+    sunElevation: 70,
+    silverIntensity: 0,
+    powderStrength: 0,
+    hgForward: 0.45,
+    hgBackward: 0.45,
+    hgBlend: 1.0,
+    godrayStrength: 0,
   };
 }
