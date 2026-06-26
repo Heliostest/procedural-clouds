@@ -1,15 +1,48 @@
 import GUI from 'lil-gui';
-import { CLOUD_PRESETS, type CloudParams } from './params';
+import { CLOUD_PRESETS, SHAPE_PRESET_KEYS, type ShapeKey, type CloudParams } from './params';
 import type { BodyStore, CloudBody } from './body';
 import { t, getLang, setLang, cloudTypeName, type Lang } from './i18n';
 
 export interface GuiHooks {
   onBodiesChanged(): void;
   onCacheResolution(res: number): void;
+  onPresetsChanged(): void;
   onTrigger(): void;
   onScenarioDemo(): void;
   onScenarioLoad(text: string): void;
   onScenarioExport(): void;
+}
+
+const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
+  density: [0, 3, 0.01],
+  coverage: [0, 1, 0.01],
+  altitude: [0, 1, 0.01],
+  scale: [0.5, 8, 0.05],
+  detail: [0, 3, 0.05],
+  cloudHeight: [0.5, 4, 0.05],
+  coverageThreshold: [0, 0.5, 0.01],
+  edgeSharpness: [0, 1, 0.01],
+  baseRoundness: [0, 1, 0.01],
+  worleyBlend: [0, 1, 0.01],
+  detailStrength: [0, 2, 0.01],
+  altBase: [0, 1, 0.01],
+  altTop: [0, 1, 0.01],
+  absorptionCoeff: [0, 0.15, 0.001],
+  phaseForward: [0, 0.95, 0.01],
+  phaseBack: [-0.95, 0.95, 0.01],
+  silverLining: [0, 1, 0.01],
+  baseDarkening: [0, 1, 0.01],
+  sssStrength: [0, 1, 0.01],
+};
+
+function presetToCode(key: string): string {
+  const p = CLOUD_PRESETS[key];
+  const fields = SHAPE_PRESET_KEYS.map((k) => `${k}: ${p[k]}`).join(', ');
+  return `  ${key}: { ${fields} },`;
+}
+
+function allPresetsToCode(): string {
+  return Object.keys(CLOUD_PRESETS).map(presetToCode).join('\n');
 }
 
 export interface ScenarioState {
@@ -48,13 +81,38 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     function rebuildBodies(): void {
       for (const f of subFolders) f.destroy();
       subFolders = [];
-      const typeOptions: Record<string, string> = {};
-      for (const k of presetKeys) typeOptions[cloudTypeName(k)] = k;
       for (const b of store.list()) {
         const f = bodiesFolder.addFolder(`${b.id} (${b.shape}) · ${cloudTypeName(b.type)}`);
         subFolders.push(f);
 
-        f.add({ select: () => { params.selectedBody = b.id; } }, 'select').name(t('select'));
+        f.$title.textContent = '';
+        const titleText = document.createTextNode(`${b.id} (${b.shape}) · ${cloudTypeName(b.type)} `);
+        f.$title.appendChild(titleText);
+        const actions = document.createElement('span');
+        actions.style.cssText = 'float:right;display:inline-flex;align-items:center;gap:2px;margin-right:2px';
+        const typeSel = document.createElement('select');
+        typeSel.title = t('type');
+        for (const k of presetKeys) {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = cloudTypeName(k);
+          if (k === b.type) opt.selected = true;
+          typeSel.appendChild(opt);
+        }
+        typeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
+        typeSel.addEventListener('click', (e) => e.stopPropagation());
+        typeSel.addEventListener('change', () => { b.type = typeSel.value; titleText.nodeValue = `${b.id} (${b.shape}) · ${cloudTypeName(b.type)} `; hooks.onBodiesChanged(); });
+        const selBtn = document.createElement('button');
+        selBtn.textContent = '◎';
+        selBtn.title = t('select');
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '✕';
+        delBtn.title = t('remove');
+        for (const btn of [selBtn, delBtn]) btn.style.cssText = 'font:11px sans-serif;line-height:1;padding:1px 3px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
+        selBtn.addEventListener('click', (e) => { e.stopPropagation(); params.selectedBody = b.id; });
+        delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) params.selectedBody = null; rebuildBodies(); hooks.onBodiesChanged(); });
+        actions.append(typeSel, selBtn, delBtn);
+        f.$title.appendChild(actions);
 
         if (b.shape === 'rect') {
           const proxy = {
@@ -84,7 +142,6 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged);
         f.add(b, 'base', 0.0, 0.95, 0.01).name(t('height')).onChange(hooks.onBodiesChanged);
         f.add(b, 'thickness', 0.05, 1.0, 0.01).name(t('thickness')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'type', typeOptions).name(t('type')).onChange((v: string) => { b.type = v; f.title(`${b.id} (${b.shape}) · ${cloudTypeName(v)}`); hooks.onBodiesChanged(); });
         f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged);
         f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged);
         f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged);
@@ -98,8 +155,6 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         lf.add(b.life, 'decay', 0, 120, 0.5).name(t('decay')).onChange(hooks.onBodiesChanged);
         lf.add(b.life, 'death', 0, 120, 0.5).name(t('death')).onChange(hooks.onBodiesChanged);
         lf.add(b.life, 'peak', 0.0, 2.0, 0.05).name(t('peak')).onChange(hooks.onBodiesChanged);
-
-        f.add({ del: () => { store.remove(b.id); if (params.selectedBody === b.id) params.selectedBody = null; rebuildBodies(); hooks.onBodiesChanged(); } }, 'del').name(t('remove'));
       }
     }
 
@@ -166,7 +221,30 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward'));
     lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name(t('hgBackward'));
     lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name(t('hgBlend'));
+    lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting'));
     lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays'));
+
+    const presetFolder = gui.addFolder(t('presetEditor'));
+    const editState = { preset: presetKeys[0] };
+    let fieldsFolder: GUI | null = null;
+    const copyToClipboard = (text: string) => {
+      navigator.clipboard?.writeText(text).catch(() => {});
+    };
+    function rebuildFields(): void {
+      if (fieldsFolder) fieldsFolder.destroy();
+      fieldsFolder = presetFolder.addFolder(cloudTypeName(editState.preset));
+      const p = CLOUD_PRESETS[editState.preset];
+      for (const k of SHAPE_PRESET_KEYS) {
+        const [lo, hi, step] = PRESET_FIELD_RANGE[k];
+        fieldsFolder.add(p, k, lo, hi, step).name(k).onChange(hooks.onPresetsChanged);
+      }
+    }
+    const typeOpts: Record<string, string> = {};
+    for (const k of presetKeys) typeOpts[cloudTypeName(k)] = k;
+    presetFolder.add(editState, 'preset', typeOpts).name(t('editPreset')).onChange(rebuildFields);
+    presetFolder.add({ copy: () => copyToClipboard(presetToCode(editState.preset)) }, 'copy').name(t('copyPreset'));
+    presetFolder.add({ copyAll: () => copyToClipboard(allPresetsToCode()) }, 'copyAll').name(t('copyAllPresets'));
+    rebuildFields();
 
     const renderFolder = gui.addFolder(t('render'));
     renderFolder.add(params, 'skipLight').name(t('skipLight'));

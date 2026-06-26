@@ -59,7 +59,13 @@ const DICT: Dict = {
   hgForward: { en: 'HG Forward', zh: 'HG 前向' },
   hgBackward: { en: 'HG Backward', zh: 'HG 后向' },
   hgBlend: { en: 'HG Blend', zh: 'HG 混合' },
+  typeLighting: { en: 'Genus Lighting', zh: '云属光照' },
   godRays: { en: 'God Rays', zh: '体积光' },
+
+  presetEditor: { en: 'Preset Editor', zh: '预设编辑器' },
+  editPreset: { en: 'Edit Genus', zh: '编辑云属' },
+  copyPreset: { en: 'Copy This Preset', zh: '拷贝此预设' },
+  copyAllPresets: { en: 'Copy All Presets', zh: '拷贝全部预设' },
 
   render: { en: 'Render', zh: '渲染' },
   skipLight: { en: 'Skip Light March', zh: '跳过光照步进' },

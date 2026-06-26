@@ -31,7 +31,7 @@ struct Globals {
   qualityMode     : f32,
   detailFreq      : f32,
   detailStrength  : f32,
-  _pad0           : f32,
+  typeLightingBlend : f32,
   _pad1           : f32,
 };
 
@@ -53,6 +53,7 @@ struct PresetShape {
   p1 : vec4f,
   p2 : vec4f,
   p3 : vec4f,
+  p4 : vec4f,
 };
 
 const PRESET_COUNT = 10;
@@ -90,6 +91,21 @@ fn presetShape(i : i32) -> Shape13 {
   let idx = clamp(i, 0, PRESET_COUNT - 1);
   let p = presets[idx];
   return Shape13(p.p0.x, p.p0.y, p.p0.z, p.p0.w, p.p1.x, p.p1.y, p.p1.z, p.p1.w, p.p2.x, p.p2.y, p.p2.z, p.p2.w, p.p3.x);
+}
+
+struct Lighting {
+  absorption : f32,
+  phaseFwd   : f32,
+  phaseBack  : f32,
+  silver     : f32,
+  baseDark   : f32,
+  sss        : f32,
+};
+
+fn presetLighting(i : i32) -> Lighting {
+  let idx = clamp(i, 0, PRESET_COUNT - 1);
+  let p = presets[idx];
+  return Lighting(p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z);
 }
 
 fn mixShape(a : Shape13, b : Shape13, t : f32) -> Shape13 {
@@ -152,31 +168,54 @@ fn sharpen(x: f32, amount: f32) -> f32 {
   return mix(xc, y, a);
 }
 
-fn sampleDensity(pos: vec3f) -> f32 {
+fn sampleDensityTyped(pos: vec3f) -> vec2f {
   let uvw = (pos - BOX_MIN) / (getBoxMax() - BOX_MIN);
   if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
-    return 0.0;
+    return vec2f(0.0, 0.0);
   }
-  let a = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0).r;
-  let b = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).r;
+  let sa = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0).rg;
+  let sb = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).rg;
   let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
-  let density = mix(a, b, blend);
-  return density;
+  let density = mix(sa.r, sb.r, blend);
+  // Dominant genus index: take it from the denser of the two cached samples
+  // (avoids fractional indices produced by time/linear interpolation).
+  let idx = round(select(sa.g, sb.g, sb.r > sa.r));
+  return vec2f(density, idx);
+}
+
+fn sampleDensity(pos: vec3f) -> f32 {
+  return sampleDensityTyped(pos).x;
 }
 
 // ------------------------------------------------------------
 // Cloud Density (100% Blender Node Graph Match)
 // ------------------------------------------------------------
 
-fn cloudDensity(pos : vec3f) -> f32 {
+struct DensityType {
+  d   : f32,
+  idx : f32,
+};
+
+fn cloudDensityTyped(pos : vec3f) -> DensityType {
   // Blender "Object" coordinates for a cloud body (Z-up). World Y is Blender Z.
   let objPosRaw = vec3f(pos.x, pos.z, pos.y);
   var total = 0.0;
+  var bestD = 0.0;
+  var bestIdx = 0.0;
   for (var i = 0; i < MAX_BODIES; i++) {
     if (params.bodies[i].geom.w < 0.5) { continue; }
-    total += evalBody(pos, objPosRaw, i);
+    let dd = evalBody(pos, objPosRaw, i);
+    total += dd;
+    if (dd > bestD) {
+      bestD = dd;
+      bestIdx = round(params.bodies[i].geom.z);
+    }
   }
-  return total;
+  return DensityType(total, bestIdx);
+}
+
+fn cloudDensity(pos : vec3f) -> f32 {
+  return cloudDensityTyped(pos).d;
 }
 
 fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
@@ -352,16 +391,22 @@ fn detailNoise(pos : vec3f) -> f32 {
   return perlin_noise_4d(vec4f(pos * f, params.g.sceneTime * 0.1));
 }
 
-fn densityAt(pos : vec3f) -> f32 {
+fn densityAtTyped(pos : vec3f) -> vec2f {
   let mode = i32(params.g.qualityMode);
   if (mode == 2) {
-    return cloudDensity(pos);
+    let dt = cloudDensityTyped(pos);
+    return vec2f(dt.d, dt.idx);
   }
-  var base = sampleDensity(pos);
+  let s = sampleDensityTyped(pos);
+  var base = s.x;
   if (mode == 1 && base > 0.01) {
     base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
   }
-  return max(base, 0.0);
+  return vec2f(max(base, 0.0), s.y);
+}
+
+fn densityAt(pos : vec3f) -> f32 {
+  return densityAtTyped(pos).x;
 }
 
 fn lightMarch(pos : vec3f) -> f32 {
@@ -418,7 +463,7 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
   let ndl = clamp(dot(n, sd), 0.0, 1.0);
   let shadow = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
 
-  let base = vec3f(0.34, 0.40, 0.24);
+  let base = vec3f(0.14, 0.48, 0.10);
   let tint = noise_fbm(vec4f(gp.xz * 0.6, 0.0, 0.0), 4.0, 0.5, 2.0, true) * 0.5 + 0.5;
   let albedo = base * mix(0.82, 1.12, tint);
 
@@ -467,22 +512,37 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     var pos = ro + rd * (tEntry + stepSize * dither);
     var transmittance = 1.0;
     var color = vec3f(0.0);
-    let phase = mix(1.0, dualHG(sunTheta), 0.6);
+    let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
+    let blend = clamp01(params.g.typeLightingBlend);
     let boxMax = getBoxMax();
+    const ABS_K = 22.0; // calibrated so cumulus (absorption 0.045) ~= legacy extinction
 
     for (var i = 0; i < numSteps; i++) {
-      let d = densityAt(pos);
+      let dt = densityAtTyped(pos);
+      let d = dt.x;
       if (d > 0.01) {
-        let step_trans = exp(-d * stepSize);
+        let L = presetLighting(i32(dt.y));
+        let extinction = mix(1.0, L.absorption * ABS_K, blend);
+        let step_trans = exp(-d * stepSize * extinction);
         let shadow = select(lightMarch(pos), 1.0, skipLight);
+        // Per-genus dual-lobe phase, blended with the global phase.
+        let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
+        let phase = mix(phaseGlobal, phaseType, blend);
         var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
         scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
         let zN = clamp((pos.y - BOX_MIN.y) / (boxMax.y - BOX_MIN.y), 0.0, 1.0);
         let densW = smoothstep(0.6, 1.4, d);
         let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
         scattering *= heightLight;
+        // Per-genus dark base: deepen the underside for dense genera (cumulonimbus/nimbostratus).
+        let darkAmt = mix(0.0, L.baseDark, blend);
+        scattering *= 1.0 - darkAmt * (1.0 - zN) * densW;
         var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
-        litColor *= 1.0 + params.g.silverIntensity * pow(clamp01(sunTheta), 4.0) * transmittance;
+        // Per-genus subsurface transmission: back-lit glow when looking toward the
+        // sun (sunTheta>0) through THIN cloud (exp(-d) -> strong only where thin).
+        litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
+        let silverScale = mix(1.0, L.silver, blend);
+        litColor *= 1.0 + params.g.silverIntensity * silverScale * pow(clamp01(sunTheta), 4.0) * transmittance;
 
         color += transmittance * (1.0 - step_trans) * litColor;
         transmittance *= step_trans;
@@ -510,6 +570,6 @@ fn cs(@builtin(global_invocation_id) gid : vec3u) {
 
   let uvw = (vec3f(gid) + 0.5) / vec3f(dims);
   let pos = mix(BOX_MIN, getBoxMax(), uvw);
-  let d = cloudDensity(pos);
-  textureStore(densityStore, vec3i(gid), vec4f(d, 0.0, 0.0, 1.0));
+  let dt = cloudDensityTyped(pos);
+  textureStore(densityStore, vec3i(gid), vec4f(dt.d, dt.idx, 0.0, 1.0));
 }

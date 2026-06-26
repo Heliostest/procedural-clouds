@@ -47,6 +47,9 @@ async function main(): Promise<void> {
     onCacheResolution(res) {
       renderer.setDensityResolution(res);
     },
+    onPresetsChanged() {
+      renderer.updatePresets();
+    },
     onTrigger() {
       timeBase = (performance.now() - startTime) / 1000.0;
       timeline.scrub = false;

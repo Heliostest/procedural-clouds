@@ -139,6 +139,7 @@ export interface Renderer {
   setDensityResolution(res: number): void;
   setBodies(bodies: CloudBody[]): void;
   setBodyMods(mods: RegionMod[]): void;
+  updatePresets(): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
 }
 
@@ -280,6 +281,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     currentMods = mods;
   }
 
+  function updatePresets(): void {
+    device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
+  }
+
   let densityRes = 96;
   let densityTextures: [GPUTexture, GPUTexture] | null = null;
   let densitySampleBindGroup: GPUBindGroup;
@@ -399,6 +404,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       qualityMode: params.qualityMode,
       detailFreq: params.detailFreq,
       detailStrength: params.detailStrength,
+      typeLightingBlend: params.typeLightingBlend,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -527,5 +533,5 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     device.queue.submit([commandEncoder.finish()]);
   }
 
-  return { resizeCanvas, setDensityResolution, setBodies, setBodyMods, renderFrame };
+  return { resizeCanvas, setDensityResolution, setBodies, setBodyMods, updatePresets, renderFrame };
 }
