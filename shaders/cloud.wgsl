@@ -372,8 +372,8 @@ fn todColors() -> SkyColors {
   let tk = smoothstep(0.0, 0.5, t);
   let sun = mix(vec3f(1.0, 0.55, 0.25), vec3f(1.0, 1.0, 1.0), tk);
   let amb = mix(vec3f(0.18, 0.16, 0.22), vec3f(0.26, 0.30, 0.42), tk);
-  let bg  = mix(vec3f(0.20, 0.09, 0.10), vec3f(0.045, 0.10, 0.18), tk);
-  let top = mix(vec3f(0.35, 0.20, 0.18), vec3f(0.1, 0.2, 0.4), tk);
+  let bg  = mix(vec3f(0.20, 0.09, 0.10), vec3f(0.30, 0.55, 0.85), tk);
+  let top = mix(vec3f(0.35, 0.20, 0.18), vec3f(0.08, 0.32, 0.78), tk);
   return SkyColors(sun, amb, bg, top);
 }
 
@@ -430,7 +430,7 @@ const GROUND_Y = 0.0;
 
 fn groundHeight(xz : vec2f) -> f32 {
   let n = noise_fbm(vec4f(xz * 0.18, 0.0, 0.0), 3.0, 0.5, 2.0, true);
-  return n * 0.35;
+  return n * 0.85;
 }
 
 fn cloudShadowAt(p : vec3f) -> f32 {
@@ -463,7 +463,7 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
   let ndl = clamp(dot(n, sd), 0.0, 1.0);
   let shadow = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
 
-  let base = vec3f(0.14, 0.48, 0.10);
+  let base = vec3f(0.10, 0.62, 0.06);
   let tint = noise_fbm(vec4f(gp.xz * 0.6, 0.0, 0.0), 4.0, 0.5, 2.0, true) * 0.5 + 0.5;
   let albedo = base * mix(0.82, 1.12, tint);
 
