@@ -1,7 +1,21 @@
 import GUI from 'lil-gui';
 import { CLOUD_PRESETS, SHAPE_PRESET_KEYS, type ShapeKey, type CloudParams } from './params';
 import type { BodyStore, CloudBody } from './body';
-import { t, getLang, setLang, cloudTypeName, type Lang } from './i18n';
+import { t, tip, getLang, setLang, cloudTypeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+
+type Ctrl = { domElement: HTMLElement };
+function tipKey<C extends Ctrl>(c: C, key: string): C {
+  const d = tip(key);
+  if (d) c.domElement.title = d;
+  return c;
+}
+function tipText<C extends Ctrl>(c: C, text: string): C {
+  if (text) c.domElement.title = text;
+  return c;
+}
+function tipFolder(f: { $title: HTMLElement }, text: string): void {
+  if (text) f.$title.title = text;
+}
 
 export interface GuiHooks {
   onBodiesChanged(): void;
@@ -73,7 +87,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     gui = new GUI({ title: t('title') });
 
     const langProxy = { lang: getLang() };
-    gui.add(langProxy, 'lang', { English: 'en', 中文: 'zh' }).name(t('language')).onChange((v: Lang) => { setLang(v); build(); });
+    tipKey(gui.add(langProxy, 'lang', { English: 'en', 中文: 'zh' }).name(t('language')).onChange((v: Lang) => { setLang(v); build(); }), 'language');
 
     const bodiesFolder = gui.addFolder(t('cloudBodies'));
     let subFolders: GUI[] = [];
@@ -125,56 +139,56 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
             b.bounds = [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd];
             hooks.onBodiesChanged();
           };
-          f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply);
-          f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply);
-          f.add(proxy, 'hw', 0.2, 4.5, 0.1).name(t('halfW')).onChange(apply);
-          f.add(proxy, 'hd', 0.2, 4.5, 0.1).name(t('halfD')).onChange(apply);
+          tipKey(f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'hw', 0.2, 4.5, 0.1).name(t('halfW')).onChange(apply), 'halfW');
+          tipKey(f.add(proxy, 'hd', 0.2, 4.5, 0.1).name(t('halfD')).onChange(apply), 'halfD');
         } else {
           const proxy = { cx: b.bounds[0], cz: b.bounds[1], r: b.bounds[2] };
           const apply = () => {
             b.bounds = [proxy.cx, proxy.cz, proxy.r, 0];
             hooks.onBodiesChanged();
           };
-          f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply);
-          f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply);
-          f.add(proxy, 'r', 0.2, 4.5, 0.1).name(t('radius')).onChange(apply);
+          tipKey(f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'r', 0.2, 4.5, 0.1).name(t('radius')).onChange(apply), 'radius');
         }
-        f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'base', 0.0, 0.95, 0.01).name(t('height')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'thickness', 0.05, 1.0, 0.01).name(t('thickness')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'windSpeed', 0.0, 2.0, 0.01).name(t('windSpeed')).onChange(hooks.onBodiesChanged);
-        f.add(b, 'morphRate', 0.0, 1.0, 0.01).name(t('morphRate')).onChange(hooks.onBodiesChanged);
+        tipKey(f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged), 'feather');
+        tipKey(f.add(b, 'base', 0.0, 0.95, 0.01).name(t('height')).onChange(hooks.onBodiesChanged), 'height');
+        tipKey(f.add(b, 'thickness', 0.05, 1.0, 0.01).name(t('thickness')).onChange(hooks.onBodiesChanged), 'thickness');
+        tipKey(f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged), 'coverage');
+        tipKey(f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged), 'density');
+        tipKey(f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged), 'windDir');
+        tipKey(f.add(b, 'windSpeed', 0.0, 2.0, 0.01).name(t('windSpeed')).onChange(hooks.onBodiesChanged), 'windSpeed');
+        tipKey(f.add(b, 'morphRate', 0.0, 1.0, 0.01).name(t('morphRate')).onChange(hooks.onBodiesChanged), 'morphRate');
 
         const lf = f.addFolder(t('lifecycle'));
-        lf.add(b.life, 'enabled').name(t('enable')).onChange(hooks.onTrigger);
-        lf.add(b.life, 'birth', 0, 120, 0.5).name(t('birth')).onChange(hooks.onBodiesChanged);
-        lf.add(b.life, 'grow', 0, 120, 0.5).name(t('grow')).onChange(hooks.onBodiesChanged);
-        lf.add(b.life, 'decay', 0, 120, 0.5).name(t('decay')).onChange(hooks.onBodiesChanged);
-        lf.add(b.life, 'death', 0, 120, 0.5).name(t('death')).onChange(hooks.onBodiesChanged);
-        lf.add(b.life, 'peak', 0.0, 2.0, 0.05).name(t('peak')).onChange(hooks.onBodiesChanged);
+        tipKey(lf.add(b.life, 'enabled').name(t('enable')).onChange(hooks.onTrigger), 'enable');
+        tipKey(lf.add(b.life, 'birth', 0, 120, 0.5).name(t('birth')).onChange(hooks.onBodiesChanged), 'birth');
+        tipKey(lf.add(b.life, 'grow', 0, 120, 0.5).name(t('grow')).onChange(hooks.onBodiesChanged), 'grow');
+        tipKey(lf.add(b.life, 'decay', 0, 120, 0.5).name(t('decay')).onChange(hooks.onBodiesChanged), 'decay');
+        tipKey(lf.add(b.life, 'death', 0, 120, 0.5).name(t('death')).onChange(hooks.onBodiesChanged), 'death');
+        tipKey(lf.add(b.life, 'peak', 0.0, 2.0, 0.05).name(t('peak')).onChange(hooks.onBodiesChanged), 'peak');
       }
     }
 
-    bodiesFolder.add({ addRect: () => { const b = store.add('rect'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addRect').name(t('addRect'));
-    bodiesFolder.add({ addCircle: () => { const b = store.add('circle'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addCircle').name(t('addCircle'));
+    tipKey(bodiesFolder.add({ addRect: () => { const b = store.add('rect'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addRect').name(t('addRect')), 'addRect');
+    tipKey(bodiesFolder.add({ addCircle: () => { const b = store.add('circle'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addCircle').name(t('addCircle')), 'addCircle');
     rebuildBodies();
 
-    gui.add(params, 'showBodyBounds').name(t('showWireframe'));
-    gui.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name(t('boxHeight'));
-    gui.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength'));
+    tipKey(gui.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
+    tipKey(gui.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name(t('boxHeight')), 'boxHeight');
+    tipKey(gui.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
 
     const scenarioFolder = gui.addFolder(t('scenario'));
-    scenarioFolder.add(scenario, 'enabled').name(t('enableScenario'));
-    scenarioFolder.add(scenario, 'playing').name(t('playPause'));
-    scenarioFolder.add(scenario, 'speed', 0.1, 8.0, 0.1).name(t('speed'));
-    scenarioFolder.add(scenario, 'loop').name(t('loop'));
+    tipKey(scenarioFolder.add(scenario, 'enabled').name(t('enableScenario')), 'enableScenario');
+    tipKey(scenarioFolder.add(scenario, 'playing').name(t('playPause')), 'playPause');
+    tipKey(scenarioFolder.add(scenario, 'speed', 0.1, 8.0, 0.1).name(t('speed')), 'speed');
+    tipKey(scenarioFolder.add(scenario, 'loop').name(t('loop')), 'loop');
     const timeFolder = scenarioFolder.addFolder(t('timeline'));
-    timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name(t('triggerNow'));
-    timeFolder.add(timeline, 'scrub').name(t('scrubTime'));
-    timeFolder.add(timeline, 'time', 0, 120, 0.1).name(t('sceneTime'));
+    tipKey(timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name(t('triggerNow')), 'triggerNow');
+    tipKey(timeFolder.add(timeline, 'scrub').name(t('scrubTime')), 'scrubTime');
+    tipKey(timeFolder.add(timeline, 'time', 0, 120, 0.1).name(t('sceneTime')), 'sceneTime');
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -208,21 +222,21 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       pastePanel.style.display = 'none';
     });
 
-    scenarioFolder.add({ demo: hooks.onScenarioDemo }, 'demo').name(t('loadDemo'));
-    scenarioFolder.add({ load: () => fileInput.click() }, 'load').name(t('loadJson'));
-    scenarioFolder.add({ paste: () => { pastePanel.style.display = 'flex'; pasteTa.focus(); } }, 'paste').name(t('pasteJson'));
-    scenarioFolder.add({ exp: hooks.onScenarioExport }, 'exp').name(t('exportJson'));
+    tipKey(scenarioFolder.add({ demo: hooks.onScenarioDemo }, 'demo').name(t('loadDemo')), 'loadDemo');
+    tipKey(scenarioFolder.add({ load: () => fileInput.click() }, 'load').name(t('loadJson')), 'loadJson');
+    tipKey(scenarioFolder.add({ paste: () => { pastePanel.style.display = 'flex'; pasteTa.focus(); } }, 'paste').name(t('pasteJson')), 'pasteJson');
+    tipKey(scenarioFolder.add({ exp: hooks.onScenarioExport }, 'exp').name(t('exportJson')), 'exportJson');
 
     const lightFolder = gui.addFolder(t('lighting'));
-    lightFolder.add(params, 'sunAzimuth', 0, 360, 1).name(t('sunAzimuth'));
-    lightFolder.add(params, 'sunElevation', -10, 90, 1).name(t('sunElevation'));
-    lightFolder.add(params, 'silverIntensity', 0.0, 2.0, 0.01).name(t('silverLining'));
-    lightFolder.add(params, 'powderStrength', 0.0, 1.0, 0.01).name(t('powder'));
-    lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward'));
-    lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name(t('hgBackward'));
-    lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name(t('hgBlend'));
-    lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting'));
-    lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays'));
+    tipKey(lightFolder.add(params, 'sunAzimuth', 0, 360, 1).name(t('sunAzimuth')), 'sunAzimuth');
+    tipKey(lightFolder.add(params, 'sunElevation', -10, 90, 1).name(t('sunElevation')), 'sunElevation');
+    tipKey(lightFolder.add(params, 'silverIntensity', 0.0, 2.0, 0.01).name(t('silverLining')), 'silverLining');
+    tipKey(lightFolder.add(params, 'powderStrength', 0.0, 1.0, 0.01).name(t('powder')), 'powder');
+    tipKey(lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward')), 'hgForward');
+    tipKey(lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name(t('hgBackward')), 'hgBackward');
+    tipKey(lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name(t('hgBlend')), 'hgBlend');
+    tipKey(lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting')), 'typeLighting');
+    tipKey(lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays')), 'godRays');
 
     const presetFolder = gui.addFolder(t('presetEditor'));
     const editState = { preset: presetKeys[0] };
@@ -233,35 +247,38 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     function rebuildFields(): void {
       if (fieldsFolder) fieldsFolder.destroy();
       fieldsFolder = presetFolder.addFolder(cloudTypeName(editState.preset));
+      tipFolder(fieldsFolder, getLang() === 'zh'
+        ? '该云属的形状与光照模板。所有云体引用这些预设；悬停每一项查看其设计意图与作用。'
+        : 'Shape & lighting template for this genus. Bodies reference these presets; hover each row to see its design intent.');
       const p = CLOUD_PRESETS[editState.preset];
       for (const k of SHAPE_PRESET_KEYS) {
         const [lo, hi, step] = PRESET_FIELD_RANGE[k];
-        fieldsFolder.add(p, k, lo, hi, step).name(k).onChange(hooks.onPresetsChanged);
+        tipText(fieldsFolder.add(p, k, lo, hi, step).name(presetFieldName(k)).onChange(hooks.onPresetsChanged), presetFieldDesc(k));
       }
     }
     const typeOpts: Record<string, string> = {};
     for (const k of presetKeys) typeOpts[cloudTypeName(k)] = k;
-    presetFolder.add(editState, 'preset', typeOpts).name(t('editPreset')).onChange(rebuildFields);
-    presetFolder.add({ copy: () => copyToClipboard(presetToCode(editState.preset)) }, 'copy').name(t('copyPreset'));
-    presetFolder.add({ copyAll: () => copyToClipboard(allPresetsToCode()) }, 'copyAll').name(t('copyAllPresets'));
+    tipKey(presetFolder.add(editState, 'preset', typeOpts).name(t('editPreset')).onChange(rebuildFields), 'editPreset');
+    tipKey(presetFolder.add({ copy: () => copyToClipboard(presetToCode(editState.preset)) }, 'copy').name(t('copyPreset')), 'copyPreset');
+    tipKey(presetFolder.add({ copyAll: () => copyToClipboard(allPresetsToCode()) }, 'copyAll').name(t('copyAllPresets')), 'copyAllPresets');
     rebuildFields();
 
     const renderFolder = gui.addFolder(t('render'));
-    renderFolder.add(params, 'skipLight').name(t('skipLight'));
-    renderFolder.add(params, 'rayMarchSteps', 16, 64, 1).name(t('raySteps'));
-    renderFolder.add(params, 'lightMarchSteps', 1, 8, 1).name(t('lightSteps'));
-    renderFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark'));
-    renderFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity'));
-    renderFolder.add(params, 'cacheResolution', 32, 128, 1).name(t('cacheRes')).onFinishChange((v: number) => {
+    tipKey(renderFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
+    tipKey(renderFolder.add(params, 'rayMarchSteps', 16, 64, 1).name(t('raySteps')), 'raySteps');
+    tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 8, 1).name(t('lightSteps')), 'lightSteps');
+    tipKey(renderFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark')), 'shadowDark');
+    tipKey(renderFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity')), 'sunIntensity');
+    tipKey(renderFolder.add(params, 'cacheResolution', 32, 128, 1).name(t('cacheRes')).onFinishChange((v: number) => {
       const next = Math.max(32, Math.min(128, Math.round(v)));
       params.cacheResolution = next;
       hooks.onCacheResolution(next);
-    });
-    renderFolder.add(params, 'cacheUpdateRate', 1, 4, 1).name(t('cacheUpdate'));
-    renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth'));
-    renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode'));
-    renderFolder.add(params, 'detailFreq', 0.5, 8.0, 0.1).name(t('detailFreq'));
-    renderFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name(t('detailStrength'));
+    }), 'cacheRes');
+    tipKey(renderFolder.add(params, 'cacheUpdateRate', 1, 4, 1).name(t('cacheUpdate')), 'cacheUpdate');
+    tipKey(renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
+    tipKey(renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
+    tipKey(renderFolder.add(params, 'detailFreq', 0.5, 8.0, 0.1).name(t('detailFreq')), 'detailFreq');
+    tipKey(renderFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name(t('detailStrength')), 'detailStrength');
 
     api.refreshTimeline = () => timeFolder.controllers.forEach((c) => c.updateDisplay());
     api.refreshScenario = () => {
