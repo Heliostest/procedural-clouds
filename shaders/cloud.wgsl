@@ -540,16 +540,34 @@ fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
 }
 
-fn lightMarch(pos : vec3f) -> f32 {
+// Accumulated optical depth toward the sun (raw, not yet attenuated).
+fn lightMarchDepth(pos : vec3f) -> f32 {
   var shadow = 0.0;
   let steps = i32(params.g.lightMarchSteps);
-  let stepSize = max(params.g.lightMarchStepSize, 0.001);
   let sd = sunDir();
-  for (var i = 1; i <= steps; i++) {
-    let p = pos + sd * (f32(i) * stepSize);
-    shadow += densityAt(p) * stepSize;
+  // Exponentially growing steps probe the whole sun-ward path instead of a
+  // fixed shallow depth.
+  var ss = max(params.g.lightMarchStepSize, 0.001);
+  var t = 0.0;
+  for (var i = 0; i < steps; i++) {
+    t = t + ss;
+    let p = pos + sd * t;
+    shadow = shadow + densityAt(p) * ss;
+    ss = ss * 2.0;
   }
-  return exp(-shadow * params.g.shadowDarkness); 
+  return shadow;
+}
+
+// Multi-scattering approximation: sum a few octaves of Beer attenuation with
+// progressively smaller extinction. The low-extinction octaves keep shadowed
+// interiors from going pitch-black, so the bright lit surface blends into the
+// body instead of reading as a thin "shell" over a dark/transparent core.
+fn sunVisibility(opticalDepth : f32) -> f32 {
+  let sdk = params.g.shadowDarkness;
+  let o0 = exp(-opticalDepth * sdk);
+  let o1 = exp(-opticalDepth * sdk * 0.33);
+  let o2 = exp(-opticalDepth * sdk * 0.1);
+  return (o0 + 0.6 * o1 + 0.35 * o2) / 1.95;
 }
 
 fn interleavedGradientNoise(uv: vec2f) -> f32 {
@@ -657,7 +675,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let L = presetLighting(i32(dt.y));
         let extinction = mix(1.0, L.absorption * ABS_K, blend);
         let step_trans = exp(-d * stepSize * extinction);
-        let shadow = select(lightMarch(pos), 1.0, skipLight);
+        let shadow = select(sunVisibility(lightMarchDepth(pos)), 1.0, skipLight);
         // Per-genus dual-lobe phase, blended with the global phase.
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
         let phase = mix(phaseGlobal, phaseType, blend);
