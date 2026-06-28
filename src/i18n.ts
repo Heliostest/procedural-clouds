@@ -34,6 +34,7 @@ const DICT: Dict = {
   addCircle: { en: '+ Add Circle', zh: '+ 添加圆形' },
 
   global: { en: 'Global', zh: '全局' },
+  comparePresets: { en: '⊞ Compare Side by Side', zh: '⊞ 并排对比' },
   showWireframe: { en: 'Show Wireframe', zh: '显示线框' },
   boxHeight: { en: 'Box Height', zh: '盒体高度' },
   morphStrength: { en: 'Morph Strength', zh: '变形强度' },

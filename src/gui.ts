@@ -252,6 +252,101 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting')), 'typeLighting');
     tipKey(lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays')), 'godRays');
 
+    function openCompare(initA: string): void {
+      const fields = SHAPE_PRESET_KEYS.filter((k) => !RESERVED_PRESET_FIELDS.has(k));
+      const cols: string[] = [initA, presetKeys.find((k) => k !== initA) ?? initA];
+
+      const panel = document.createElement('div');
+      panel.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10000;background:#1a1a1a;border:1px solid #444;border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,0.6);max-height:85vh';
+      const topRow = document.createElement('div');
+      topRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px';
+      const compTitle = document.createElement('span');
+      compTitle.textContent = t('comparePresets');
+      compTitle.style.cssText = 'font:13px sans-serif;color:#9cf';
+      const topBtns = document.createElement('div');
+      topBtns.style.cssText = 'display:flex;gap:6px';
+      const addColBtn = document.createElement('button');
+      addColBtn.textContent = '+';
+      addColBtn.title = t('comparePresets');
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = t('close');
+      for (const b of [addColBtn, closeBtn]) b.style.cssText = 'padding:2px 12px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;font:12px sans-serif';
+      closeBtn.addEventListener('click', () => panel.remove());
+      addColBtn.addEventListener('click', () => { cols.push(presetKeys[0]); render(); });
+      topBtns.append(addColBtn, closeBtn);
+      topRow.append(compTitle, topBtns);
+
+      const body = document.createElement('div');
+      body.style.cssText = 'display:flex;gap:8px;overflow:auto';
+      panel.append(topRow, body);
+      document.body.appendChild(panel);
+
+      const fmt = (n: number) => (Number.isInteger(n) ? String(n) : Number(n.toFixed(3)).toString());
+
+      function render(): void {
+        body.innerHTML = '';
+
+        const labelCol = document.createElement('div');
+        labelCol.style.cssText = 'display:flex;flex-direction:column;flex:0 0 auto';
+        const labelHead = document.createElement('div');
+        labelHead.style.cssText = 'height:26px';
+        labelCol.appendChild(labelHead);
+        for (const k of fields) {
+          const cell = document.createElement('div');
+          cell.textContent = presetFieldName(k);
+          cell.title = presetFieldDesc(k);
+          cell.style.cssText = 'height:24px;line-height:24px;padding-right:10px;font:12px sans-serif;color:#bbb;white-space:nowrap';
+          labelCol.appendChild(cell);
+        }
+        body.appendChild(labelCol);
+
+        cols.forEach((preset, ci) => {
+          const col = document.createElement('div');
+          col.style.cssText = 'display:flex;flex-direction:column;flex:0 0 auto;border-left:1px solid #333;padding-left:8px';
+          const sel = document.createElement('select');
+          sel.style.cssText = 'height:26px;font:12px sans-serif;background:#2a2a2a;color:#9cf;border:1px solid #555;border-radius:3px;padding:0 2px';
+          for (const k of presetKeys) {
+            const o = document.createElement('option');
+            o.value = k; o.textContent = cloudTypeName(k);
+            if (k === preset) o.selected = true;
+            sel.appendChild(o);
+          }
+          sel.addEventListener('change', () => { cols[ci] = sel.value; render(); });
+          col.appendChild(sel);
+
+          const p = CLOUD_PRESETS[preset];
+          for (const k of fields) {
+            const [lo, hi, step] = PRESET_FIELD_RANGE[k];
+            const differs = cols.some((other) => CLOUD_PRESETS[other][k] !== p[k]);
+            const cell = document.createElement('div');
+            cell.style.cssText = `height:24px;display:flex;align-items:center;gap:6px;padding:0 4px;border-radius:3px;background:${differs ? '#3a2a14' : 'transparent'}`;
+            const sld = document.createElement('input');
+            sld.type = 'range';
+            sld.min = String(lo); sld.max = String(hi); sld.step = String(step);
+            sld.value = String(p[k]);
+            sld.style.cssText = 'flex:1;width:110px;accent-color:#5af';
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.value = fmt(p[k]);
+            inp.min = String(lo); inp.max = String(hi); inp.step = String(step);
+            inp.style.cssText = 'height:20px;width:64px;text-align:right;font:12px monospace;background:#0e0e0e;color:#cfe;border:1px solid #333;border-radius:3px';
+            const apply = (v: number, redraw: boolean) => {
+              if (Number.isNaN(v)) return;
+              p[k] = v; hooks.onPresetsChanged();
+              if (redraw) { render(); } else { inp.value = fmt(v); sld.value = String(v); }
+            };
+            sld.addEventListener('input', () => apply(parseFloat(sld.value), false));
+            sld.addEventListener('change', () => render());
+            inp.addEventListener('change', () => apply(parseFloat(inp.value), true));
+            cell.append(sld, inp);
+            col.appendChild(cell);
+          }
+          body.appendChild(col);
+        });
+      }
+      render();
+    }
+
     const presetFolder = gui.addFolder(t('presetEditor'));
     const editState = { preset: presetKeys[0] };
     let fieldsFolder: GUI | null = null;
@@ -274,6 +369,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     const typeOpts: Record<string, string> = {};
     for (const k of presetKeys) typeOpts[cloudTypeName(k)] = k;
     tipKey(presetFolder.add(editState, 'preset', typeOpts).name(t('editPreset')).onChange(rebuildFields), 'editPreset');
+    tipKey(presetFolder.add({ compare: () => openCompare(editState.preset) }, 'compare').name(t('comparePresets')), 'comparePresets');
     tipKey(presetFolder.add({ copy: () => copyToClipboard(presetToCode(editState.preset)) }, 'copy').name(t('copyPreset')), 'copyPreset');
     tipKey(presetFolder.add({ copyAll: () => copyToClipboard(allPresetsToCode()) }, 'copyAll').name(t('copyAllPresets')), 'copyAllPresets');
     rebuildFields();
