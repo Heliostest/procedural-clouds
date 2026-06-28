@@ -15,7 +15,7 @@ async function main(): Promise<void> {
 
   const params = createDefaultParams();
   const store = createBodyStore(createDefaultBodies());
-  const timeline = { scrub: false, time: 0 };
+  const timeline = { scrub: false, time: 0, paused: false };
   const scenarioState = { enabled: false, playing: true, speed: 1, loop: false };
   let currentScenario = DEMO_SCENARIO;
   let player: ScenarioPlayer = createPlayer(currentScenario);
@@ -57,7 +57,7 @@ async function main(): Promise<void> {
       renderer.updatePresets();
     },
     onTrigger() {
-      timeBase = (performance.now() - startTime) / 1000.0;
+      manualClock = 0;
       timeline.scrub = false;
       timeline.time = 0;
       gui.refreshTimeline();
@@ -142,7 +142,7 @@ async function main(): Promise<void> {
   onLangChange(applyInfo);
 
   const startTime = performance.now();
-  let timeBase = 0.0;
+  let manualClock = 0.0;
   let lastElapsed = 0.0;
   let lastFrameStamp = performance.now();
 
@@ -175,7 +175,8 @@ async function main(): Promise<void> {
         renderer.setBodies(store.list());
         lastPlayhead = -1;
       }
-      const sceneTime = timeline.scrub ? timeline.time : elapsed - timeBase;
+      if (!timeline.scrub && !timeline.paused) manualClock += deltaTime;
+      const sceneTime = timeline.scrub ? timeline.time : manualClock;
       const mods = store.list().map((b) => evalBodyMod(b, sceneTime));
       renderer.setBodyMods(mods);
     }
@@ -184,7 +185,9 @@ async function main(): Promise<void> {
 
     const aspect = canvas.width / canvas.height;
     const cam = camera.computeFrame(aspect);
-    const sceneClock = scenarioState.enabled ? playhead : elapsed;
+    const sceneClock = scenarioState.enabled
+      ? playhead
+      : (timeline.scrub ? timeline.time : manualClock);
     renderer.renderFrame(params, cam, elapsed, sceneClock);
     const workMs = performance.now() - now;
     updateDebug(sceneClock, cpuMs, workMs);

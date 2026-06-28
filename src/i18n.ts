@@ -34,6 +34,8 @@ const DICT: Dict = {
   addCircle: { en: '+ Add Circle', zh: '+ 添加圆形' },
 
   global: { en: 'Global', zh: '全局' },
+  pauseAnim: { en: 'Pause Animation', zh: '暂停动画' },
+  resetTime: { en: 'Reset Time (t=0)', zh: '重置时间 (t=0)' },
   comparePresets: { en: '⊞ Compare Side by Side', zh: '⊞ 并排对比' },
   showWireframe: { en: 'Show Wireframe', zh: '显示线框' },
   boxHalfExtent: { en: 'Box Half Extent XZ', zh: '盒体半宽 XZ' },
@@ -301,6 +303,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   verticalEdgeRange: { en: 'Strength of top/bottom vertical envelope (vEnvelope). 0 ≈ hard cut.', zh: '顶/底垂直包络强度（vEnvelope）。0 ≈ 硬截断。' },
   verticalEdgeShape: { en: 'Exponent on vertical envelope (higher = rounder top/bottom).', zh: '垂直包络指数（越大顶底越圆）。' },
   morphStrength: { en: 'Global blend amount toward the weather/morph target shape.', zh: '向天气/变形目标形状混合的全局强度。' },
+  pauseAnim: { en: 'Pause the cloud animation in manual mode (freezes wind drift, noise boiling and lifecycles).', zh: '在手动模式下暂停云的动画（冻结风吹漂移、噪声翻腾与生命周期）。' },
+  resetTime: { en: 'Reset the manual animation clock back to t=0.', zh: '将手动模式的动画时钟重置回 t=0。' },
   enableScenario: { en: 'Enable scenario playback (scripted timeline of events).', zh: '启用场景回放（脚本化的事件时间轴）。' },
   playPause: { en: 'Play or pause the scenario clock.', zh: '播放或暂停场景时钟。' },
   speed: { en: 'Playback speed multiplier for the scenario clock.', zh: '场景时钟的播放速度倍率。' },
