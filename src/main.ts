@@ -95,7 +95,13 @@ async function main(): Promise<void> {
   const dbg = document.createElement('pre');
   dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;margin:0;padding:8px 10px;font:11px/1.45 monospace;color:#9feaff;background:rgba(0,0,0,0.6);white-space:pre;pointer-events:none;z-index:9999;border-radius:4px;max-width:52ch';
   document.body.appendChild(dbg);
-  function updateDebug(sceneClock: number): void {
+
+  let emaCpuMs = 0;
+  let emaWorkMs = 0;
+  const QUALITY_NAMES = ['Cached', 'Hybrid', 'Realtime'];
+  function updateDebug(sceneClock: number, cpuMs: number, workMs: number): void {
+    emaCpuMs = emaCpuMs === 0 ? cpuMs : emaCpuMs * 0.9 + cpuMs * 0.1;
+    emaWorkMs = emaWorkMs === 0 ? workMs : emaWorkMs * 0.9 + workMs * 0.1;
     const lines: string[] = [];
     lines.push(`${t('dbgMode')}: ${scenarioState.enabled ? t('dbgScenario') : t('dbgManual')}`);
     lines.push(`${t('dbgClock')}: ${sceneClock.toFixed(2)}s`);
@@ -109,6 +115,24 @@ async function main(): Promise<void> {
       });
     }
     if (scenarioError) lines.push(`${t('dbgError')}: ${scenarioError}`);
+
+    const s = renderer.getStats();
+    const px = s.width * s.height;
+    const fps = emaCpuMs > 0 ? 1000 / emaCpuMs : 0;
+    const samples = px * params.rayMarchSteps * (params.skipLight ? 1 : 1 + params.lightMarchSteps);
+    const gpuMs = s.cloudMs + s.cacheMs;
+    lines.push('');
+    lines.push(`── ${t('perfTitle')} ──`);
+    lines.push(`${t('perfFps')}: ${fps.toFixed(0)}   ${t('perfCpu')}: ${emaCpuMs.toFixed(2)}ms   ${t('perfLoad')}: ${emaWorkMs.toFixed(2)}ms`);
+    if (s.gpuTiming) {
+      lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)})`);
+    } else {
+      lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}`);
+    }
+    lines.push(`${t('perfRes')}: ${s.width}×${s.height} (${(px / 1e6).toFixed(2)}M px)`);
+    lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
+    lines.push(`${t('perfVoxels')}: ${s.densityRes}³ (${((s.densityRes ** 3) / 1e6).toFixed(2)}M) wg ${s.cacheWg.join('×')}`);
+    lines.push(`${t('perfQuality')}: ${QUALITY_NAMES[params.qualityMode] ?? params.qualityMode}   weather ${s.weatherSize}²`);
     dbg.textContent = lines.join('\n');
   }
 
@@ -120,10 +144,14 @@ async function main(): Promise<void> {
   const startTime = performance.now();
   let timeBase = 0.0;
   let lastElapsed = 0.0;
+  let lastFrameStamp = performance.now();
 
   function frame(): void {
     stats.begin();
-    const elapsed = (performance.now() - startTime) / 1000.0;
+    const now = performance.now();
+    const cpuMs = now - lastFrameStamp;
+    lastFrameStamp = now;
+    const elapsed = (now - startTime) / 1000.0;
     const deltaTime = elapsed - lastElapsed;
     lastElapsed = elapsed;
 
@@ -158,7 +186,8 @@ async function main(): Promise<void> {
     const cam = camera.computeFrame(aspect);
     const sceneClock = scenarioState.enabled ? playhead : elapsed;
     renderer.renderFrame(params, cam, elapsed, sceneClock);
-    updateDebug(sceneClock);
+    const workMs = performance.now() - now;
+    updateDebug(sceneClock, cpuMs, workMs);
 
     stats.end();
     requestAnimationFrame(frame);

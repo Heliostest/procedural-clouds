@@ -134,7 +134,19 @@ function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: st
   return new Float32Array(out);
 }
 
+export interface RenderStats {
+  gpuTiming: boolean;
+  cloudMs: number;
+  cacheMs: number;
+  width: number;
+  height: number;
+  densityRes: number;
+  weatherSize: number;
+  cacheWg: [number, number, number];
+}
+
 export interface Renderer {
+  getStats(): RenderStats;
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
   setWeatherSize(size: number): void;
@@ -154,7 +166,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) throw new Error('No appropriate GPUAdapter found');
 
-  const device = await adapter.requestDevice();
+  const hasTimestamp = adapter.features.has('timestamp-query');
+  const device = await adapter.requestDevice(
+    hasTimestamp ? { requiredFeatures: ['timestamp-query'] } : {},
+  );
   const context = canvas.getContext('webgpu');
   if (!context) throw new Error('Failed to get webgpu context');
 
@@ -433,6 +448,22 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let nextCacheTime = 0.0;
   let prevSceneTime = 0.0;
 
+  const TS_COUNT = 4; // [computeStart, computeEnd, renderStart, renderEnd]
+  const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
+  const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
+  const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
+  let tsMapping = false;
+  const stats = {
+    gpuTiming: hasTimestamp,
+    cloudMs: 0,
+    cacheMs: 0,
+    width: 0,
+    height: 0,
+    densityRes,
+    weatherSize,
+    cacheWg: [cacheWg[0], cacheWg[1], cacheWg[2]] as [number, number, number],
+  };
+
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
@@ -515,8 +546,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
+    let cacheRan = false;
 
     if (params.qualityMode !== 2 && frameIndex % params.cacheUpdateRate === 0) {
+      cacheRan = true;
       prevCacheTime = nextCacheTime;
       nextCacheTime = elapsed;
       cacheIndex = 1 - cacheIndex;
@@ -528,7 +561,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         ],
       });
 
-      const pass = commandEncoder.beginComputePass();
+      const pass = commandEncoder.beginComputePass(
+        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } } : undefined,
+      );
       pass.setPipeline(computePipeline);
       pass.setBindGroup(0, computeBindGroup);
       pass.setBindGroup(2, densityStoreBindGroup);
@@ -551,6 +586,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : {}),
     });
 
     renderPass.setPipeline(pipeline);
@@ -604,10 +640,41 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     postPass.draw(3);
     postPass.end();
 
+    if (tsQuerySet && tsResolve && tsRead && !tsMapping) {
+      commandEncoder.resolveQuerySet(tsQuerySet, 0, TS_COUNT, tsResolve, 0);
+      commandEncoder.copyBufferToBuffer(tsResolve, 0, tsRead, 0, TS_COUNT * 8);
+    }
+
     device.queue.submit([commandEncoder.finish()]);
+
+    stats.width = canvas.width;
+    stats.height = canvas.height;
+    stats.densityRes = densityRes;
+    stats.weatherSize = weatherSize;
+    stats.cacheWg = [cacheWg[0], cacheWg[1], cacheWg[2]];
+
+    if (tsRead && !tsMapping) {
+      tsMapping = true;
+      tsRead.mapAsync(GPUMapMode.READ).then(() => {
+        const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
+        tsRead.unmap();
+        const renderNs = Number(ts[3] - ts[2]);
+        if (renderNs >= 0) stats.cloudMs = renderNs / 1e6;
+        if (cacheRan) {
+          const cacheNs = Number(ts[1] - ts[0]);
+          if (cacheNs >= 0) stats.cacheMs = cacheNs / 1e6;
+        }
+        tsMapping = false;
+      }).catch(() => { tsMapping = false; });
+    }
+  }
+
+  function getStats() {
+    return stats;
   }
 
   return {
+    getStats,
     resizeCanvas,
     setDensityResolution,
     setWeatherSize,
