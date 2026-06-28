@@ -120,6 +120,22 @@ fn presetLighting(i : i32) -> Lighting {
   return Lighting(p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z);
 }
 
+fn mixLighting(a : Lighting, b : Lighting, t : f32) -> Lighting {
+  return Lighting(
+    mix(a.absorption, b.absorption, t),
+    mix(a.phaseFwd, b.phaseFwd, t),
+    mix(a.phaseBack, b.phaseBack, t),
+    mix(a.silver, b.silver, t),
+    mix(a.baseDark, b.baseDark, t),
+    mix(a.sss, b.sss, t),
+  );
+}
+
+// Density-weighted blend of the two dominant genera at a point (idx, idx2, w2).
+fn blendedLighting(idx : f32, idx2 : f32, w2 : f32) -> Lighting {
+  return mixLighting(presetLighting(i32(idx)), presetLighting(i32(idx2)), clamp(w2, 0.0, 0.5));
+}
+
 fn mixShape(a : Shape13, b : Shape13, t : f32) -> Shape13 {
   return Shape13(
     mix(a.density, b.density, t),
@@ -180,21 +196,25 @@ fn sharpen(x: f32, amount: f32) -> f32 {
   return mix(xc, y, a);
 }
 
-fn sampleDensityTyped(pos: vec3f) -> vec2f {
+fn sampleDensityTyped(pos: vec3f) -> vec4f {
   let bmin = boxMin();
   let bmax = getBoxMax();
   let uvw = (pos - bmin) / (bmax - bmin);
   if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
-    return vec2f(0.0, 0.0);
+    return vec4f(0.0);
   }
-  let sa = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0).rg;
-  let sb = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).rg;
+  let sa = textureSampleLevel(densityTex0, densitySampler, uvw, 0.0);
+  let sb = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0);
   let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
   let density = mix(sa.r, sb.r, blend);
-  // Dominant genus index: take it from the denser of the two cached samples
-  // (avoids fractional indices produced by time/linear interpolation).
-  let idx = round(select(sa.g, sb.g, sb.r > sa.r));
-  return vec2f(density, idx);
+  // Genus indices: take from the denser of the two cached samples (avoids
+  // fractional indices from time/linear interpolation). The blend weight (a)
+  // interpolates smoothly so overlap lighting transitions are seamless.
+  let useB = sb.r > sa.r;
+  let idx = round(select(sa.g, sb.g, useB));
+  let idx2 = round(select(sa.b, sb.b, useB));
+  let w2 = mix(sa.a, sb.a, blend);
+  return vec4f(density, idx, idx2, w2);
 }
 
 fn sampleDensity(pos: vec3f) -> f32 {
@@ -206,8 +226,10 @@ fn sampleDensity(pos: vec3f) -> f32 {
 // ------------------------------------------------------------
 
 struct DensityType {
-  d   : f32,
-  idx : f32,
+  d    : f32,
+  idx  : f32,
+  idx2 : f32,
+  w2   : f32,
 };
 
 fn cloudDensityTyped(pos : vec3f) -> DensityType {
@@ -216,16 +238,32 @@ fn cloudDensityTyped(pos : vec3f) -> DensityType {
   var total = 0.0;
   var bestD = 0.0;
   var bestIdx = 0.0;
+  var secondD = 0.0;
+  var secondIdx = 0.0;
   for (var i = 0; i < MAX_BODIES; i++) {
     if (params.bodies[i].geom.w < 0.5) { continue; }
     let dd = evalBody(pos, objPosRaw, i);
     total += dd;
+    let gi = round(params.bodies[i].geom.z);
     if (dd > bestD) {
+      secondD = bestD;
+      secondIdx = bestIdx;
       bestD = dd;
-      bestIdx = round(params.bodies[i].geom.z);
+      bestIdx = gi;
+    } else if (dd > secondD) {
+      secondD = dd;
+      secondIdx = gi;
     }
   }
-  return DensityType(total, bestIdx);
+  // Overlap density: keep the dominant contribution exact, soft-saturate only
+  // the extra mass added by other bodies so overlaps thicken naturally instead
+  // of summing into an over-dense dark lump. Single clouds are unchanged.
+  let rest = max(total - bestD, 0.0);
+  let restCap = max(bestD, 0.25);
+  let dSoft = bestD + restCap * (1.0 - exp(-rest / restCap));
+  // Lighting blend weight of the second genus (0 = single, 0.5 = equal mix).
+  let w2 = secondD / max(bestD + secondD, 1e-4);
+  return DensityType(dSoft, bestIdx, secondIdx, w2);
 }
 
 fn cloudDensity(pos : vec3f) -> f32 {
@@ -522,18 +560,18 @@ fn shapeCoord(mode : i32, p : vec3f) -> f32 {
   return 1e9;
 }
 
-fn densityAtTyped(pos : vec3f) -> vec2f {
+fn densityAtTyped(pos : vec3f) -> vec4f {
   let mode = i32(params.g.qualityMode);
   if (mode == 2) {
     let dt = cloudDensityTyped(pos);
-    return vec2f(applyEdgeHardness(dt.d), dt.idx);
+    return vec4f(applyEdgeHardness(dt.d), dt.idx, dt.idx2, dt.w2);
   }
   let s = sampleDensityTyped(pos);
   var base = s.x;
   if (mode == 1 && base > 0.01) {
     base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
   }
-  return vec2f(applyEdgeHardness(max(base, 0.0)), s.y);
+  return vec4f(applyEdgeHardness(max(base, 0.0)), s.y, s.z, s.w);
 }
 
 fn densityAt(pos : vec3f) -> f32 {
@@ -672,7 +710,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let dt = densityAtTyped(pos);
       let d = dt.x;
       if (d > 0.01) {
-        let L = presetLighting(i32(dt.y));
+        let L = blendedLighting(dt.y, dt.z, dt.w);
         let extinction = mix(1.0, L.absorption * ABS_K, blend);
         let step_trans = exp(-d * stepSize * extinction);
         let shadow = select(sunVisibility(lightMarchDepth(pos)), 1.0, skipLight);
@@ -722,5 +760,5 @@ fn cs(@builtin(global_invocation_id) gid : vec3u) {
   let uvw = (vec3f(gid) + 0.5) / vec3f(dims);
   let pos = mix(boxMin(), getBoxMax(), uvw);
   let dt = cloudDensityTyped(pos);
-  textureStore(densityStore, vec3i(gid), vec4f(dt.d, dt.idx, 0.0, 1.0));
+  textureStore(densityStore, vec3i(gid), vec4f(dt.d, dt.idx, dt.idx2, dt.w2));
 }
