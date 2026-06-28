@@ -313,7 +313,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let bandHi = max(altTop, altBase + 1e-3);
   let vMid = (altBase + bandHi) * 0.5;
   let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
-  let vT = clamp01(abs(zNorm - vMid) / vHalf);
+  let vT = abs(zNorm - vMid) / vHalf;
   let vEnvelope = pow(vT, VERTICAL_EDGE_SHAPE) * VERTICAL_EDGE_RANGE;
   let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
 

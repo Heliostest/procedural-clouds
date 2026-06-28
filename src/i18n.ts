@@ -33,6 +33,7 @@ const DICT: Dict = {
   addRect: { en: '+ Add Rect', zh: '+ 添加矩形' },
   addCircle: { en: '+ Add Circle', zh: '+ 添加圆形' },
 
+  global: { en: 'Global', zh: '全局' },
   showWireframe: { en: 'Show Wireframe', zh: '显示线框' },
   boxHeight: { en: 'Box Height', zh: '盒体高度' },
   morphStrength: { en: 'Morph Strength', zh: '变形强度' },

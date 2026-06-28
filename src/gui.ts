@@ -49,6 +49,8 @@ const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
   sssStrength: [0, 1, 0.01],
 };
 
+const RESERVED_PRESET_FIELDS = new Set<ShapeKey>(['cloudHeight', 'altBase', 'altTop']);
+
 function presetToCode(key: string): string {
   const p = CLOUD_PRESETS[key];
   const fields = SHAPE_PRESET_KEYS.map((k) => `${k}: ${p[k]}`).join(', ');
@@ -86,8 +88,19 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     if (gui) gui.destroy();
     gui = new GUI({ title: t('title') });
 
-    const langProxy = { lang: getLang() };
-    tipKey(gui.add(langProxy, 'lang', { English: 'en', 中文: 'zh' }).name(t('language')).onChange((v: Lang) => { setLang(v); build(); }), 'language');
+    const langSel = document.createElement('select');
+    langSel.title = tip('language');
+    for (const [label, val] of [['English', 'en'], ['中文', 'zh']] as const) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = label;
+      if (val === getLang()) opt.selected = true;
+      langSel.appendChild(opt);
+    }
+    langSel.style.cssText = 'float:right;margin-right:6px;font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
+    langSel.addEventListener('click', (e) => e.stopPropagation());
+    langSel.addEventListener('change', () => { setLang(langSel.value as Lang); build(); });
+    gui.$title.appendChild(langSel);
 
     const bodiesFolder = gui.addFolder(t('cloudBodies'));
     let subFolders: GUI[] = [];
@@ -176,9 +189,10 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(bodiesFolder.add({ addCircle: () => { const b = store.add('circle'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addCircle').name(t('addCircle')), 'addCircle');
     rebuildBodies();
 
-    tipKey(gui.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
-    tipKey(gui.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name(t('boxHeight')), 'boxHeight');
-    tipKey(gui.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
+    const globalFolder = gui.addFolder(t('global'));
+    tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
+    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name(t('boxHeight')), 'boxHeight');
+    tipKey(globalFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
 
     const scenarioFolder = gui.addFolder(t('scenario'));
     tipKey(scenarioFolder.add(scenario, 'enabled').name(t('enableScenario')), 'enableScenario');
@@ -252,6 +266,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         : 'Shape & lighting template for this genus. Bodies reference these presets; hover each row to see its design intent.');
       const p = CLOUD_PRESETS[editState.preset];
       for (const k of SHAPE_PRESET_KEYS) {
+        if (RESERVED_PRESET_FIELDS.has(k)) continue;
         const [lo, hi, step] = PRESET_FIELD_RANGE[k];
         tipText(fieldsFolder.add(p, k, lo, hi, step).name(presetFieldName(k)).onChange(hooks.onPresetsChanged), presetFieldDesc(k));
       }
@@ -279,6 +294,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
     tipKey(renderFolder.add(params, 'detailFreq', 0.5, 8.0, 0.1).name(t('detailFreq')), 'detailFreq');
     tipKey(renderFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name(t('detailStrength')), 'detailStrength');
+
+    gui.foldersRecursive().forEach((f) => f.close());
 
     api.refreshTimeline = () => timeFolder.controllers.forEach((c) => c.updateDisplay());
     api.refreshScenario = () => {
