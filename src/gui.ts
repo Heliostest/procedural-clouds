@@ -1,7 +1,11 @@
 import GUI from 'lil-gui';
 import { CLOUD_PRESETS, SHAPE_PRESET_KEYS, type ShapeKey, type CloudParams } from './params';
-import type { BodyStore, CloudBody } from './body';
-import { t, tip, getLang, setLang, cloudTypeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+import type { BodyStore, CloudBody, BodyShape } from './body';
+import { t, tip, getLang, setLang, cloudTypeName, shapeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+
+const ALL_SHAPES: BodyShape[] = [
+  'rect', 'circle', 'sphere', 'cube', 'octahedron', 'tetrahedron', 'dodecahedron', 'icosahedron', 'torus',
+];
 
 type Ctrl = { domElement: HTMLElement };
 function tipKey<C extends Ctrl>(c: C, key: string): C {
@@ -120,6 +124,22 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         f.$title.appendChild(titleText);
         const actions = document.createElement('span');
         actions.style.cssText = 'float:right;display:inline-flex;align-items:center;gap:2px;margin-right:2px';
+        const shapeSel = document.createElement('select');
+        shapeSel.title = t('shape');
+        for (const k of ALL_SHAPES) {
+          const opt = document.createElement('option');
+          opt.value = k;
+          opt.textContent = shapeName(k);
+          if (k === b.shape) opt.selected = true;
+          shapeSel.appendChild(opt);
+        }
+        shapeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
+        shapeSel.addEventListener('click', (e) => e.stopPropagation());
+        shapeSel.addEventListener('change', () => {
+          store.setShape(b.id, shapeSel.value as BodyShape);
+          rebuildBodies();
+          hooks.onBodiesChanged();
+        });
         const typeSel = document.createElement('select');
         typeSel.title = t('type');
         for (const k of presetKeys) {
@@ -141,7 +161,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         for (const btn of [selBtn, delBtn]) btn.style.cssText = 'font:11px sans-serif;line-height:1;padding:1px 3px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
         selBtn.addEventListener('click', (e) => { e.stopPropagation(); params.selectedBody = b.id; });
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) params.selectedBody = null; rebuildBodies(); hooks.onBodiesChanged(); });
-        actions.append(typeSel, selBtn, delBtn);
+        actions.append(shapeSel, typeSel, selBtn, delBtn);
         f.$title.appendChild(actions);
 
         const lim = params.boxHalfExtent;

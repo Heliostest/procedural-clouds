@@ -46,7 +46,8 @@ struct Globals {
 struct BodyGPU {
   geom : vec4f, // x=base, y=altTop, z=typeIdx, w=enabled
   wind : vec4f, // x=dirX, y=dirY, z=speed, w=morphRate
-  intensity : vec4f, // x=coverage, y=densityScale, z=morph
+  intensity : vec4f, // x=coverage, y=densityScale, z=morph, w=feather
+  footprint : vec4f, // x=centerX, y=centerZ, z=radius, w=shapeId
 };
 
 const MAX_BODIES = 12;
@@ -231,8 +232,31 @@ fn cloudDensity(pos : vec3f) -> f32 {
   return cloudDensityTyped(pos).d;
 }
 
+fn evalBodySolid(pos : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
+  let bmin = boxMin();
+  let bmaxY = getBoxMax().y;
+  let cx = b.footprint.x;
+  let cz = b.footprint.y;
+  let rad = max(b.footprint.z, 0.001);
+  let yBase = mix(bmin.y, bmaxY, clamp01(b.geom.x));
+  let yTop = mix(bmin.y, bmaxY, clamp01(b.geom.y));
+  let yMid = (yBase + yTop) * 0.5;
+  let yHalf = max((yTop - yBase) * 0.5, 0.001);
+  let p = vec3f((pos.x - cx) / rad, (pos.y - yMid) / yHalf, (pos.z - cz) / rad);
+  let s = shapeCoord(shapeId, p);
+  // Surface softness reuses the body's Feather (in world units), normalized.
+  let edge = clamp(max(b.intensity.w, 0.001) / rad, 0.01, 2.0);
+  let level = clamp01(b.intensity.x) * max(b.intensity.y, 0.0) * 5.0;
+  return clamp01((1.0 - s) / edge) * level;
+}
+
 fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let b = params.bodies[i];
+
+  let shapeId = i32(round(b.footprint.w));
+  if (shapeId >= 2) {
+    return evalBodySolid(pos, b, shapeId);
+  }
 
   let mt = params.g.sceneTime * b.wind.w;
   let timeNoise     = mt;
@@ -420,6 +444,82 @@ fn applyEdgeHardness(d: f32) -> f32 {
   let thr = max(params.g.edgeHardnessThreshold, 0.0001);
   let w = mix(0.15, 0.001, clamp01(h));
   return smoothstep(thr - w, thr + w, d);
+}
+
+// ------------------------------------------------------------
+// Debug analytic shapes (bypass procedural noise + weather + cache).
+// Each returns a "shape coordinate" s: s<1 inside, s==1 on surface.
+// ------------------------------------------------------------
+fn dbgSphere(p : vec3f) -> f32 { return length(p); }
+
+fn dbgCube(p : vec3f) -> f32 { return max(max(abs(p.x), abs(p.y)), abs(p.z)); }
+
+fn dbgOcta(p : vec3f) -> f32 {
+  let n = 0.5773502692;
+  return max(
+    max(abs(dot(p, vec3f(1.0, 1.0, 1.0))), abs(dot(p, vec3f(-1.0, 1.0, 1.0)))),
+    max(abs(dot(p, vec3f(1.0, -1.0, 1.0))), abs(dot(p, vec3f(1.0, 1.0, -1.0))))
+  ) * n;
+}
+
+fn dbgTetra(p : vec3f) -> f32 {
+  let n = 0.5773502692;
+  let a = dot(p, vec3f(1.0, 1.0, 1.0));
+  let b = dot(p, vec3f(1.0, -1.0, -1.0));
+  let c = dot(p, vec3f(-1.0, 1.0, -1.0));
+  let d = dot(p, vec3f(-1.0, -1.0, 1.0));
+  return max(max(a, b), max(c, d)) * n;
+}
+
+fn dbgDodeca(p : vec3f) -> f32 {
+  let n = normalize(vec3f(0.0, 1.0, 1.618034));
+  let v0 = vec3f(0.0, n.y, n.z);
+  let v1 = vec3f(0.0, n.y, -n.z);
+  let v2 = vec3f(n.z, 0.0, n.y);
+  let v3 = vec3f(-n.z, 0.0, n.y);
+  let v4 = vec3f(n.y, n.z, 0.0);
+  let v5 = vec3f(n.y, -n.z, 0.0);
+  var m = abs(dot(p, v0));
+  m = max(m, abs(dot(p, v1)));
+  m = max(m, abs(dot(p, v2)));
+  m = max(m, abs(dot(p, v3)));
+  m = max(m, abs(dot(p, v4)));
+  m = max(m, abs(dot(p, v5)));
+  return m * 1.070466;
+}
+
+fn dbgIcosa(p : vec3f) -> f32 {
+  let a = normalize(vec3f(1.0, 1.0, 1.0));
+  let b = normalize(vec3f(0.0, 1.0, 2.618034));
+  let c = normalize(vec3f(2.618034, 0.0, 1.0));
+  let d = normalize(vec3f(1.0, 2.618034, 0.0));
+  var m = abs(dot(p, a));
+  m = max(m, abs(dot(p, vec3f(-a.x, a.y, a.z))));
+  m = max(m, abs(dot(p, vec3f(a.x, -a.y, a.z))));
+  m = max(m, abs(dot(p, vec3f(a.x, a.y, -a.z))));
+  m = max(m, abs(dot(p, vec3f(0.0, b.y, b.z))));
+  m = max(m, abs(dot(p, vec3f(0.0, -b.y, b.z))));
+  m = max(m, abs(dot(p, vec3f(c.x, 0.0, c.z))));
+  m = max(m, abs(dot(p, vec3f(-c.x, 0.0, c.z))));
+  m = max(m, abs(dot(p, vec3f(d.x, d.y, 0.0))));
+  m = max(m, abs(dot(p, vec3f(-d.x, d.y, 0.0))));
+  return m * 0.9341724;
+}
+
+fn dbgTorus(p : vec3f) -> f32 {
+  let q = vec2f(length(p.xz) - 0.7, p.y);
+  return length(q) / 0.3;
+}
+
+fn shapeCoord(mode : i32, p : vec3f) -> f32 {
+  if (mode == 2) { return dbgSphere(p); }
+  else if (mode == 3) { return dbgCube(p); }
+  else if (mode == 4) { return dbgOcta(p); }
+  else if (mode == 5) { return dbgTetra(p); }
+  else if (mode == 6) { return dbgDodeca(p); }
+  else if (mode == 7) { return dbgIcosa(p); }
+  else if (mode == 8) { return dbgTorus(p); }
+  return 1e9;
 }
 
 fn densityAtTyped(pos : vec3f) -> vec2f {

@@ -93,6 +93,7 @@ const DICT: Dict = {
   cacheWgX: { en: 'Cache WG X', zh: '缓存工作组 X' },
   cacheWgY: { en: 'Cache WG Y', zh: '缓存工作组 Y' },
   cacheWgZ: { en: 'Cache WG Z', zh: '缓存工作组 Z' },
+  shape: { en: 'Shape', zh: '形状' },
 
   pastePlaceholder: { en: 'Paste Scenario JSON then click Apply', zh: '粘贴 Scenario JSON 后点 Apply' },
   apply: { en: 'Apply', zh: '应用' },
@@ -345,6 +346,7 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   cacheWgX: { en: 'Density-cache compute workgroup X (rebuilds pipeline). Default 8.', zh: '密度缓存 compute 工作组 X（重建管线）。默认 8。' },
   cacheWgY: { en: 'Density-cache compute workgroup Y. Default 8.', zh: '密度缓存 compute 工作组 Y。默认 8。' },
   cacheWgZ: { en: 'Density-cache compute workgroup Z. Default 4.', zh: '密度缓存 compute 工作组 Z。默认 4。' },
+  shape: { en: 'Body form. Rect/Circle = procedural footprint cloud. Solids (sphere, cube, platonic…) = uniform analytic density (no noise/weather/cache) for debugging the renderer. All other sliders apply identically.', zh: '云体形态。矩形/圆形=程序化轮廓云。实体（球、立方、正多面体…）=均匀解析密度（无噪声/天气/缓存），用于调试渲染。其余滑杆作用完全一致。' },
 };
 
 export function tip(key: string): string {
@@ -366,6 +368,22 @@ const CLOUD_TYPES: Record<string, { en: string; zh: string }> = {
 
 export function cloudTypeName(key: string): string {
   return CLOUD_TYPES[key]?.[lang] ?? key;
+}
+
+const SHAPE_NAMES: Record<string, { en: string; zh: string }> = {
+  rect: { en: 'Rect', zh: '矩形' },
+  circle: { en: 'Circle', zh: '圆形' },
+  sphere: { en: 'Sphere', zh: '球体' },
+  cube: { en: 'Cube', zh: '立方体' },
+  octahedron: { en: 'Octahedron', zh: '八面体' },
+  tetrahedron: { en: 'Tetrahedron', zh: '四面体' },
+  dodecahedron: { en: 'Dodecahedron', zh: '十二面体' },
+  icosahedron: { en: 'Icosahedron', zh: '二十面体' },
+  torus: { en: 'Torus', zh: '圆环' },
+};
+
+export function shapeName(key: string): string {
+  return SHAPE_NAMES[key]?.[lang] ?? key;
 }
 
 let lang: Lang = ((): Lang => {

@@ -3,7 +3,7 @@ import type { RegionMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 32;
-export const BODY_STRIDE = 12;
+export const BODY_STRIDE = 16;
 
 export const PARAM_OFFSETS: Record<string, number> = {
   rayMarchSteps: 0,
@@ -136,6 +136,28 @@ export interface CloudParams {
   cacheWorkgroupZ: number;
 }
 
+export const SHAPE_ID: Record<string, number> = {
+  rect: 0,
+  circle: 1,
+  sphere: 2,
+  cube: 3,
+  octahedron: 4,
+  tetrahedron: 5,
+  dodecahedron: 6,
+  icosahedron: 7,
+  torus: 8,
+};
+
+function footprintData(b: CloudBody): [number, number, number] {
+  if (b.shape === 'rect') {
+    const cx = (b.bounds[0] + b.bounds[2]) / 2;
+    const cz = (b.bounds[1] + b.bounds[3]) / 2;
+    const r = Math.max((b.bounds[2] - b.bounds[0]) / 2, (b.bounds[3] - b.bounds[1]) / 2);
+    return [cx, cz, r];
+  }
+  return [b.bounds[0], b.bounds[1], b.bounds[2]];
+}
+
 export type PackValue = number | boolean | number[];
 
 export function packParams(dst: Float32Array, values: Record<string, PackValue>): Float32Array {
@@ -173,7 +195,12 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: Region
       dst[o + 8] = b.coverage * (m ? m.coverageMul : 1);
       dst[o + 9] = b.densityScale * (m ? m.densityScale : 1);
       dst[o + 10] = m ? m.morph : 0;
-      dst[o + 11] = 0;
+      dst[o + 11] = b.feather;
+      const fp = footprintData(b);
+      dst[o + 12] = fp[0];
+      dst[o + 13] = fp[1];
+      dst[o + 14] = fp[2];
+      dst[o + 15] = SHAPE_ID[b.shape] ?? 0;
     } else {
       for (let k = 0; k < BODY_STRIDE; k++) dst[o + k] = 0;
     }
