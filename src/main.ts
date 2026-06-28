@@ -47,6 +47,12 @@ async function main(): Promise<void> {
     onCacheResolution(res) {
       renderer.setDensityResolution(res);
     },
+    onWeatherSize(size) {
+      renderer.setWeatherSize(size);
+    },
+    onCacheWorkgroup(x, y, z) {
+      renderer.setCacheWorkgroup(x, y, z);
+    },
     onPresetsChanged() {
       renderer.updatePresets();
     },

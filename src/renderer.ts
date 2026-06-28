@@ -10,7 +10,7 @@ import {
   MAX_BODIES,
   type CloudParams,
 } from './params';
-import { WEATHER_SIZE, createShapeData, paintBodyShapes } from './weather';
+import { DEFAULT_WEATHER_SIZE, DEFAULT_BOX_HALF_EXTENT, createShapeData, paintBodyShapes } from './weather';
 import { geometrySignature, type CloudBody } from './body';
 import type { RegionMod } from './lifecycle';
 import type { CameraFrame } from './camera';
@@ -137,6 +137,8 @@ function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: st
 export interface Renderer {
   resizeCanvas(): void;
   setDensityResolution(res: number): void;
+  setWeatherSize(size: number): void;
+  setCacheWorkgroup(x: number, y: number, z: number): void;
   setBodies(bodies: CloudBody[]): void;
   setBodyMods(mods: RegionMod[]): void;
   updatePresets(): void;
@@ -187,10 +189,63 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     addressModeV: 'clamp-to-edge',
   });
 
-  const computePipeline = device.createComputePipeline({
+  let weatherSize = DEFAULT_WEATHER_SIZE;
+  let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
+  let cacheWg: [number, number, number] = [8, 8, 4];
+  let computePipeline = device.createComputePipeline({
     layout: 'auto',
-    compute: { module: shaderModule, entryPoint: 'cs' },
+    compute: {
+      module: shaderModule,
+      entryPoint: 'cs',
+      constants: { wg_x: cacheWg[0], wg_y: cacheWg[1], wg_z: cacheWg[2] },
+    },
   });
+
+  function createShapeTexture(size: number): GPUTexture {
+    return device.createTexture({
+      size: [size, size, MAX_BODIES],
+      format: 'r8unorm',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+  }
+
+  let shapeTexture = createShapeTexture(weatherSize);
+  let shapeData = createShapeData(weatherSize);
+
+  function uploadShapes(): void {
+    paintBodyShapes(shapeData, currentBodies, weatherSize, boxHalfExtent);
+    device.queue.writeTexture(
+      { texture: shapeTexture },
+      shapeData,
+      { bytesPerRow: weatherSize, rowsPerImage: weatherSize },
+      { width: weatherSize, height: weatherSize, depthOrArrayLayers: MAX_BODIES },
+    );
+  }
+
+  let computeBindGroup: GPUBindGroup;
+  let bindGroup: GPUBindGroup;
+
+  function rebuildSceneBindGroups(): void {
+    computeBindGroup = device.createBindGroup({
+      layout: computePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 1, resource: { buffer: paramsBuffer } },
+        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
+        { binding: 3, resource: linearSampler },
+        { binding: 4, resource: { buffer: presetBuffer } },
+      ],
+    });
+    bindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: cameraBuffer } },
+        { binding: 1, resource: { buffer: paramsBuffer } },
+        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
+        { binding: 3, resource: linearSampler },
+        { binding: 4, resource: { buffer: presetBuffer } },
+      ],
+    });
+  }
 
   const lineModule = device.createShaderModule({ code: lineShaderSource });
   const linePipeline = device.createRenderPipeline({
@@ -251,23 +306,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
 
-  const shapeTexture = device.createTexture({
-    size: [WEATHER_SIZE, WEATHER_SIZE, MAX_BODIES],
-    format: 'r8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-  });
-  const shapeData = createShapeData();
-
-  function uploadShapes(): void {
-    paintBodyShapes(shapeData, currentBodies);
-    device.queue.writeTexture(
-      { texture: shapeTexture },
-      shapeData,
-      { bytesPerRow: WEATHER_SIZE, rowsPerImage: WEATHER_SIZE },
-      { width: WEATHER_SIZE, height: WEATHER_SIZE, depthOrArrayLayers: MAX_BODIES },
-    );
-  }
-
   function setBodies(bodies: CloudBody[]): void {
     currentBodies = bodies;
     const sig = geometrySignature(bodies);
@@ -283,6 +321,43 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   function updatePresets(): void {
     device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
+  }
+
+  function setWeatherSize(size: number): void {
+    const next = Math.max(64, Math.min(1024, Math.round(size)));
+    if (next === weatherSize) return;
+    weatherSize = next;
+    shapeTexture.destroy();
+    shapeTexture = createShapeTexture(weatherSize);
+    shapeData = createShapeData(weatherSize);
+    shapeSignature = '';
+    rebuildSceneBindGroups();
+    uploadShapes();
+  }
+
+  function setCacheWorkgroup(x: number, y: number, z: number): void {
+    const wx = Math.max(1, Math.min(32, Math.round(x)));
+    const wy = Math.max(1, Math.min(32, Math.round(y)));
+    const wz = Math.max(1, Math.min(16, Math.round(z)));
+    if (wx === cacheWg[0] && wy === cacheWg[1] && wz === cacheWg[2]) return;
+    cacheWg = [wx, wy, wz];
+    computePipeline = device.createComputePipeline({
+      layout: 'auto',
+      compute: {
+        module: shaderModule,
+        entryPoint: 'cs',
+        constants: { wg_x: wx, wg_y: wy, wg_z: wz },
+      },
+    });
+    rebuildSceneBindGroups();
+    if (densityTextures) {
+      densityStoreBindGroup = device.createBindGroup({
+        layout: computePipeline.getBindGroupLayout(2),
+        entries: [
+          { binding: 0, resource: densityTextures[cacheIndex].createView({ dimension: '3d' }) },
+        ],
+      });
+    }
   }
 
   let densityRes = 96;
@@ -317,27 +392,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   setDensityResolution(densityRes);
-
-  const computeBindGroup = device.createBindGroup({
-    layout: computePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 1, resource: { buffer: paramsBuffer } },
-      { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
-      { binding: 3, resource: linearSampler },
-      { binding: 4, resource: { buffer: presetBuffer } },
-    ],
-  });
-
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: cameraBuffer } },
-      { binding: 1, resource: { buffer: paramsBuffer } },
-      { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
-      { binding: 3, resource: linearSampler },
-      { binding: 4, resource: { buffer: presetBuffer } },
-    ],
-  });
+  rebuildSceneBindGroups();
 
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
@@ -405,6 +460,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       detailFreq: params.detailFreq,
       detailStrength: params.detailStrength,
       typeLightingBlend: params.typeLightingBlend,
+      boxHalfExtent: params.boxHalfExtent,
+      lightMarchStepSize: params.lightMarchStepSize,
+      verticalEdgeRange: params.verticalEdgeRange,
+      verticalEdgeShape: params.verticalEdgeShape,
+      edgeHardness: params.edgeHardness,
+      edgeHardnessThreshold: params.edgeHardnessThreshold,
+      cacheWorkgroupX: params.cacheWorkgroupX,
+      cacheWorkgroupY: params.cacheWorkgroupY,
+      cacheWorkgroupZ: params.cacheWorkgroupZ,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -442,6 +506,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
 
+    if (params.boxHalfExtent !== boxHalfExtent) {
+      boxHalfExtent = params.boxHalfExtent;
+      shapeSignature = '';
+      uploadShapes();
+    }
+
     device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime));
 
     const commandEncoder = device.createCommandEncoder();
@@ -462,7 +532,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       pass.setPipeline(computePipeline);
       pass.setBindGroup(0, computeBindGroup);
       pass.setBindGroup(2, densityStoreBindGroup);
-      pass.dispatchWorkgroups(Math.ceil(densityRes / 8), Math.ceil(densityRes / 8), Math.ceil(densityRes / 4));
+      pass.dispatchWorkgroups(
+        Math.ceil(densityRes / cacheWg[0]),
+        Math.ceil(densityRes / cacheWg[1]),
+        Math.ceil(densityRes / cacheWg[2]),
+      );
       pass.end();
     }
 
@@ -533,5 +607,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     device.queue.submit([commandEncoder.finish()]);
   }
 
-  return { resizeCanvas, setDensityResolution, setBodies, setBodyMods, updatePresets, renderFrame };
+  return {
+    resizeCanvas,
+    setDensityResolution,
+    setWeatherSize,
+    setCacheWorkgroup,
+    setBodies,
+    setBodyMods,
+    updatePresets,
+    renderFrame,
+  };
 }

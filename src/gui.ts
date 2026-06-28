@@ -20,6 +20,8 @@ function tipFolder(f: { $title: HTMLElement }, text: string): void {
 export interface GuiHooks {
   onBodiesChanged(): void;
   onCacheResolution(res: number): void;
+  onWeatherSize(size: number): void;
+  onCacheWorkgroup(x: number, y: number, z: number): void;
   onPresetsChanged(): void;
   onTrigger(): void;
   onScenarioDemo(): void;
@@ -141,6 +143,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         actions.append(typeSel, selBtn, delBtn);
         f.$title.appendChild(actions);
 
+        const lim = params.boxHalfExtent;
         if (b.shape === 'rect') {
           const proxy = {
             cx: (b.bounds[0] + b.bounds[2]) / 2,
@@ -152,19 +155,19 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
             b.bounds = [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd];
             hooks.onBodiesChanged();
           };
-          tipKey(f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'hw', 0.2, 4.5, 0.1).name(t('halfW')).onChange(apply), 'halfW');
-          tipKey(f.add(proxy, 'hd', 0.2, 4.5, 0.1).name(t('halfD')).onChange(apply), 'halfD');
+          tipKey(f.add(proxy, 'cx', -lim, lim, 0.1).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -lim, lim, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'hw', 0.2, lim, 0.1).name(t('halfW')).onChange(apply), 'halfW');
+          tipKey(f.add(proxy, 'hd', 0.2, lim, 0.1).name(t('halfD')).onChange(apply), 'halfD');
         } else {
           const proxy = { cx: b.bounds[0], cz: b.bounds[1], r: b.bounds[2] };
           const apply = () => {
             b.bounds = [proxy.cx, proxy.cz, proxy.r, 0];
             hooks.onBodiesChanged();
           };
-          tipKey(f.add(proxy, 'cx', -4.5, 4.5, 0.1).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -4.5, 4.5, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'r', 0.2, 4.5, 0.1).name(t('radius')).onChange(apply), 'radius');
+          tipKey(f.add(proxy, 'cx', -lim, lim, 0.1).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -lim, lim, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'r', 0.2, lim, 0.1).name(t('radius')).onChange(apply), 'radius');
         }
         tipKey(f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged), 'feather');
         tipKey(f.add(b, 'base', 0.0, 0.95, 0.01).name(t('height')).onChange(hooks.onBodiesChanged), 'height');
@@ -191,7 +194,15 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
 
     const globalFolder = gui.addFolder(t('global'));
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
-    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 16.0, 0.5).name(t('boxHeight')), 'boxHeight');
+    tipKey(globalFolder.add(params, 'boxHalfExtent', 1.0, 32.0, 0.5).name(t('boxHalfExtent')), 'boxHalfExtent');
+    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 32.0, 0.5).name(t('boxHeight')), 'boxHeight');
+    tipKey(globalFolder.add(params, 'weatherSize', 64, 1024, 1).name(t('weatherSize')).onFinishChange((v: number) => {
+      const next = Math.max(64, Math.min(1024, Math.round(v)));
+      params.weatherSize = next;
+      hooks.onWeatherSize(next);
+    }), 'weatherSize');
+    tipKey(globalFolder.add(params, 'verticalEdgeRange', 0.0, 2.0, 0.01).name(t('verticalEdgeRange')), 'verticalEdgeRange');
+    tipKey(globalFolder.add(params, 'verticalEdgeShape', 0.1, 8.0, 0.05).name(t('verticalEdgeShape')), 'verticalEdgeShape');
     tipKey(globalFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
 
     const scenarioFolder = gui.addFolder(t('scenario'));
@@ -376,20 +387,37 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
 
     const renderFolder = gui.addFolder(t('render'));
     tipKey(renderFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
-    tipKey(renderFolder.add(params, 'rayMarchSteps', 16, 64, 1).name(t('raySteps')), 'raySteps');
-    tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 8, 1).name(t('lightSteps')), 'lightSteps');
+    tipKey(renderFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
+    tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
+    tipKey(renderFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');
     tipKey(renderFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark')), 'shadowDark');
     tipKey(renderFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity')), 'sunIntensity');
-    tipKey(renderFolder.add(params, 'cacheResolution', 32, 128, 1).name(t('cacheRes')).onFinishChange((v: number) => {
-      const next = Math.max(32, Math.min(128, Math.round(v)));
+    tipKey(renderFolder.add(params, 'cacheResolution', 32, 256, 1).name(t('cacheRes')).onFinishChange((v: number) => {
+      const next = Math.max(32, Math.min(256, Math.round(v)));
       params.cacheResolution = next;
       hooks.onCacheResolution(next);
     }), 'cacheRes');
-    tipKey(renderFolder.add(params, 'cacheUpdateRate', 1, 4, 1).name(t('cacheUpdate')), 'cacheUpdate');
+    tipKey(renderFolder.add(params, 'cacheUpdateRate', 1, 8, 1).name(t('cacheUpdate')), 'cacheUpdate');
     tipKey(renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
     tipKey(renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
-    tipKey(renderFolder.add(params, 'detailFreq', 0.5, 8.0, 0.1).name(t('detailFreq')), 'detailFreq');
-    tipKey(renderFolder.add(params, 'detailStrength', 0.0, 2.0, 0.01).name(t('detailStrength')), 'detailStrength');
+    tipKey(renderFolder.add(params, 'detailFreq', 0.5, 16.0, 0.1).name(t('detailFreq')), 'detailFreq');
+    tipKey(renderFolder.add(params, 'detailStrength', 0.0, 4.0, 0.01).name(t('detailStrength')), 'detailStrength');
+    tipKey(renderFolder.add(params, 'edgeHardness', 0.0, 1.0, 0.01).name(t('edgeHardness')), 'edgeHardness');
+    tipKey(renderFolder.add(params, 'edgeHardnessThreshold', 0.001, 0.5, 0.001).name(t('edgeHardnessThreshold')), 'edgeHardnessThreshold');
+    const wgProxy = {
+      x: params.cacheWorkgroupX,
+      y: params.cacheWorkgroupY,
+      z: params.cacheWorkgroupZ,
+    };
+    const applyWg = () => {
+      params.cacheWorkgroupX = wgProxy.x;
+      params.cacheWorkgroupY = wgProxy.y;
+      params.cacheWorkgroupZ = wgProxy.z;
+      hooks.onCacheWorkgroup(wgProxy.x, wgProxy.y, wgProxy.z);
+    };
+    tipKey(renderFolder.add(wgProxy, 'x', 1, 32, 1).name(t('cacheWgX')).onFinishChange(applyWg), 'cacheWgX');
+    tipKey(renderFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');
+    tipKey(renderFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
 
     gui.foldersRecursive().forEach((f) => f.close());
 

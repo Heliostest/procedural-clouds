@@ -32,7 +32,15 @@ struct Globals {
   detailFreq      : f32,
   detailStrength  : f32,
   typeLightingBlend : f32,
-  _pad1           : f32,
+  boxHalfExtent   : f32,
+  lightMarchStepSize : f32,
+  verticalEdgeRange : f32,
+  verticalEdgeShape : f32,
+  edgeHardness    : f32,
+  edgeHardnessThreshold : f32,
+  cacheWorkgroupX : f32,
+  cacheWorkgroupY : f32,
+  cacheWorkgroupZ : f32,
 };
 
 struct BodyGPU {
@@ -58,8 +66,11 @@ struct PresetShape {
 
 const PRESET_COUNT = 10;
 const DENSITY_SCALE_MAX = 2.0;
-const VERTICAL_EDGE_RANGE = 0.55;
-const VERTICAL_EDGE_SHAPE = 2.0;
+const RAYMARCH_MAX_STEPS = 256u;
+
+override wg_x : u32 = 8u;
+override wg_y : u32 = 8u;
+override wg_z : u32 = 4u;
 
 @group(0) @binding(0) var<uniform> camera : Camera;
 @group(0) @binding(1) var<uniform> params : Params;
@@ -169,7 +180,9 @@ fn sharpen(x: f32, amount: f32) -> f32 {
 }
 
 fn sampleDensityTyped(pos: vec3f) -> vec2f {
-  let uvw = (pos - BOX_MIN) / (getBoxMax() - BOX_MIN);
+  let bmin = boxMin();
+  let bmax = getBoxMax();
+  let uvw = (pos - bmin) / (bmax - bmin);
   if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
     return vec2f(0.0, 0.0);
   }
@@ -235,7 +248,9 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let objPos = objPosRaw - advect;
 
   // Normalized horizontal silhouette from this body's shape layer.
-  let wUv = (objPosRaw.xy - vec2f(BOX_MIN.x, BOX_MIN.z)) / (BOX_MAX_XZ - BOX_MIN.x);
+  let bmin = boxMin();
+  let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
+  let wUv = (objPosRaw.xy - vec2f(bmin.x, bmin.z)) / spanXZ;
   let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
   if (alpha < 0.01) { return 0.0; }
   let localCoverage = clamp01(alpha * b.intensity.x);
@@ -266,7 +281,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let altBase           = clamp(b.geom.x, 0.0, 0.98);
   let altTop            = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
 
-  let zNorm = (pos.y - BOX_MIN.y) / (getBoxMax().y - BOX_MIN.y);
+  let zNorm = (pos.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
 
   // --- STAGE 1: Altitude Mask ---
@@ -314,7 +329,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let vMid = (altBase + bandHi) * 0.5;
   let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
   let vT = abs(zNorm - vMid) / vHalf;
-  let vEnvelope = pow(vT, VERTICAL_EDGE_SHAPE) * VERTICAL_EDGE_RANGE;
+  let vEnvelope = pow(vT, max(params.g.verticalEdgeShape, 0.01)) * params.g.verticalEdgeRange;
   let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
 
   // --- STAGE 5: Final Multipliers ---
@@ -329,11 +344,17 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
 // Ray Marching
 // ============================================================
 
-const BOX_MIN = vec3f(-4.5, 0.0, -4.5); // Reduced bounds
-const BOX_MAX_XZ = 4.5;
+fn boxMin() -> vec3f {
+  let e = max(params.g.boxHalfExtent, 0.01);
+  return vec3f(-e, 0.0, -e);
+}
+
+fn boxMaxXZ() -> f32 {
+  return max(params.g.boxHalfExtent, 0.01);
+}
 
 fn getBoxMax() -> vec3f {
-  return vec3f(BOX_MAX_XZ, params.g.cloudHeight, BOX_MAX_XZ);
+  return vec3f(boxMaxXZ(), max(params.g.cloudHeight, 0.01), boxMaxXZ());
 }
 
 struct HitInfo {
@@ -343,9 +364,11 @@ struct HitInfo {
 };
 
 fn intersectBox(ro : vec3f, rd : vec3f) -> HitInfo {
+  let bmin = boxMin();
+  let bmax = getBoxMax();
   let invRd = 1.0 / rd;
-  let t0 = (BOX_MIN - ro) * invRd;
-  let t1 = (getBoxMax() - ro) * invRd;
+  let t0 = (bmin - ro) * invRd;
+  let t1 = (bmax - ro) * invRd;
   let tmin = min(t0, t1);
   let tmax = max(t0, t1);
   let tNear = max(tmin.x, max(tmin.y, tmin.z));
@@ -391,18 +414,26 @@ fn detailNoise(pos : vec3f) -> f32 {
   return perlin_noise_4d(vec4f(pos * f, params.g.sceneTime * 0.1));
 }
 
+fn applyEdgeHardness(d: f32) -> f32 {
+  let h = params.g.edgeHardness;
+  if (h < 0.0001) { return d; }
+  let thr = max(params.g.edgeHardnessThreshold, 0.0001);
+  let w = mix(0.15, 0.001, clamp01(h));
+  return smoothstep(thr - w, thr + w, d);
+}
+
 fn densityAtTyped(pos : vec3f) -> vec2f {
   let mode = i32(params.g.qualityMode);
   if (mode == 2) {
     let dt = cloudDensityTyped(pos);
-    return vec2f(dt.d, dt.idx);
+    return vec2f(applyEdgeHardness(dt.d), dt.idx);
   }
   let s = sampleDensityTyped(pos);
   var base = s.x;
   if (mode == 1 && base > 0.01) {
     base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
   }
-  return vec2f(max(base, 0.0), s.y);
+  return vec2f(applyEdgeHardness(max(base, 0.0)), s.y);
 }
 
 fn densityAt(pos : vec3f) -> f32 {
@@ -412,7 +443,7 @@ fn densityAt(pos : vec3f) -> f32 {
 fn lightMarch(pos : vec3f) -> f32 {
   var shadow = 0.0;
   let steps = i32(params.g.lightMarchSteps);
-  let stepSize = 0.15;
+  let stepSize = max(params.g.lightMarchStepSize, 0.001);
   let sd = sunDir();
   for (var i = 1; i <= steps; i++) {
     let p = pos + sd * (f32(i) * stepSize);
@@ -514,10 +545,12 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     var color = vec3f(0.0);
     let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
     let blend = clamp01(params.g.typeLightingBlend);
+    let bmin = boxMin();
     let boxMax = getBoxMax();
-    const ABS_K = 22.0; // calibrated so cumulus (absorption 0.045) ~= legacy extinction
+    const ABS_K = 22.0;
 
-    for (var i = 0; i < numSteps; i++) {
+    for (var i = 0u; i < RAYMARCH_MAX_STEPS; i++) {
+      if (i32(i) >= numSteps) { break; }
       let dt = densityAtTyped(pos);
       let d = dt.x;
       if (d > 0.01) {
@@ -530,7 +563,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let phase = mix(phaseGlobal, phaseType, blend);
         var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
         scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
-        let zN = clamp((pos.y - BOX_MIN.y) / (boxMax.y - BOX_MIN.y), 0.0, 1.0);
+        let zN = clamp((pos.y - bmin.y) / max(boxMax.y - bmin.y, 0.001), 0.0, 1.0);
         let densW = smoothstep(0.6, 1.4, d);
         let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
         scattering *= heightLight;
@@ -563,13 +596,13 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
 // Density Cache Compute
 // ============================================================
 
-@compute @workgroup_size(8, 8, 4)
+@compute @workgroup_size(wg_x, wg_y, wg_z)
 fn cs(@builtin(global_invocation_id) gid : vec3u) {
   let dims = textureDimensions(densityStore);
   if (gid.x >= dims.x || gid.y >= dims.y || gid.z >= dims.z) { return; }
 
   let uvw = (vec3f(gid) + 0.5) / vec3f(dims);
-  let pos = mix(BOX_MIN, getBoxMax(), uvw);
+  let pos = mix(boxMin(), getBoxMax(), uvw);
   let dt = cloudDensityTyped(pos);
   textureStore(densityStore, vec3i(gid), vec4f(dt.d, dt.idx, 0.0, 1.0));
 }

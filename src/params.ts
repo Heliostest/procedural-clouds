@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { RegionMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 24;
+export const BODY_BASE = 32;
 export const BODY_STRIDE = 12;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -29,6 +29,15 @@ export const PARAM_OFFSETS: Record<string, number> = {
   detailFreq: 20,
   detailStrength: 21,
   typeLightingBlend: 22,
+  boxHalfExtent: 23,
+  lightMarchStepSize: 24,
+  verticalEdgeRange: 25,
+  verticalEdgeShape: 26,
+  edgeHardness: 27,
+  edgeHardnessThreshold: 28,
+  cacheWorkgroupX: 29,
+  cacheWorkgroupY: 30,
+  cacheWorkgroupZ: 31,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -115,6 +124,16 @@ export interface CloudParams {
   detailFreq: number;
   detailStrength: number;
   typeLightingBlend: number;
+  boxHalfExtent: number;
+  weatherSize: number;
+  lightMarchStepSize: number;
+  verticalEdgeRange: number;
+  verticalEdgeShape: number;
+  edgeHardness: number;
+  edgeHardnessThreshold: number;
+  cacheWorkgroupX: number;
+  cacheWorkgroupY: number;
+  cacheWorkgroupZ: number;
 }
 
 export type PackValue = number | boolean | number[];
@@ -187,5 +206,15 @@ export function createDefaultParams(): CloudParams {
     detailFreq: 2.5,
     detailStrength: 0,
     typeLightingBlend: 1.0,
+    boxHalfExtent: 4.5,
+    weatherSize: 256,
+    lightMarchStepSize: 0.15,
+    verticalEdgeRange: 0.55,
+    verticalEdgeShape: 2.0,
+    edgeHardness: 0,
+    edgeHardnessThreshold: 0.05,
+    cacheWorkgroupX: 8,
+    cacheWorkgroupY: 8,
+    cacheWorkgroupZ: 4,
   };
 }

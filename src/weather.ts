@@ -1,14 +1,15 @@
 import { MAX_BODIES } from './params';
 import type { CloudBody } from './body';
 
-export const WEATHER_SIZE = 256;
-export const BOX_MIN_XZ = -4.5;
-export const BOX_SPAN_XZ = 9.0;
+export const DEFAULT_WEATHER_SIZE = 256;
+export const DEFAULT_BOX_HALF_EXTENT = 4.5;
 
-export const SHAPE_LAYER_BYTES = WEATHER_SIZE * WEATHER_SIZE;
+export function shapeLayerBytes(weatherSize: number): number {
+  return weatherSize * weatherSize;
+}
 
-export function createShapeData(): Uint8Array {
-  return new Uint8Array(SHAPE_LAYER_BYTES * MAX_BODIES);
+export function createShapeData(weatherSize: number): Uint8Array {
+  return new Uint8Array(shapeLayerBytes(weatherSize) * MAX_BODIES);
 }
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
@@ -32,18 +33,26 @@ function bodyAlpha(b: CloudBody, wx: number, wz: number): number {
   return 1.0 - smoothstep(0, feather, dist);
 }
 
-export function paintBodyShapes(data: Uint8Array, bodies: CloudBody[]): void {
+export function paintBodyShapes(
+  data: Uint8Array,
+  bodies: CloudBody[],
+  weatherSize: number,
+  boxHalfExtent: number,
+): void {
   data.fill(0);
+  const boxMinXZ = -boxHalfExtent;
+  const boxSpanXZ = boxHalfExtent * 2;
+  const layerBytes = shapeLayerBytes(weatherSize);
   const n = Math.min(bodies.length, MAX_BODIES);
   for (let i = 0; i < n; i++) {
     const b = bodies[i];
-    const layerOff = i * SHAPE_LAYER_BYTES;
-    for (let py = 0; py < WEATHER_SIZE; py++) {
-      const wz = BOX_MIN_XZ + ((py + 0.5) / WEATHER_SIZE) * BOX_SPAN_XZ;
-      for (let px = 0; px < WEATHER_SIZE; px++) {
-        const wx = BOX_MIN_XZ + ((px + 0.5) / WEATHER_SIZE) * BOX_SPAN_XZ;
+    const layerOff = i * layerBytes;
+    for (let py = 0; py < weatherSize; py++) {
+      const wz = boxMinXZ + ((py + 0.5) / weatherSize) * boxSpanXZ;
+      for (let px = 0; px < weatherSize; px++) {
+        const wx = boxMinXZ + ((px + 0.5) / weatherSize) * boxSpanXZ;
         const a = bodyAlpha(b, wx, wz);
-        data[layerOff + py * WEATHER_SIZE + px] = Math.round(Math.min(1, a) * 255);
+        data[layerOff + py * weatherSize + px] = Math.round(Math.min(1, a) * 255);
       }
     }
   }
