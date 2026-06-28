@@ -46,6 +46,7 @@ export function paintBodyShapes(
   const n = Math.min(bodies.length, MAX_BODIES);
   for (let i = 0; i < n; i++) {
     const b = bodies[i];
+    if (b.shape !== 'rect' && b.shape !== 'circle') continue;
     const layerOff = i * layerBytes;
     for (let py = 0; py < weatherSize; py++) {
       const wz = boxMinXZ + ((py + 0.5) / weatherSize) * boxSpanXZ;

@@ -1,6 +1,23 @@
 import { evalRegionMod, type LifecycleEnvelope, type RegionMod } from './lifecycle';
 
-export type BodyShape = 'rect' | 'circle';
+export type BodyShape =
+  | 'rect'
+  | 'circle'
+  | 'sphere'
+  | 'cube'
+  | 'octahedron'
+  | 'tetrahedron'
+  | 'dodecahedron'
+  | 'icosahedron'
+  | 'torus';
+
+export const SOLID_SHAPES: BodyShape[] = [
+  'sphere', 'cube', 'octahedron', 'tetrahedron', 'dodecahedron', 'icosahedron', 'torus',
+];
+
+export function isSolidShape(s: BodyShape): boolean {
+  return s !== 'rect' && s !== 'circle';
+}
 
 export interface BodyLife {
   enabled: boolean;
@@ -50,6 +67,7 @@ export function geometrySignature(bodies: CloudBody[]): string {
 export interface BodyStore {
   list(): CloudBody[];
   add(shape: BodyShape): CloudBody;
+  setShape(id: string, shape: BodyShape): void;
   remove(id: string): void;
   update(id: string, patch: Partial<CloudBody>): void;
 }
@@ -66,6 +84,22 @@ export function createBodyStore(initial: CloudBody[]): BodyStore {
         : { id, shape, bounds: [0, 0, 1.8, 0], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, life: defaultLife() };
       bodies.push(body);
       return body;
+    },
+    setShape(id, shape) {
+      const b = bodies.find((x) => x.id === id);
+      if (!b) return;
+      const wasRect = b.shape === 'rect';
+      const willRect = shape === 'rect';
+      if (wasRect && !willRect) {
+        const cx = (b.bounds[0] + b.bounds[2]) / 2;
+        const cz = (b.bounds[1] + b.bounds[3]) / 2;
+        const r = Math.max((b.bounds[2] - b.bounds[0]) / 2, (b.bounds[3] - b.bounds[1]) / 2);
+        b.bounds = [cx, cz, r, 0];
+      } else if (!wasRect && willRect) {
+        const [cx, cz, r] = b.bounds;
+        b.bounds = [cx - r, cz - r, cx + r, cz + r];
+      }
+      b.shape = shape;
     },
     remove(id) {
       const i = bodies.findIndex((b) => b.id === id);
