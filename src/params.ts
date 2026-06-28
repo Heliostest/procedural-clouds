@@ -229,7 +229,7 @@ export function createDefaultParams(): CloudParams {
     hgBackward: 0.45,
     hgBlend: 1.0,
     godrayStrength: 0,
-    qualityMode: 0,
+    qualityMode: 1,
     detailFreq: 2.5,
     detailStrength: 0,
     typeLightingBlend: 1.0,
