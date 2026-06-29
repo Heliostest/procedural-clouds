@@ -12,7 +12,7 @@ import {
 } from './params';
 import { DEFAULT_WEATHER_SIZE, DEFAULT_BOX_HALF_EXTENT, createShapeData, paintBodyShapes } from './weather';
 import { geometrySignature, type CloudBody } from './body';
-import type { RegionMod } from './lifecycle';
+import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 
 const shaderSource = noiseSource + cloudSource;
@@ -152,7 +152,7 @@ export interface Renderer {
   setWeatherSize(size: number): void;
   setCacheWorkgroup(x: number, y: number, z: number): void;
   setBodies(bodies: CloudBody[]): void;
-  setBodyMods(mods: RegionMod[]): void;
+  setBodyMods(mods: BodyMod[]): void;
   updatePresets(): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
 }
@@ -295,7 +295,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let lineVertCount = 0;
 
   let currentBodies: CloudBody[] = [];
-  let currentMods: RegionMod[] = [];
+  let currentMods: BodyMod[] = [];
   let shapeSignature = '';
 
   const cameraBuffer = device.createBuffer({
@@ -330,7 +330,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
   }
 
-  function setBodyMods(mods: RegionMod[]): void {
+  function setBodyMods(mods: BodyMod[]): void {
     currentMods = mods;
   }
 

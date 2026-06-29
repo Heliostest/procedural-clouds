@@ -16,7 +16,7 @@ const DICT: Dict = {
   feather: { en: 'Feather', zh: '羽化' },
   height: { en: 'Height', zh: '高度' },
   thickness: { en: 'Thickness', zh: '厚度' },
-  type: { en: 'Type', zh: '类型' },
+  type: { en: 'Genus', zh: '云属' },
   coverage: { en: 'Coverage', zh: '覆盖度' },
   density: { en: 'Density', zh: '密度' },
   windDir: { en: 'Wind Dir °', zh: '风向 °' },

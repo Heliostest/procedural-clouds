@@ -4,11 +4,11 @@ import { createRenderer } from './renderer';
 import { createGui } from './gui';
 import { createDefaultParams } from './params';
 import { createBodyStore, createDefaultBodies, evalBodyMod } from './body';
-import type { RegionMod } from './lifecycle';
+import type { BodyMod } from './lifecycle';
 import { createPlayer, parseScenario, serializeScenario, DEMO_SCENARIO, type ScenarioPlayer } from './scenario';
 import { t, onLangChange } from './i18n';
 
-const IDENTITY_MOD: RegionMod = { coverageMul: 1, densityScale: 1, morph: 0 };
+const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
 async function main(): Promise<void> {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;

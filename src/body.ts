@@ -1,4 +1,4 @@
-import { evalRegionMod, type LifecycleEnvelope, type RegionMod } from './lifecycle';
+import { evalLifecycleMod, type LifecycleEnvelope, type BodyMod } from './lifecycle';
 
 export type BodyShape =
   | 'rect'
@@ -56,8 +56,8 @@ function lifeEnvelope(life: BodyLife): LifecycleEnvelope | undefined {
   return { birth: life.birth, grow: g, mature: dc, decay: dc, death: dt, peakDensity: life.peak };
 }
 
-export function evalBodyMod(body: CloudBody, t: number): RegionMod {
-  return evalRegionMod(lifeEnvelope(body.life), t);
+export function evalBodyMod(body: CloudBody, t: number): BodyMod {
+  return evalLifecycleMod(lifeEnvelope(body.life), t);
 }
 
 export function geometrySignature(bodies: CloudBody[]): string {

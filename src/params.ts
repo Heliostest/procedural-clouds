@@ -1,5 +1,5 @@
 import type { CloudBody } from './body';
-import type { RegionMod } from './lifecycle';
+import type { BodyMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 32;
@@ -174,7 +174,7 @@ export function packParams(dst: Float32Array, values: Record<string, PackValue>)
   return dst;
 }
 
-export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: RegionMod[]): void {
+export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMod[]): void {
   const n = Math.min(bodies.length, MAX_BODIES);
   dst[PARAM_OFFSETS.activeBodyCount] = n;
   for (let i = 0; i < MAX_BODIES; i++) {

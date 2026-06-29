@@ -9,7 +9,7 @@ export interface LifecycleEnvelope {
   peakDensity: number;
 }
 
-export interface RegionMod {
+export interface BodyMod {
   coverageMul: number;
   densityScale: number;
   morph: number;
@@ -28,7 +28,7 @@ export function evalEnvelope(env: LifecycleEnvelope, t: number): number {
   return 1 - smoothstep(env.decay, env.death, t);
 }
 
-export function evalRegionMod(env: LifecycleEnvelope | undefined, t: number): RegionMod {
+export function evalLifecycleMod(env: LifecycleEnvelope | undefined, t: number): BodyMod {
   if (!env) return { coverageMul: 1, densityScale: 1, morph: 0 };
   const phase = evalEnvelope(env, t);
   let morph = 0;
