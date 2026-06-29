@@ -1,5 +1,6 @@
 import Stats from 'stats.js';
-import { createOrbitCamera } from './camera';
+import { createOrbitCamera, type CameraFrame } from './camera';
+import { createGizmoController } from './gizmo';
 import { createRenderer } from './renderer';
 import { createGui } from './gui';
 import { createDefaultParams } from './params';
@@ -86,6 +87,15 @@ async function main(): Promise<void> {
       a.click();
       URL.revokeObjectURL(url);
     },
+  });
+
+  let lastCam: CameraFrame | null = null;
+  createGizmoController({
+    canvas,
+    params,
+    store,
+    getCam: () => lastCam,
+    onChange: () => renderer.setBodies(store.list()),
   });
 
   const stats = new Stats();
@@ -185,6 +195,7 @@ async function main(): Promise<void> {
 
     const aspect = canvas.width / canvas.height;
     const cam = camera.computeFrame(aspect);
+    lastCam = cam;
     const sceneClock = scenarioState.enabled
       ? playhead
       : (timeline.scrub ? timeline.time : manualClock);

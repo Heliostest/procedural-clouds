@@ -3,7 +3,7 @@ import type { BodyMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 32;
-export const BODY_STRIDE = 16;
+export const BODY_STRIDE = 20;
 
 export const PARAM_OFFSETS: Record<string, number> = {
   rayMarchSteps: 0,
@@ -104,6 +104,7 @@ export interface CloudParams {
   morphStrength: number;
   showBodyBounds: boolean;
   selectedBody: string | null;
+  gizmoMode: 'move' | 'rotate' | null;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
@@ -201,6 +202,10 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMo
       dst[o + 13] = fp[1];
       dst[o + 14] = fp[2];
       dst[o + 15] = SHAPE_ID[b.shape] ?? 0;
+      dst[o + 16] = b.rot ? b.rot[0] : 0;
+      dst[o + 17] = b.rot ? b.rot[1] : 0;
+      dst[o + 18] = b.rot ? b.rot[2] : 0;
+      dst[o + 19] = 0;
     } else {
       for (let k = 0; k < BODY_STRIDE; k++) dst[o + k] = 0;
     }
@@ -213,6 +218,7 @@ export function createDefaultParams(): CloudParams {
     morphStrength: 0,
     showBodyBounds: true,
     selectedBody: null,
+    gizmoMode: null,
     skipLight: false,
     rayMarchSteps: 48,
     lightMarchSteps: 4,

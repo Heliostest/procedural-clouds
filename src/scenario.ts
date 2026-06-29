@@ -150,6 +150,7 @@ export function createPlayer(scenario: Scenario) {
           windDeg: sampleField(evs, t, 'windDeg', windDeg0),
           windSpeed: sampleField(evs, t, 'windSpeed', windSpeed0),
           morphRate: 0.05,
+          rot: [0, 0, 0],
           life: defaultLife(),
         });
       }

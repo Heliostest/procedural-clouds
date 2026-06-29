@@ -11,7 +11,7 @@ import {
   type CloudParams,
 } from './params';
 import { DEFAULT_WEATHER_SIZE, DEFAULT_BOX_HALF_EXTENT, createShapeData, paintBodyShapes } from './weather';
-import { geometrySignature, type CloudBody } from './body';
+import { geometrySignature, bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS, type CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 
@@ -83,7 +83,7 @@ struct VOut { @builtin(position) pos : vec4f, @location(0) color : vec3f };
 @fragment fn fsLine(i : VOut) -> @location(0) vec4f { return vec4f(i.color, 1.0); }
 `;
 
-const MAX_LINE_VERTS = 4096;
+const MAX_LINE_VERTS = 8192;
 const BODY_COLORS: [number, number, number][] = [
   [0.2, 1.0, 0.35],
   [1.0, 0.6, 0.12],
@@ -131,6 +131,61 @@ function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: st
       }
     }
   });
+  return new Float32Array(out);
+}
+
+const AXIS_DIRS: [number, number, number][] = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+];
+const AXIS_COLS: [number, number, number][] = [
+  [1.0, 0.27, 0.27],
+  [0.4, 1.0, 0.35],
+  [0.32, 0.55, 1.0],
+];
+
+function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'rotate'): Float32Array {
+  const out: number[] = [];
+  const seg = (a: number[], b: number[], c: [number, number, number]) => {
+    out.push(a[0], a[1], a[2], c[0], c[1], c[2]);
+    out.push(b[0], b[1], b[2], c[0], c[1], c[2]);
+  };
+  const [ox, oy, oz] = bodyCenterWorld(body, cloudHeight);
+  if (mode === 'move') {
+    const L = GIZMO_AXIS_LEN;
+    for (let a = 0; a < 3; a++) {
+      const d = AXIS_DIRS[a];
+      const col = AXIS_COLS[a];
+      const tip = [ox + d[0] * L, oy + d[1] * L, oz + d[2] * L];
+      seg([ox, oy, oz], tip, col);
+      const back = 0.18;
+      const w = 0.09;
+      const u = a === 1 ? [1, 0, 0] : [0, 1, 0];
+      const v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+      const bp = [tip[0] - d[0] * back, tip[1] - d[1] * back, tip[2] - d[2] * back];
+      seg(tip, [bp[0] + v[0] * w, bp[1] + v[1] * w, bp[2] + v[2] * w], col);
+      seg(tip, [bp[0] - v[0] * w, bp[1] - v[1] * w, bp[2] - v[2] * w], col);
+    }
+  } else {
+    const R = GIZMO_RING_RADIUS;
+    const N = 48;
+    for (let a = 0; a < 3; a++) {
+      const col = AXIS_COLS[a];
+      for (let k = 0; k < N; k++) {
+        const t0 = (k / N) * Math.PI * 2;
+        const t1 = ((k + 1) / N) * Math.PI * 2;
+        const pt = (t: number): number[] => {
+          const c = Math.cos(t) * R;
+          const s = Math.sin(t) * R;
+          if (a === 0) return [ox, oy + c, oz + s];
+          if (a === 1) return [ox + c, oy, oz + s];
+          return [ox + c, oy + s, oz];
+        };
+        seg(pt(t0), pt(t1), col);
+      }
+    }
+  }
   return new Float32Array(out);
 }
 
@@ -515,9 +570,19 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cameraData[18] = cam.eye[2];
     device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
-    const showLines = params.showBodyBounds && currentBodies.length > 0;
-    if (showLines) {
-      const verts = buildLineVerts(currentBodies, params.cloudHeight, params.selectedBody);
+    const arrays: Float32Array[] = [];
+    if (params.showBodyBounds && currentBodies.length > 0) {
+      arrays.push(buildLineVerts(currentBodies, params.cloudHeight, params.selectedBody));
+    }
+    if (params.gizmoMode && params.selectedBody) {
+      const gb = currentBodies.find((b) => b.id === params.selectedBody);
+      if (gb) arrays.push(buildGizmoVerts(gb, params.cloudHeight, params.gizmoMode));
+    }
+    if (arrays.length > 0) {
+      const total = arrays.reduce((n, a) => n + a.length, 0);
+      const verts = new Float32Array(total);
+      let off = 0;
+      for (const a of arrays) { verts.set(a, off); off += a.length; }
       lineVertCount = Math.min(verts.length / 6, MAX_LINE_VERTS);
       device.queue.writeBuffer(lineVertexBuffer, 0, verts, 0, lineVertCount * 6);
       lineCamData.set(cam.viewProj, 0);

@@ -48,6 +48,7 @@ struct BodyGPU {
   wind : vec4f, // x=dirX, y=dirY, z=speed, w=morphRate
   intensity : vec4f, // x=coverage, y=densityScale, z=morph, w=feather
   footprint : vec4f, // x=centerX, y=centerZ, z=radius, w=shapeId
+  rot : vec4f, // x=rotX, y=rotY, z=rotZ (radians), w=unused
 };
 
 const MAX_BODIES = 12;
@@ -270,7 +271,26 @@ fn cloudDensity(pos : vec3f) -> f32 {
   return cloudDensityTyped(pos).d;
 }
 
-fn evalBodySolid(pos : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
+fn bodyRotatedPos(pos : vec3f, b : BodyGPU) -> vec3f {
+  let e = b.rot.xyz;
+  if (abs(e.x) + abs(e.y) + abs(e.z) < 1e-5) { return pos; }
+  let bmin = boxMin();
+  let bmaxY = getBoxMax().y;
+  let yMid = mix(bmin.y, bmaxY, clamp01((clamp01(b.geom.x) + clamp01(b.geom.y)) * 0.5));
+  let c = vec3f(b.footprint.x, yMid, b.footprint.y);
+  var v = pos - c;
+  // Inverse rotation (sample the unrotated body), order Rx^-1 then Ry^-1 then Rz^-1.
+  let cx2 = cos(-e.x); let sx2 = sin(-e.x);
+  v = vec3f(v.x, v.y * cx2 - v.z * sx2, v.y * sx2 + v.z * cx2);
+  let cy2 = cos(-e.y); let sy2 = sin(-e.y);
+  v = vec3f(v.x * cy2 + v.z * sy2, v.y, -v.x * sy2 + v.z * cy2);
+  let cz2 = cos(-e.z); let sz2 = sin(-e.z);
+  v = vec3f(v.x * cz2 - v.y * sz2, v.x * sz2 + v.y * cz2, v.z);
+  return c + v;
+}
+
+fn evalBodySolid(posIn : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
+  let pos = bodyRotatedPos(posIn, b);
   let bmin = boxMin();
   let bmaxY = getBoxMax().y;
   let cx = b.footprint.x;
@@ -305,14 +325,18 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let factorDetail  = 1.0;
   let factorShaper  = 1.0;
 
+  // Per-body rotation: sample the unrotated body about its center.
+  let rp = bodyRotatedPos(pos, b);
+  let oRaw = vec3f(rp.x, rp.z, rp.y);
+
   // Per-body horizontal advection of the (infinite) procedural sampling domain.
   let advect = vec3f(b.wind.x, b.wind.y, 0.0) * (b.wind.z * params.g.sceneTime);
-  let objPos = objPosRaw - advect;
+  let objPos = oRaw - advect;
 
   // Normalized horizontal silhouette from this body's shape layer.
   let bmin = boxMin();
   let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
-  let wUv = (objPosRaw.xy - vec2f(bmin.x, bmin.z)) / spanXZ;
+  let wUv = (oRaw.xy - vec2f(bmin.x, bmin.z)) / spanXZ;
   let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
   if (alpha < 0.01) { return 0.0; }
   let localCoverage = clamp01(alpha * b.intensity.x);
@@ -343,7 +367,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let altBase           = clamp(b.geom.x, 0.0, 0.98);
   let altTop            = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
 
-  let zNorm = (pos.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
+  let zNorm = (rp.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
 
   // --- STAGE 1: Altitude Mask ---

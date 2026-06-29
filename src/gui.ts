@@ -152,16 +152,36 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         typeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
         typeSel.addEventListener('click', (e) => e.stopPropagation());
         typeSel.addEventListener('change', () => { b.type = typeSel.value; hooks.onBodiesChanged(); });
-        const selBtn = document.createElement('button');
-        selBtn.textContent = '◎';
-        selBtn.title = t('select');
+        const moveBtn = document.createElement('button');
+        moveBtn.textContent = '✥';
+        moveBtn.title = tip('gizmoMove');
+        const rotBtn = document.createElement('button');
+        rotBtn.textContent = '⟳';
+        rotBtn.title = tip('gizmoRotate');
         const delBtn = document.createElement('button');
         delBtn.textContent = '✕';
         delBtn.title = t('remove');
-        for (const btn of [selBtn, delBtn]) btn.style.cssText = 'font:11px sans-serif;line-height:1;padding:1px 3px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
-        selBtn.addEventListener('click', (e) => { e.stopPropagation(); params.selectedBody = b.id; });
-        delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) params.selectedBody = null; rebuildBodies(); hooks.onBodiesChanged(); });
-        actions.append(shapeSel, typeSel, selBtn, delBtn);
+        for (const btn of [moveBtn, rotBtn, delBtn]) btn.style.cssText = 'font:12px sans-serif;line-height:1;padding:1px 4px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
+        const syncGizmoBtns = () => {
+          const active = params.selectedBody === b.id;
+          moveBtn.style.background = active && params.gizmoMode === 'move' ? '#2f6db0' : '#2a2a2a';
+          rotBtn.style.background = active && params.gizmoMode === 'rotate' ? '#2f6db0' : '#2a2a2a';
+        };
+        const setGizmo = (mode: 'move' | 'rotate') => {
+          if (params.selectedBody === b.id && params.gizmoMode === mode) {
+            params.gizmoMode = null;
+          } else {
+            params.selectedBody = b.id;
+            params.gizmoMode = mode;
+          }
+          for (const s of subFolders) s.$title.dispatchEvent(new Event('gizmosync'));
+        };
+        moveBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('move'); });
+        rotBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('rotate'); });
+        f.$title.addEventListener('gizmosync', syncGizmoBtns);
+        syncGizmoBtns();
+        delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) { params.selectedBody = null; params.gizmoMode = null; } rebuildBodies(); hooks.onBodiesChanged(); });
+        actions.append(shapeSel, typeSel, moveBtn, rotBtn, delBtn);
         f.$title.appendChild(actions);
 
         const lim = params.boxHalfExtent;

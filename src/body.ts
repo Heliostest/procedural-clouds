@@ -41,7 +41,25 @@ export interface CloudBody {
   windDeg: number;
   windSpeed: number;
   morphRate: number;
+  rot: [number, number, number];
   life: BodyLife;
+}
+
+export const GIZMO_AXIS_LEN = 1.8;
+export const GIZMO_RING_RADIUS = 1.3;
+
+export function bodyCenterXZ(b: CloudBody): [number, number] {
+  if (b.shape === 'rect') {
+    return [(b.bounds[0] + b.bounds[2]) / 2, (b.bounds[1] + b.bounds[3]) / 2];
+  }
+  return [b.bounds[0], b.bounds[1]];
+}
+
+export function bodyCenterWorld(b: CloudBody, cloudHeight: number): [number, number, number] {
+  const [cx, cz] = bodyCenterXZ(b);
+  const top = Math.min(1, b.base + Math.max(0.02, b.thickness));
+  const cy = ((b.base + top) / 2) * cloudHeight;
+  return [cx, cy, cz];
 }
 
 export function defaultLife(): BodyLife {
@@ -80,8 +98,8 @@ export function createBodyStore(initial: CloudBody[]): BodyStore {
     add(shape) {
       const id = `B${++counter}`;
       const body: CloudBody = shape === 'rect'
-        ? { id, shape, bounds: [-1.5, -1.5, 1.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, life: defaultLife() }
-        : { id, shape, bounds: [0, 0, 1.8, 0], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, life: defaultLife() };
+        ? { id, shape, bounds: [-1.5, -1.5, 1.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() }
+        : { id, shape, bounds: [0, 0, 1.8, 0], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() };
       bodies.push(body);
       return body;
     },
@@ -114,8 +132,8 @@ export function createBodyStore(initial: CloudBody[]): BodyStore {
 
 export function createDefaultBodies(): CloudBody[] {
   return [
-    { id: 'B1', shape: 'rect', bounds: [-3.5, -1.5, -0.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, life: defaultLife() },
-    { id: 'B2', shape: 'circle', bounds: [2.0, 1.0, 1.6, 0], feather: 1.5, base: 0.45, thickness: 0.2, type: 'altocumulus', coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, life: defaultLife() },
-    { id: 'B3', shape: 'circle', bounds: [0.0, -2.0, 2.2, 0], feather: 1.8, base: 0.76, thickness: 0.22, type: 'cirrus', coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, life: defaultLife() },
+    { id: 'B1', shape: 'rect', bounds: [-3.5, -1.5, -0.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B2', shape: 'circle', bounds: [2.0, 1.0, 1.6, 0], feather: 1.5, base: 0.45, thickness: 0.2, type: 'altocumulus', coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B3', shape: 'circle', bounds: [0.0, -2.0, 2.2, 0], feather: 1.8, base: 0.76, thickness: 0.22, type: 'cirrus', coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
   ];
 }

@@ -8,6 +8,8 @@ const DICT: Dict = {
 
   cloudBodies: { en: 'Cloud Bodies', zh: '云体' },
   select: { en: '◉ Select', zh: '◉ 选中' },
+  gizmoMove: { en: 'Move', zh: '平移' },
+  gizmoRotate: { en: 'Rotate', zh: '旋转' },
   centerX: { en: 'Center X', zh: '中心 X' },
   centerZ: { en: 'Center Z', zh: '中心 Z' },
   halfW: { en: 'Half W', zh: '半宽' },
@@ -275,6 +277,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   language: { en: 'Switch the interface language.', zh: '切换界面语言。' },
   select: { en: 'Make this body the active selection (e.g. for gizmos).', zh: '将该云体设为当前选中（用于操作手柄等）。' },
   remove: { en: 'Delete this cloud body.', zh: '删除该云体。' },
+  gizmoMove: { en: 'Select this body and show the 3-axis MOVE gizmo (drag the X/Y/Z arrows in the viewport to translate it). Click again to hide.', zh: '选中该云体并显示三向平移手柄（在视口中拖动 X/Y/Z 箭头进行平移）。再次点击关闭。' },
+  gizmoRotate: { en: 'Select this body and show the 3-axis ROTATE gizmo (drag the X/Y/Z rings in the viewport to rotate it). Click again to hide.', zh: '选中该云体并显示三轴旋转手柄（在视口中拖动 X/Y/Z 圆环进行旋转）。再次点击关闭。' },
   type: { en: 'Cloud genus preset that defines this body\'s shape and lighting look.', zh: '决定该云体形状与光照外观的云属预设。' },
   centerX: { en: 'Horizontal center of the footprint along X (world units).', zh: '云体平面足迹在 X 方向的中心（世界单位）。' },
   centerZ: { en: 'Horizontal center of the footprint along Z (world units).', zh: '云体平面足迹在 Z 方向的中心（世界单位）。' },
