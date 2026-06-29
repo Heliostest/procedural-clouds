@@ -116,11 +116,11 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       for (const f of subFolders) f.destroy();
       subFolders = [];
       for (const b of store.list()) {
-        const f = bodiesFolder.addFolder(`${b.id} (${b.shape}) · ${cloudTypeName(b.type)}`);
+        const f = bodiesFolder.addFolder(b.id);
         subFolders.push(f);
 
         f.$title.textContent = '';
-        const titleText = document.createTextNode(`${b.id} (${b.shape}) · ${cloudTypeName(b.type)} `);
+        const titleText = document.createTextNode(`${b.id} `);
         f.$title.appendChild(titleText);
         const actions = document.createElement('span');
         actions.style.cssText = 'float:right;display:inline-flex;align-items:center;gap:2px;margin-right:2px';
@@ -151,7 +151,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         }
         typeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
         typeSel.addEventListener('click', (e) => e.stopPropagation());
-        typeSel.addEventListener('change', () => { b.type = typeSel.value; titleText.nodeValue = `${b.id} (${b.shape}) · ${cloudTypeName(b.type)} `; hooks.onBodiesChanged(); });
+        typeSel.addEventListener('change', () => { b.type = typeSel.value; hooks.onBodiesChanged(); });
         const selBtn = document.createElement('button');
         selBtn.textContent = '◎';
         selBtn.title = t('select');
