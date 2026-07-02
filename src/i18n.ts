@@ -60,6 +60,12 @@ const DICT: Dict = {
   hgBackward: { en: 'HG Backward', zh: 'HG 后向' },
   hgBlend: { en: 'HG Blend', zh: 'HG 混合' },
   typeLighting: { en: 'Genus Lighting', zh: '云属光照' },
+  fxAbsorption: { en: 'Absorption', zh: '消光(按云属)' },
+  fxPhase: { en: 'Phase', zh: '相位(按云属)' },
+  fxBaseDark: { en: 'Base Darkening', zh: '暗底(按云属)' },
+  fxSSS: { en: 'Subsurface', zh: '透射(按云属)' },
+  fxSilver: { en: 'Silver Scale', zh: '银边(按云属)' },
+  fxGroundTint: { en: 'Ground Tint', zh: '地面新配色' },
   godRays: { en: 'God Rays', zh: '体积光' },
 
   presetEditor: { en: 'Preset Editor', zh: '预设编辑器' },

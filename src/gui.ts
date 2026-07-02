@@ -221,8 +221,15 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward'));
     lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name(t('hgBackward'));
     lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name(t('hgBlend'));
-    lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting'));
     lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays'));
+
+    const genusFolder = lightFolder.addFolder(t('typeLighting'));
+    genusFolder.add(params, 'fxAbsorption').name(t('fxAbsorption'));
+    genusFolder.add(params, 'fxPhase').name(t('fxPhase'));
+    genusFolder.add(params, 'fxBaseDark').name(t('fxBaseDark'));
+    genusFolder.add(params, 'fxSSS').name(t('fxSSS'));
+    genusFolder.add(params, 'fxSilver').name(t('fxSilver'));
+    genusFolder.add(params, 'fxGroundTint').name(t('fxGroundTint'));
 
     const presetFolder = gui.addFolder(t('presetEditor'));
     const editState = { preset: presetKeys[0] };

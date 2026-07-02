@@ -31,8 +31,12 @@ struct Globals {
   qualityMode     : f32,
   detailFreq      : f32,
   detailStrength  : f32,
-  typeLightingBlend : f32,
-  _pad1           : f32,
+  fxAbsorption    : f32,
+  fxPhase         : f32,
+  fxBaseDark      : f32,
+  fxSSS           : f32,
+  fxSilver        : f32,
+  fxGroundTint    : f32,
 };
 
 struct BodyGPU {
@@ -463,7 +467,7 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
   let ndl = clamp(dot(n, sd), 0.0, 1.0);
   let shadow = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
 
-  let base = vec3f(0.14, 0.48, 0.10);
+  let base = mix(vec3f(0.34, 0.40, 0.24), vec3f(0.14, 0.48, 0.10), params.g.fxGroundTint);
   let tint = noise_fbm(vec4f(gp.xz * 0.6, 0.0, 0.0), 4.0, 0.5, 2.0, true) * 0.5 + 0.5;
   let albedo = base * mix(0.82, 1.12, tint);
 
@@ -513,7 +517,11 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     var transmittance = 1.0;
     var color = vec3f(0.0);
     let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
-    let blend = clamp01(params.g.typeLightingBlend);
+    let bAbsorption = clamp01(params.g.fxAbsorption);
+    let bPhase = clamp01(params.g.fxPhase);
+    let bBaseDark = clamp01(params.g.fxBaseDark);
+    let bSSS = clamp01(params.g.fxSSS);
+    let bSilver = clamp01(params.g.fxSilver);
     let boxMax = getBoxMax();
     const ABS_K = 22.0; // calibrated so cumulus (absorption 0.045) ~= legacy extinction
 
@@ -522,12 +530,12 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let d = dt.x;
       if (d > 0.01) {
         let L = presetLighting(i32(dt.y));
-        let extinction = mix(1.0, L.absorption * ABS_K, blend);
+        let extinction = mix(1.0, L.absorption * ABS_K, bAbsorption);
         let step_trans = exp(-d * stepSize * extinction);
         let shadow = select(lightMarch(pos), 1.0, skipLight);
         // Per-genus dual-lobe phase, blended with the global phase.
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
-        let phase = mix(phaseGlobal, phaseType, blend);
+        let phase = mix(phaseGlobal, phaseType, bPhase);
         var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
         scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
         let zN = clamp((pos.y - BOX_MIN.y) / (boxMax.y - BOX_MIN.y), 0.0, 1.0);
@@ -535,13 +543,13 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
         scattering *= heightLight;
         // Per-genus dark base: deepen the underside for dense genera (cumulonimbus/nimbostratus).
-        let darkAmt = mix(0.0, L.baseDark, blend);
+        let darkAmt = mix(0.0, L.baseDark, bBaseDark);
         scattering *= 1.0 - darkAmt * (1.0 - zN) * densW;
         var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
         // Per-genus subsurface transmission: back-lit glow when looking toward the
         // sun (sunTheta>0) through THIN cloud (exp(-d) -> strong only where thin).
-        litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
-        let silverScale = mix(1.0, L.silver, blend);
+        litColor += skyC.sun * mix(0.0, L.sss, bSSS) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
+        let silverScale = mix(1.0, L.silver, bSilver);
         litColor *= 1.0 + params.g.silverIntensity * silverScale * pow(clamp01(sunTheta), 4.0) * transmittance;
 
         color += transmittance * (1.0 - step_trans) * litColor;

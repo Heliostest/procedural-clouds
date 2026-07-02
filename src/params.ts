@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { RegionMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 24;
+export const BODY_BASE = 28;
 export const BODY_STRIDE = 12;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -28,7 +28,12 @@ export const PARAM_OFFSETS: Record<string, number> = {
   qualityMode: 19,
   detailFreq: 20,
   detailStrength: 21,
-  typeLightingBlend: 22,
+  fxAbsorption: 22,
+  fxPhase: 23,
+  fxBaseDark: 24,
+  fxSSS: 25,
+  fxSilver: 26,
+  fxGroundTint: 27,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -114,7 +119,12 @@ export interface CloudParams {
   qualityMode: number;
   detailFreq: number;
   detailStrength: number;
-  typeLightingBlend: number;
+  fxAbsorption: boolean;
+  fxPhase: boolean;
+  fxBaseDark: boolean;
+  fxSSS: boolean;
+  fxSilver: boolean;
+  fxGroundTint: boolean;
 }
 
 export type PackValue = number | boolean | number[];
@@ -186,6 +196,11 @@ export function createDefaultParams(): CloudParams {
     qualityMode: 0,
     detailFreq: 2.5,
     detailStrength: 0,
-    typeLightingBlend: 1.0,
+    fxAbsorption: false,
+    fxPhase: false,
+    fxBaseDark: false,
+    fxSSS: false,
+    fxSilver: false,
+    fxGroundTint: false,
   };
 }

@@ -404,7 +404,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       qualityMode: params.qualityMode,
       detailFreq: params.detailFreq,
       detailStrength: params.detailStrength,
-      typeLightingBlend: params.typeLightingBlend,
+      fxAbsorption: params.fxAbsorption,
+      fxPhase: params.fxPhase,
+      fxBaseDark: params.fxBaseDark,
+      fxSSS: params.fxSSS,
+      fxSilver: params.fxSilver,
+      fxGroundTint: params.fxGroundTint,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
