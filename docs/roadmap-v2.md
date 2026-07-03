@@ -1,21 +1,28 @@
 # Roadmap v2 — 未完成项合并（快速观感优先，已调序）
 
-合并自 `legacy/roadmap.md`（阶段 9/10/11）、`legacy/roadmap-borrow.md`（B–F，A 已由 per-preset-lighting 变更完成）、`legacy/roadmap-reference-borrow.md`（Track A/B）。
+合并自 `legacy/roadmap.md`（阶段 9/10/11）、`legacy/roadmap-borrow.md`（B–F，A 已由 per-preset-lighting 变更完成）、`legacy/roadmap-reference-borrow.md`（Track A/B）、`legacy/known_issues.md`（三项已知问题）、`legacy/plan-sharp-edges.md`（云顶尖锐化，改良版）。
 
 调序原则：
 - 调试/打点最先做——后续所有阶段的验收都靠它量化。
-- `cloudDepth`（阶段 3）前移到 aerial 与 TAA 之前，避免"先近似后返工"做两遍。
-- 重投影升采样（阶段 9）先于占据金字塔（阶段 10）；做完 9 后 10 的边际收益缩水，按实测再决定。
-- 原 7.1 的 light-march beer-powder 统一项已删：与 Track A2"做对 MS 后关闭 powder"矛盾，并入 11.2。
-- 两个 **重校准点**：HDR 化 + tonemap 更换后（阶段 4），密度/光照重写后（阶段 11）。前面阶段的调参验收不是一劳永逸的。
+- `cloudDepth`（阶段 4）前移到 aerial 与 TAA 之前，避免"先近似后返工"做两遍。
+- 天气图软边（阶段 3）是当前可见缺陷、零依赖，尽早修。
+- 云边尖锐化（阶段 10）必须在自适应步进/蓝噪声（阶段 4）与 TAA（阶段 8）之后——陡传递函数会放大阶梯条纹，需先有抖动/时域收敛兜底。
+- 重投影升采样（阶段 11）先于占据金字塔（阶段 12）；做完 11 后 12 的边际收益缩水，按实测再决定。
+- 原 borrow C 的 light-march beer-powder 统一项已删：与 Track A2"做对 MS 后关闭 powder"矛盾，并入 13.2。
+- 两个 **重校准点**：HDR 化 + tonemap 更换后（阶段 5），密度/光照重写后（阶段 13）。前面阶段的调参验收不是一劳永逸的。
 
-> 路线取舍提示：本主线适合"先要好看的 demo"。若确定冲商业级（阶段 11 必做），在旧密度场上精修阶段 5/6 的调参意义有限，可考虑把 11 提前到 5 之前（即 reference 原顺序 P0→A1→A2→…）。
+已知问题去向：
+- 区域边缘偏硬 → 阶段 3（方案改为 SDF 距离场，见该节）。
+- 顶面阶梯条纹 → 阶段 4（蓝噪声）减轻、阶段 8（TAA）收敛，作为两阶段的回归验收项；阶段 10 的硬边会重新放大它，故有前置约束。
+- 云底平直 → 阶段 10 第 2 步（vEnvelope 重做）先缓解，阶段 13.1（逐类型垂直包络）根治。
+
+> 路线取舍提示：本主线适合"先要好看的 demo"。若确定冲商业级（阶段 13 必做），在旧密度场上精修阶段 6/7/10 的调参意义有限，可考虑把 13 提前（即 reference 原顺序 P0→A1→A2→…）。
 
 ```
-1(HDR前置) → 2(调试/打点) → 3(空区快进+cloudDepth) → 4(Tonemap ★校准1)
-→ 5(相位+银边) → 6(大气/调色) → 7(TAA) → 8(Bloom, 可随时并行)
-→ 9(重投影升采样) → 10(占据金字塔/LOD, 按实测决定)
-→ 11(云本体 Track A ★校准2) → 12(云属增强, 随时插入)
+1(HDR前置) → 2(调试/打点) → 3(天气图软边) → 4(空区快进+cloudDepth) → 5(Tonemap ★校准1)
+→ 6(相位+银边) → 7(大气/调色) → 8(TAA) → 9(Bloom, 可随时并行)
+→ 10(云边尖锐化) → 11(重投影升采样) → 12(占据金字塔/LOD, 按实测决定)
+→ 13(云本体 Track A ★校准2) → 14(云属增强, 随时插入)
 ```
 
 ---
@@ -36,7 +43,7 @@
 
 后续阶段的验收（"帧时间下降""调步数观感稳定"）没有它无法量化。
 
-- [ ] `debugView` uniform + 基础调试视图：透射率、累计散射、步数热力图、weatherMap/coverage、区域边界、当前 `sceneTime`（`cloudDepth` 视图归阶段 3，金字塔层级归阶段 10，MS octave 归阶段 11）。
+- [ ] `debugView` uniform + 基础调试视图：透射率、累计散射、步数热力图、weatherMap/coverage、区域边界、当前 `sceneTime`（`cloudDepth` 视图归阶段 4，金字塔层级归阶段 12，MS octave 归阶段 13）。
 - [ ] 帧预算分项打点（基于 `getStats` GPU timing）：clouds pass / light march / 后处理分项计时。
 - [ ] 目标预算记录：clouds ≤ 4–6 ms @1080p60，light march ≤ 主步进 ~40%，后处理 ≤ 1.5 ms。
 
@@ -44,20 +51,36 @@
 
 ---
 
-## 阶段 3 — Raymarch 基础加速 + 代表性深度（borrow C 精简 + A3）
+## 阶段 3 — 天气图区域软边（known issue 修复，独立小项）
 
-`cloudDepth` 是阶段 6（aerial）与阶段 7（TAA 深度重投影）的输入，必须先落地。
+现象：区域边界（尤其矩形直边）过渡生硬。已有 `feather`/`edgeSoft`/`edgeFade` 缓解，但核心区→羽化带的密度响应曲线偏陡，直边仍可辨。
+
+方案（从原"三个可能方向"中选定距离场路线，羽化不再烘死进纹理）：
+
+- [ ] `src/weather.ts`：coverage 笔刷改写入**归一化有符号距离场**（到区域边界的距离），矩形笔刷加圆角半径参数消直角。
+- [ ] `shaders/cloud.wgsl`：采样后用可调响应曲线（`smoothstep` + pow shaper）把 SDF remap 成 coverage；现有 `edgeSoft`（边缘放宽 `coverageThreshold`）改吃 SDF 距离而非 coverage 值。
+- [ ] GUI 暴露响应曲线陡度与圆角半径。
+- 纹理分辨率不动：SDF 双线性插值天然平滑，无需提分辨率。
+- 注：阶段 13.1 weather map 多通道重构时保留 SDF 编码（占一通道）。
+
+**验收**：矩形区域边缘无可辨直边，核心区→晴空的密度渐变无台阶。
+
+---
+
+## 阶段 4 — Raymarch 基础加速 + 代表性深度（borrow C 精简 + A3）
+
+`cloudDepth` 是阶段 7（aerial）与阶段 8（TAA 深度重投影）的输入，必须先落地。
 
 - [ ] 空区快进：`fs` 主循环 `d < 0.01` 时步长翻倍推进；命中后回退细分（ratchet），连续空采样递增步长。
 - [ ] `transmittance < ε` 早退覆盖所有光照路径。
 - [ ] 输出透射率加权平均命中距离 `cloudDepth`（MRT 或加通道）+ 对应调试视图。
-- [ ] 蓝噪声/R2 序列替代 `interleavedGradientNoise`（与阶段 7 jitter 协调）。
+- [ ] 蓝噪声/R2 序列替代 `interleavedGradientNoise`（与阶段 8 jitter 协调）。
 
-**验收**：空旷视角步数显著下降（看阶段 2 热力图），密集区质量不降；`cloudDepth` 可视化正确。
+**验收**：空旷视角步数显著下降（看阶段 2 热力图），密集区质量不降；`cloudDepth` 可视化正确；**回归**：顶面阶梯条纹较改前减轻。
 
 ---
 
-## 阶段 4 — Tonemap 升级（P1）★重校准点 1
+## 阶段 5 — Tonemap 升级（P1）★重校准点 1
 
 - [ ] 默认 ACES Narkowicz 拟合 + `exposure` 曝光系数。
 - [ ] tonemap 可切换（备选 AgX / Tony McMapface，规避 ACES 对大面积天空的 hue shift）。
@@ -68,9 +91,9 @@
 
 ---
 
-## 阶段 5 — 相位升级 + 边缘检测银边（P4 + borrow B）
+## 阶段 6 — 相位升级 + 边缘检测银边（P4 + borrow B）
 
-> 注：本阶段调参建立在旧密度场上，阶段 11.1 重写密度后需重校准（见 ★校准2）。
+> 注：本阶段调参建立在旧密度场上，阶段 13.1 重写密度后需重校准（见 ★校准2）。
 
 - [ ] HG 前向叶替换为 Cornette-Shanks（能量归一化）或 Jendersie-d'Eon 2023 Mie 近似。
 - [ ] 银边改边缘检测：`densityAt(pos + SUN_DIR * d_offset)` 估边缘密度，只在背光（`-sunTheta>0`）薄边缘加银边；强度取 per-type `silverLining`，保留全局 `silverIntensity` 作总开关/倍率。
@@ -79,9 +102,9 @@
 
 ---
 
-## 阶段 6 — 大气与调色（A4 务实档 + borrow F，直接用 cloudDepth）
+## 阶段 7 — 大气与调色（A4 务实档 + borrow F，直接用 cloudDepth）
 
-- [ ] 解析 aerial perspective：`exp(-σ·t)` 透射 + 朝阳 HG 内散射加亮 + 高度雾，距离取阶段 3 的 `cloudDepth`。
+- [ ] 解析 aerial perspective：`exp(-σ·t)` 透射 + 朝阳 HG 内散射加亮 + 高度雾，距离取阶段 4 的 `cloudDepth`。
 - [ ] `todColors()` 按太阳高度角分段插值 8 档关键色（dawn/morning/midday/afternoon/golden/sunset/twilight/night）。
 - [ ] 云亮面色与阴影色分离驱动（阴影侧用 cloud-types 的 shadow 列）。
 
@@ -89,17 +112,17 @@
 
 ---
 
-## 阶段 7 — TAA（P3，直接深度重投影）
+## 阶段 8 — TAA（P3，直接深度重投影）
 
 - [ ] YCoCg 邻域方差裁剪 + `mix(new, history, 0.95)`，ping-pong history，resize/首帧重置。
-- [ ] history 重投影用阶段 3 的 `cloudDepth`（非仅相机矩阵，否则平移鬼影）。
+- [ ] history 重投影用阶段 4 的 `cloudDepth`（非仅相机矩阵，否则平移鬼影）。
 - [ ] 相机亚像素 Halton jitter（`src/camera.ts`）；引入后减弱蓝噪声抖动幅度。
 
-**验收**：静止噪点显著降，`rayMarchSteps` 可降约 30% 观感不劣；慢速移动无明显拖影。
+**验收**：静止噪点显著降，`rayMarchSteps` 可降约 30% 观感不劣；慢速移动无明显拖影；**回归**：顶面阶梯条纹时域收敛后基本不可见。
 
 ---
 
-## 阶段 8 — Bloom（P2，无依赖，可与 5–7 并行）
+## 阶段 9 — Bloom（P2，无依赖，可与 6–8 并行）
 
 - [ ] Jimenez(COD AW 2014) 双滤波 / Kawase 金字塔：亮度阈值 → 渐进降采样(13-tap) → tent 上采样累加（不用 shadertoy 径向采样）。
 - [ ] 在 tonemap 之前叠加，`bloomThreshold`/`bloomAmount`。
@@ -108,26 +131,45 @@
 
 ---
 
-## 阶段 9 — 时序重投影升采样（P5，需阶段 3 + 7）
+## 阶段 10 — 云边/云顶尖锐化（plan-sharp-edges 改良版）
 
-- [ ] clouds 渲 1/4 分辨率 + 16(4×4) 帧轮转更新，用 `cloudDepth` 重投影重建全分辨率，与 TAA 共用 history 体系。
+问题：默认渲染云边总是模糊，做不出积雨云顶锐利轮廓。根因按影响排序：缓存三线性低通（96³ 体素 ≈0.09 世界单位）、软不透明度传递（`1-exp(-d·step)` 边缘渐隐）、`vEnvelope = pow(vT,2)*0.55` 刻意圆化、detail 噪声只加绒毛不加锐度。
 
-**验收**：clouds pass 成本降约 4×（看阶段 2 打点），移动时重建无明显瑕疵。
+核心思路：锐化放在 **raymarch 采样时按密度做**（逐采样天然全屏分辨率，绕开体素低通），不靠堆缓存分辨率（立方增长不划算）。per-preset 参数 `edgeHardness` 驱动。
+
+**前置约束（对原方案的修正）**：必须在阶段 4（蓝噪声+自适应细分）与阶段 8（TAA）之后——陡传递函数会放大「顶面阶梯条纹」，需先有抖动与时域收敛兜底；命中回退细分保证硬边处步长足够细。
+
+- [ ] 1. 陡峭密度传递函数（≈零成本，约 70% 效果）：采样后过窄窗 `smoothstep(thr-w, thr+w, d)`，窗宽由 `edgeHardness` 控制；配合调高 `densityScale` 让 alpha 一两步饱和。传递函数单调 → 缓存/占据金字塔 max 经同一变换仍保守（阶段 12 兼容）。
+- [ ] 2. 去云顶圆化 + 重做底部（≈零成本）：硬顶类型顶部 `vEnvelope` 换近硬截断（或砧状 anvil 上沿），云顶贴噪声等值面；底部 falloff 从"削平"改为可调圆底/平底曲线，缓解 known issue「云底平直」（根治在 13.1）。
+- [ ] 3. 边界高频解析侵蚀（质量关键，成本中等）：仅边缘带（`d` 接近 `thr`）叠高频 worley/curl 噪声啃边，**raymarch 内解析计算、不进缓存**，给出积雨云"花椰菜"硬块感。`noise.wgsl` 的 worley/curl 与 13.1 共用同一实现——本阶段先落地，13.1 直接复用。
+- [ ] 4. `edgeHardness` 进 `PresetShape`（扩 p5 槽位，同步 `packPresetArray`/`PRESET_FLOAT_COUNT`）+ GUI 滑杆；普通积云保持现状，积雨云调高。
+- [ ] 兜底：若主体边缘仍有波纹，该 body 局部走质量模式 2（解析、不缓存），不全局提分辨率。
+
+**验收**：cumulonimbus 云顶锐利、有花椰菜硬块感与砧顶轮廓；无新增阶梯条纹；普通积云观感不变。
 
 ---
 
-## 阶段 10 — 占据金字塔 + HDDA、调度/LOD（roadmap 阶段 9/10，按实测决定）
+## 阶段 11 — 时序重投影升采样（P5，需阶段 4 + 8）
 
-> 做完阶段 9 后每帧只更新 1/16 像素，本阶段边际收益缩水。先看阶段 2 打点：若 clouds pass 仍超预算再做；否则跳过或降级。
+- [ ] clouds 渲 1/4 分辨率 + 16(4×4) 帧轮转更新，用 `cloudDepth` 重投影重建全分辨率，与 TAA 共用 history 体系。
 
-### 10.1 min-max 占据金字塔 + HDDA
+**验收**：clouds pass 成本降约 4×（看阶段 2 打点），移动时重建无明显瑕疵；**阶段 10 的硬边在升采样后不糊**。
+
+---
+
+## 阶段 12 — 占据金字塔 + HDDA、调度/LOD（roadmap 阶段 9/10，按实测决定）
+
+> 做完阶段 11 后每帧只更新 1/16 像素，本阶段边际收益缩水。先看阶段 2 打点：若 clouds pass 仍超预算再做；否则跳过或降级。
+
+### 12.1 min-max 占据金字塔 + HDDA
 
 - [ ] 密度 compute 后生成 mip 链（128³→…→8³，存子块 max[/min]），全程 GPU 零回读。
 - [ ] `fs` 层级遍历：粗层空则按体素尺寸大步跳，非空下钻精细积分；薄云不被跨过。
 - [ ] 仅云内执行 `lightMarch` 与散射累加。
 - [ ] 质量参数 + GUI + 金字塔层级调试视图；默认值复现既有画质，循环有静态上界。
+- 注：阶段 10 的解析侵蚀只减不增密度，cached max 仍保守；陡传递函数单调，对 max 施同一变换即可。
 
-### 10.2 调度与 LOD（复用 10.1 金字塔）
+### 12.2 调度与 LOD（复用 12.1 金字塔）
 
 - [ ] 空区跳过 compute：占据/包围盒裁剪 `dispatchWorkgroups` 范围。
 - [ ] 缓存分辨率/更新频率随相机距离 LOD（`setDensityResolution`/`cacheUpdateRate`）。
@@ -137,28 +179,29 @@
 
 ---
 
-## 阶段 11 — 云本体 Track A（商业级核心）★重校准点 2
+## 阶段 13 — 云本体 Track A（商业级核心）★重校准点 2
 
-### 11.1 密度模型重建（A1）
+### 13.1 密度模型重建（A1）
 
-- [ ] `noise.wgsl` 新增 Perlin-Worley / 高频 Worley / curl 噪声。
+- [ ] `noise.wgsl` 新增 Perlin-Worley；高频 Worley / curl 复用阶段 10 已落地实现。
 - [ ] `evalBody` 重写为「基础形状 × 高度梯度 → 高频 Worley 边缘侵蚀（remap）→ curl 边缘畸变」。
-- [ ] weather map 扩多通道（coverage / cloud-type / precipitation）；逐类型高度-密度包络对齐真实梯度；coverage remap 保证 0 覆盖真空。
+- [ ] weather map 扩多通道（coverage / cloud-type / precipitation），保留阶段 3 的 SDF 软边编码；coverage remap 保证 0 覆盖真空。
+- [ ] 逐类型高度-密度包络对齐真实梯度曲线（stratus 扁平 / cumulus 平底圆顶 / cumulonimbus 砧顶），根治「云底平直」。
 - [ ] 先在 `qualityMode==2` 解析路径验证，再回灌缓存。
 
 **验收**：积云菜花团块 + 拉丝边、积雨云砧顶、层云扁平连续，三类肉眼可辨且不靠后处理。
 
-### 11.2 光照模型（A2）
+### 13.2 光照模型（A2）
 
 - [ ] Cone-sampled light march（朝太阳 5–6 步锥形偏移采样，软化自阴影）。
 - [ ] `sunVisibility` 形式化为 N-octave 多重散射（Hillaire，a=b=c≈0.5 递降）+ MS octave 调试视图。
 - [ ] 每步散射解析积分 `S = (1-exp(-σ·dt))·scatter/σ`，步长无关。
 - [ ] MS 做对后减弱/关闭 powder（保留为可选风格化）。
-- [ ] **重校准**：密度/光照重写后，复查阶段 5 银边参数与 per-preset 光照数值。
+- [ ] **重校准**：密度/光照重写后，复查阶段 6 银边参数、阶段 10 `edgeHardness` 与 per-preset 光照数值。
 
 **验收**：厚云朝阳侧 silver lining 自然、背阳侧不死黑、调步数观感稳定。
 
-### 11.3 大气商业档（A4）
+### 13.3 大气商业档（A4）
 
 - [ ] 预计算大气 LUT（Bruneton-Neyret / Hillaire 2020 aerial LUT），云色与天空物理一致。
 - [ ] 天空模型升级 Hosek-Wilkie 或 Bruneton，替代 `todColors` 线性渐变。
@@ -167,7 +210,7 @@
 
 ---
 
-## 阶段 12 — 云属细节增强（borrow D/E，随时插入）
+## 阶段 14 — 云属细节增强（borrow D/E，随时插入）
 
 - [ ] 卷云方向性 domain warping：cirrus 系预设增 `directional/curlStrength`，高空带（altBase>0.6）采样坐标沿风向域扭曲成弯钩细丝，仅 cirrus 类启用。
 - [ ] altostratus `sunDiscVisible`：薄云档透出朦胧日盘。
@@ -180,5 +223,6 @@
 
 - mesh-cluster / billboard WebGL2 降级路径；预烘焙噪声纹理（已有密度缓存）。
 - 参考工程的地球大气球壳、海洋高度场、立方体 SDF。
-- 色差/暗角：阶段 4 后按需加在 post 末尾。
-- light-march beer-powder 统一（原 borrow C 项）：与 11.2 关闭 powder 矛盾，不单独做。
+- 色差/暗角：阶段 5 后按需加在 post 末尾。
+- light-march beer-powder 统一（原 borrow C 项）：与 13.2 关闭 powder 矛盾，不单独做。
+- 全局提缓存分辨率求锐边（原 sharp-edges 备选）：立方增长不划算，被阶段 10 的解析方案替代。
