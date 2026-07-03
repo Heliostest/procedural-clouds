@@ -181,9 +181,11 @@ fn sampleDensityTyped(pos: vec3f) -> vec2f {
   let sb = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0).rg;
   let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
   let density = mix(sa.r, sb.r, blend);
-  // Dominant genus index: take it from the denser of the two cached samples
-  // (avoids fractional indices produced by time/linear interpolation).
-  let idx = round(select(sa.g, sb.g, sb.r > sa.r));
+  let dims = vec3f(textureDimensions(densityTex0));
+  let coord = vec3i(clamp(floor(uvw * dims), vec3f(0.0), dims - 1.0));
+  let ia = textureLoad(densityTex0, coord, 0).rg;
+  let ib = textureLoad(densityTex1, coord, 0).rg;
+  let idx = round(select(ia.g, ib.g, ib.r > ia.r));
   return vec2f(density, idx);
 }
 
