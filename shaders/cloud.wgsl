@@ -41,6 +41,10 @@ struct Globals {
   cacheWorkgroupX : f32,
   cacheWorkgroupY : f32,
   cacheWorkgroupZ : f32,
+  fxAbsorption    : f32,
+  _pad0           : f32,
+  _pad1           : f32,
+  _pad2           : f32,
 };
 
 struct BodyGPU {
@@ -208,12 +212,20 @@ fn sampleDensityTyped(pos: vec3f) -> vec4f {
   let sb = textureSampleLevel(densityTex1, densitySampler, uvw, 0.0);
   let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
   let density = mix(sa.r, sb.r, blend);
-  // Genus indices: take from the denser of the two cached samples (avoids
-  // fractional indices from time/linear interpolation). The blend weight (a)
-  // interpolates smoothly so overlap lighting transitions are seamless.
-  let useB = sb.r > sa.r;
-  let idx = round(select(sa.g, sb.g, useB));
-  let idx2 = round(select(sa.b, sb.b, useB));
+  // Genus indices: nearest-texel fetch (textureLoad) instead of trilinear+round.
+  // Trilinear filtering blends indices across genus boundaries (e.g. cirrus 7 and
+  // empty 0 average to unrelated genera like 3), and rounding those fractional
+  // indices produces voxel-aligned shells of wrong absorption on cloud edges.
+  let dims = vec3f(textureDimensions(densityTex0, 0));
+  let coord = vec3i(clamp(floor(uvw * dims), vec3f(0.0), dims - 1.0));
+  let la = textureLoad(densityTex0, coord, 0);
+  let lb = textureLoad(densityTex1, coord, 0);
+  // Take genus from the denser of the two cached samples (avoids fractional
+  // indices from time interpolation). The blend weight (a) stays smooth so
+  // overlap lighting transitions remain seamless.
+  let useB = lb.r > la.r;
+  let idx = round(select(la.g, lb.g, useB));
+  let idx2 = round(select(la.b, lb.b, useB));
   let w2 = mix(sa.a, sb.a, blend);
   return vec4f(density, idx, idx2, w2);
 }
@@ -735,7 +747,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let d = dt.x;
       if (d > 0.01) {
         let L = blendedLighting(dt.y, dt.z, dt.w);
-        let extinction = mix(1.0, L.absorption * ABS_K, blend);
+        let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
         let step_trans = exp(-d * stepSize * extinction);
         let shadow = select(sunVisibility(lightMarchDepth(pos)), 1.0, skipLight);
         // Per-genus dual-lobe phase, blended with the global phase.

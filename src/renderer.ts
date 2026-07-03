@@ -546,6 +546,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       detailFreq: params.detailFreq,
       detailStrength: params.detailStrength,
       typeLightingBlend: params.typeLightingBlend,
+      fxAbsorption: params.fxAbsorption,
       boxHalfExtent: params.boxHalfExtent,
       lightMarchStepSize: params.lightMarchStepSize,
       verticalEdgeRange: params.verticalEdgeRange,

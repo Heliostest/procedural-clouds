@@ -304,6 +304,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(lightFolder.add(params, 'hgBackward', -0.95, 0.95, 0.01).name(t('hgBackward')), 'hgBackward');
     tipKey(lightFolder.add(params, 'hgBlend', 0.0, 1.0, 0.01).name(t('hgBlend')), 'hgBlend');
     tipKey(lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting')), 'typeLighting');
+    tipKey(lightFolder.add(params, 'fxAbsorption').name(t('fxAbsorption')), 'fxAbsorption');
     tipKey(lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays')), 'godRays');
 
     function openCompare(initA: string): void {

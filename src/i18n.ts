@@ -70,6 +70,7 @@ const DICT: Dict = {
   hgBackward: { en: 'HG Backward', zh: 'HG 后向' },
   hgBlend: { en: 'HG Blend', zh: 'HG 混合' },
   typeLighting: { en: 'Genus Lighting', zh: '云属光照' },
+  fxAbsorption: { en: 'Absorption', zh: '消光(按云属)' },
   godRays: { en: 'God Rays', zh: '体积光' },
 
   presetEditor: { en: 'Preset Editor', zh: '预设编辑器' },
@@ -329,6 +330,7 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   hgBackward: { en: 'Global back-scatter phase. Negative scatters toward the anti-sun side.', zh: '全局后向散射相位。负值向背向太阳一侧散射。' },
   hgBlend: { en: 'Blend between the forward and backward scatter lobes.', zh: '在前向与后向散射波瓣之间混合。' },
   typeLighting: { en: 'How much per-genus lighting parameters (absorption, phase, SSS…) override the global ones. 0 = global only, 1 = full per-genus.', zh: '各云属光照参数（吸收、相位、SSS…）覆盖全局参数的程度。0 = 仅全局，1 = 完全按云属。' },
+  fxAbsorption: { en: 'Toggle per-genus light extinction (opacity). Off = uniform extinction; on = each genus uses its own absorption (cirrus translucent, cumulonimbus dense/dark).', zh: '开关按云属的消光（不透光度）。关 = 统一消光；开 = 每种云属用各自的吸收系数（卷云通透，积雨云厚重发暗）。' },
   godRays: { en: 'Strength of volumetric god-rays / light shafts.', zh: '体积光（丁达尔光束）的强度。' },
   editPreset: { en: 'Choose which cloud genus preset to edit below.', zh: '选择下方要编辑的云属预设。' },
   copyPreset: { en: 'Copy this preset\'s values to the clipboard as code.', zh: '将该预设的数值以代码形式拷贝到剪贴板。' },

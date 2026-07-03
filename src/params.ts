@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 32;
+export const BODY_BASE = 36;
 export const BODY_STRIDE = 20;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -38,6 +38,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   cacheWorkgroupX: 29,
   cacheWorkgroupY: 30,
   cacheWorkgroupZ: 31,
+  fxAbsorption: 32,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -125,6 +126,7 @@ export interface CloudParams {
   detailFreq: number;
   detailStrength: number;
   typeLightingBlend: number;
+  fxAbsorption: boolean;
   boxHalfExtent: number;
   weatherSize: number;
   lightMarchStepSize: number;
@@ -239,6 +241,7 @@ export function createDefaultParams(): CloudParams {
     detailFreq: 2.5,
     detailStrength: 0,
     typeLightingBlend: 1.0,
+    fxAbsorption: true,
     boxHalfExtent: 4.5,
     weatherSize: 256,
     lightMarchStepSize: 0.15,
