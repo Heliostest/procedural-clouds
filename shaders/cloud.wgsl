@@ -761,7 +761,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let baseStep = (tExit - tEntry) / f32(numSteps);
     var dither = interleavedGradientNoise(fragCoord.xy);
     if (params.g.temporalDither > 0.5) {
-      dither = fract(dither + fract(params.g.frameIndex * 0.61803398875));
+      dither = fract(dither + fract(params.g.frameIndex * 0.61803398875) * 0.25);
     }
 
     var t = tEntry + baseStep * dither;
@@ -821,9 +821,19 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         if (transmittance < cutoff) { break; }
         empties = 0;
         t = t + baseStep;
+      } else if (d > 0.002) {
+        // Near-cloud fringe: brake to fine steps so edges/thin wisps aren't skipped.
+        if (mult > 1.0) {
+          t = t - baseStep * (mult - 1.0);
+          mult = 1.0;
+          empties = 0;
+          continue;
+        }
+        empties = 0;
+        t = t + baseStep;
       } else {
         empties = empties + 1;
-        if (adaptive && empties >= 3) { mult = min(mult * 2.0, 8.0); }
+        if (adaptive && empties >= 4) { mult = min(mult * 2.0, 4.0); }
         t = t + baseStep * mult;
       }
     }

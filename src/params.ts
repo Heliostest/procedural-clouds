@@ -269,7 +269,7 @@ export function createDefaultParams(): CloudParams {
     edgeCurveWidth: 0.5,
     edgeCurveShaper: 1.0,
     adaptiveMarch: true,
-    temporalDither: true,
+    temporalDither: false,
     cornerRadius: 0.5,
     measureLightShare: () => {},
   };
