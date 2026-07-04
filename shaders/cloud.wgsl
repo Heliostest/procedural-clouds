@@ -45,6 +45,10 @@ struct Globals {
   debugView       : f32,
   edgeCurveWidth  : f32,
   edgeCurveShaper : f32,
+  frameIndex      : f32,
+  adaptiveMarch   : f32,
+  temporalDither  : f32,
+  _pad3           : f32,
 };
 
 struct BodyGPU {
@@ -625,10 +629,12 @@ fn lightMarchDepth(pos : vec3f) -> f32 {
   // fixed shallow depth.
   var ss = max(params.g.lightMarchStepSize, 0.001);
   var t = 0.0;
+  let cutoff = 40.0 / max(params.g.shadowDarkness, 0.1);
   for (var i = 0; i < steps; i++) {
     t = t + ss;
     let p = pos + sd * t;
     shadow = shadow + densityAt(p) * ss;
+    if (shadow > cutoff) { break; }
     ss = ss * 2.0;
   }
   return shadow;
@@ -672,6 +678,7 @@ fn cloudShadowAt(p : vec3f) -> f32 {
   for (var i = 0; i < steps; i++) {
     let sp = p + sd * (t0 + dt * (f32(i) + 0.5));
     dens += densityAt(sp) * dt;
+    if (dens * params.g.shadowDarkness > 4.6) { return 0.01; }
   }
   return exp(-dens * params.g.shadowDarkness);
 }
@@ -744,31 +751,50 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   var transmittance = 1.0;
   var color = vec3f(0.0);
   var iterCount = 0;
+  var depthSum = 0.0;
+  var depthW = 0.0;
+  var cloudDepth = 1e4;
 
   if (hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
     let tExit  = hit.tFar;
-    let stepSize = (tExit - tEntry) / f32(numSteps);
-    let dither = interleavedGradientNoise(fragCoord.xy);
-    
-    var pos = ro + rd * (tEntry + stepSize * dither);
+    let baseStep = (tExit - tEntry) / f32(numSteps);
+    var dither = interleavedGradientNoise(fragCoord.xy);
+    if (params.g.temporalDither > 0.5) {
+      dither = fract(dither + fract(params.g.frameIndex * 0.61803398875));
+    }
+
+    var t = tEntry + baseStep * dither;
+    var mult = 1.0;
+    var empties = 0;
     transmittance = 1.0;
     color = vec3f(0.0);
+    depthSum = 0.0;
+    depthW = 0.0;
     let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
     let blend = clamp01(params.g.typeLightingBlend);
     let bmin = boxMin();
     let boxMax = getBoxMax();
+    let adaptive = params.g.adaptiveMarch > 0.5;
     const ABS_K = 22.0;
 
     for (var i = 0u; i < RAYMARCH_MAX_STEPS; i++) {
       if (i32(i) >= numSteps) { break; }
+      if (t >= tExit) { break; }
       iterCount = i32(i) + 1;
+      let pos = ro + rd * t;
       let dt = densityAtTyped(pos);
       let d = dt.x;
       if (d > 0.01) {
+        if (mult > 1.0) {
+          t = t - baseStep * (mult - 1.0);
+          mult = 1.0;
+          empties = 0;
+          continue;
+        }
         let L = blendedLighting(dt.y, dt.z, dt.w);
         let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
-        let step_trans = exp(-d * stepSize * extinction);
+        let step_trans = exp(-d * baseStep * extinction);
         var shadow = 1.0;
         if (!skipLight) { shadow = sunVisibility(lightMarchDepth(pos)); }
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
@@ -786,13 +812,22 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let silverScale = mix(1.0, L.silver, blend);
         litColor *= 1.0 + params.g.silverIntensity * silverScale * pow(clamp01(sunTheta), 4.0) * transmittance;
 
-        color += transmittance * (1.0 - step_trans) * litColor;
+        let w = transmittance * (1.0 - step_trans);
+        color += w * litColor;
+        depthSum += w * t;
+        depthW += w;
         transmittance *= step_trans;
         let cutoff = 0.01;
         if (transmittance < cutoff) { break; }
+        empties = 0;
+        t = t + baseStep;
+      } else {
+        empties = empties + 1;
+        if (adaptive && empties >= 3) { mult = min(mult * 2.0, 8.0); }
+        t = t + baseStep * mult;
       }
-      pos += rd * stepSize;
     }
+    cloudDepth = select(1e4, depthSum / depthW, depthW > 1e-4);
     outColor = color + transmittance * background;
   }
 
@@ -805,6 +840,10 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let heat = f32(iterCount) / f32(numSteps);
       let c = select(mix(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), (heat - 0.5) * 2.0), mix(vec3f(0.0, 0.0, 1.0), vec3f(0.0, 1.0, 0.0), heat * 2.0), heat < 0.5);
       return vec4f(c, 1.0);
+    }
+    if (dv == 6) {
+      let nd = 1.0 - clamp(cloudDepth / (max(params.g.boxHalfExtent, 0.01) * 6.0), 0.0, 1.0);
+      return vec4f(vec3f(nd), 1.0);
     }
     if (dv == 4 || dv == 5) {
       let bmin = boxMin();
@@ -858,7 +897,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     }
   }
     
-  return vec4f(outColor, 1.0);
+  return vec4f(outColor, cloudDepth);
 }
 
 // ============================================================

@@ -434,6 +434,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
 
     const renderFolder = gui.addFolder(t('render'));
     tipKey(renderFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
+    tipKey(renderFolder.add(params, 'adaptiveMarch').name(t('adaptiveMarch')), 'adaptiveMarch');
+    tipKey(renderFolder.add(params, 'temporalDither').name(t('temporalDither')), 'temporalDither');
     tipKey(renderFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
     tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
     tipKey(renderFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');
@@ -474,6 +476,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugStepHeatmap')] = 3;
     debugOptions[t('debugWeatherCoverage')] = 4;
     debugOptions[t('debugRegionBounds')] = 5;
+    debugOptions[t('debugCloudDepth')] = 6;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
     tipKey(debugFolder.add(params, 'measureLightShare').name(t('measureLight')), 'measureLight');
 

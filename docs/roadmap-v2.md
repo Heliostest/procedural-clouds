@@ -129,10 +129,20 @@
 
 `cloudDepth` 是阶段 7（aerial）与阶段 8（TAA 深度重投影）的输入，必须先落地。
 
-- [ ] 空区快进：`fs` 主循环 `d < 0.01` 时步长翻倍推进；命中后回退细分（ratchet），连续空采样递增步长。
-- [ ] `transmittance < ε` 早退覆盖所有光照路径。
-- [ ] 输出透射率加权平均命中距离 `cloudDepth`（MRT 或加通道）+ 对应调试视图。
-- [ ] 蓝噪声/R2 序列替代 `interleavedGradientNoise`（与阶段 8 jitter 协调）。
+- [x] 空区快进：`fs` 主循环 `d < 0.01` 时步长翻倍推进；命中后回退细分（ratchet），连续空采样递增步长。
+- [x] `transmittance < ε` 早退覆盖所有光照路径（`lightMarchDepth` 光学厚度早退 + `cloudShadowAt` 提前返回）。
+- [x] 输出透射率加权平均命中距离 `cloudDepth`（offscreen alpha 通道）+ 调试视图 6。
+- [x] 蓝噪声/R2 序列替代 `interleavedGradientNoise`（IGN + 金比率时域旋转，`temporalDither` 开关，阶段 8 引入 TAA 后减弱）。
+- 实测：空区（天空）像素步数热力图从满红（48 步）降到蓝（≤1/4 步数）；当前视角 clouds pass 1.84→1.64ms（云占屏多时收益小，空旷视角更大）；`cloudDepth` 视图近白远黑正确；`adaptiveMarch` off 时逐步复现旧路径。
+
+实现要点/坑：
+- 主循环改按 `t` 参数化（非 pos 累加）。ratchet：采样在 `t`，命中且 `mult>1` 时 `t -= baseStep*(mult-1); mult=1; continue`（回退到最后确认为空的点后细步重扫，不积分本次采样）；连续 ≥3 次空采样才升倍率（×2，上限 8×），命中即归 1。迭代上限保持 `numSteps`，靠 `t >= tExit` 提前结束体现步数下降。
+- `cloudDepth` 走 offscreen alpha 通道（rgba16float，无需 MRT）：积分时 `w = transmittance*(1-step_trans)`，`depth = Σw·t / Σw`；`Σw < 1e-4`（天空/未命中）输出 1e4。gizmo 线框 pipeline 会以 alpha=1 污染所在像素深度，调试层可接受。
+- 光照路径早退：`lightMarchDepth` 在光学厚度 `> 40/max(shadowDarkness,0.1)` 时 break（最小消光 octave 是 0.1×sdk）；`cloudShadowAt` 在 `dens*shadowDarkness > 4.6` 时 break。主循环 `transmittance<0.01` 早退已有。
+- 时域抖动（无 TAA 前的过渡方案）：`dither = fract(ign(fragCoord) + fract(f32(frameIndex)*0.61803398875))` 金比率序列，`temporalDither` GUI 开关（默认开，闪烁不可接受可关）；阶段 8 引入亚像素 jitter 后减弱。
+- Globals 扩 4 槽（36 floats→40）：`frameIndex`(36)、`adaptiveMarch`(37)、`temporalDither`(38)、`_pad3`(39)；`BODY_BASE` 36→40，`packBodies` 偏移随动。
+- 调试视图 6 = Cloud Depth：`1 - clamp(depth/(boxHalfExtent*6), 0, 1)` 灰度（近白远黑，天空黑）。
+- `adaptiveMarch` GUI 开关做 A/B：关闭时必须逐像素复现旧路径结果。
 
 **验收**：空旷视角步数显著下降（看阶段 2 热力图），密集区质量不降；`cloudDepth` 可视化正确；**回归**：顶面阶梯条纹较改前减轻。
 

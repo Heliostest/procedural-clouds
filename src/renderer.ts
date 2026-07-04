@@ -528,7 +528,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number): Float32Array {
+  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -565,6 +565,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       debugView: params.debugView,
       edgeCurveWidth: params.edgeCurveWidth,
       edgeCurveShaper: params.edgeCurveShaper,
+      frameIndex: frameIndex % 4096,
+      adaptiveMarch: params.adaptiveMarch,
+      temporalDither: params.temporalDither,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -623,7 +626,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       uploadShapes();
     }
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex));
 
     const commandEncoder = device.createCommandEncoder();
     let cacheRan = false;

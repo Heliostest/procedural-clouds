@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 36;
+export const BODY_BASE = 40;
 export const BODY_STRIDE = 20;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -42,6 +42,9 @@ export const PARAM_OFFSETS: Record<string, number> = {
   debugView: 33,
   edgeCurveWidth: 34,
   edgeCurveShaper: 35,
+  frameIndex: 36,
+  adaptiveMarch: 37,
+  temporalDither: 38,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -143,6 +146,8 @@ export interface CloudParams {
   debugView: number;
   edgeCurveWidth: number;
   edgeCurveShaper: number;
+  adaptiveMarch: boolean;
+  temporalDither: boolean;
   cornerRadius: number;
   measureLightShare: () => void;
 }
@@ -263,6 +268,8 @@ export function createDefaultParams(): CloudParams {
     debugView: 0,
     edgeCurveWidth: 0.5,
     edgeCurveShaper: 1.0,
+    adaptiveMarch: true,
+    temporalDither: true,
     cornerRadius: 0.5,
     measureLightShare: () => {},
   };

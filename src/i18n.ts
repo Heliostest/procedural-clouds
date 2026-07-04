@@ -83,6 +83,8 @@ const DICT: Dict = {
 
   render: { en: 'Render', zh: '渲染' },
   skipLight: { en: 'Skip Light March', zh: '跳过光照步进' },
+  adaptiveMarch: { en: 'Adaptive March', zh: '自适应步进' },
+  temporalDither: { en: 'Temporal Dither', zh: '时域抖动' },
   raySteps: { en: 'Ray Steps', zh: '光线步数' },
   lightSteps: { en: 'Light Steps', zh: '光照步数' },
   shadowDark: { en: 'Shadow Dark', zh: '阴影深度' },
@@ -136,6 +138,7 @@ const DICT: Dict = {
   debugStepHeatmap: { en: 'Step Heatmap', zh: '步数热力' },
   debugWeatherCoverage: { en: 'Weather Coverage', zh: '天气覆盖' },
   debugRegionBounds: { en: 'Region Bounds', zh: '区域边界' },
+  debugCloudDepth: { en: 'Cloud Depth', zh: '云深度' },
   measureLight: { en: 'Measure Light Share', zh: '测量光照占比' },
   measuring: { en: 'measuring...', zh: '测量中...' },
   lightShare: { en: 'light share', zh: '光照占比' },
@@ -355,6 +358,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   copyPreset: { en: 'Copy this preset\'s values to the clipboard as code.', zh: '将该预设的数值以代码形式拷贝到剪贴板。' },
   copyAllPresets: { en: 'Copy all presets to the clipboard as code.', zh: '将全部预设以代码形式拷贝到剪贴板。' },
   skipLight: { en: 'Skip the secondary light-march for speed (flatter, faster shading).', zh: '跳过二次光照步进以提速（着色更平、更快）。' },
+  adaptiveMarch: { en: 'Fast-forwards through empty regions with larger steps, then backtracks one base step at cloud entry for fine marching.', zh: '空区使用大步快进，命中云边后回退一基础步再细步行进。' },
+  temporalDither: { en: 'Golden-ratio temporal dither for frame-to-frame sample shift before TAA. Disable if flicker is too visible.', zh: '基于黄金比例的时域抖动，在 TAA 前用于跨帧错位采样；闪烁明显时可关闭。' },
   raySteps: { en: 'Primary ray march steps through the cloud box (8–256).', zh: '主光线行进步数（8–256）。' },
   lightSteps: { en: 'Number of samples toward the sun for shadowing. Higher = better self-shadows, slower.', zh: '朝太阳方向用于阴影的采样次数。越高自阴影越好、越慢。' },
   lightMarchStepSize: { en: 'Step size for sun-direction light march (self-shadow). Was 0.15.', zh: '朝太阳光照行进步长（自阴影）。原写死 0.15。' },
@@ -373,6 +378,7 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   cacheWgZ: { en: 'Density-cache compute workgroup Z. Default 4.', zh: '密度缓存 compute 工作组 Z。默认 4。' },
   shape: { en: 'Body form. Rect/Circle = procedural footprint cloud. Solids (sphere, cube, platonic…) = uniform analytic density (no noise/weather/cache) for debugging the renderer. All other sliders apply identically.', zh: '云体形态。矩形/圆形=程序化轮廓云。实体（球、立方、正多面体…）=均匀解析密度（无噪声/天气/缓存），用于调试渲染。其余滑杆作用完全一致。' },
   debugView: { en: 'Switch to a debug visualization mode.', zh: '切换到调试可视化模式。' },
+  debugCloudDepth: { en: 'Transmittance-weighted mean hit distance along the view ray (near white, far black, sky black).', zh: '沿视线按透射权重加权的平均命中距离（近白远黑，天空黑）。' },
   measureLight: { en: 'Run a 2×40-frame A/B test to estimate light-march cost share of the cloud pass.', zh: '运行 2×40 帧 A/B 测试，估算光照步进在云通道中的开销占比。' },
 };
 
