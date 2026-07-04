@@ -437,28 +437,32 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     rebuildFields();
 
     const renderFolder = gui.addFolder(t('render'));
-    tipKey(renderFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
-    tipKey(renderFolder.add(params, 'adaptiveMarch').name(t('adaptiveMarch')), 'adaptiveMarch');
-    tipKey(renderFolder.add(params, 'temporalDither').name(t('temporalDither')), 'temporalDither');
-    tipKey(renderFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
-    tipKey(renderFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');
-    tipKey(renderFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
-    tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
-    tipKey(renderFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');
-    tipKey(renderFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark')), 'shadowDark');
-    tipKey(renderFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity')), 'sunIntensity');
-    tipKey(renderFolder.add(params, 'cacheResolution', 32, 256, 1).name(t('cacheRes')).onFinishChange((v: number) => {
+
+    const marchFolder = renderFolder.addFolder(t('renderMarch'));
+    tipKey(marchFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
+    tipKey(marchFolder.add(params, 'adaptiveMarch').name(t('adaptiveMarch')), 'adaptiveMarch');
+    tipKey(marchFolder.add(params, 'temporalDither').name(t('temporalDither')), 'temporalDither');
+    tipKey(marchFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
+    tipKey(marchFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
+    tipKey(marchFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');
+    tipKey(marchFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark')), 'shadowDark');
+    tipKey(marchFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity')), 'sunIntensity');
+
+    const aaFolder = renderFolder.addFolder(t('renderAA'));
+    tipKey(aaFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
+    tipKey(aaFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');
+
+    const cacheFolder = renderFolder.addFolder(t('renderCache'));
+    tipKey(cacheFolder.add(params, 'cacheResolution', 32, 256, 1).name(t('cacheRes')).onFinishChange((v: number) => {
       const next = Math.max(32, Math.min(256, Math.round(v)));
       params.cacheResolution = next;
       hooks.onCacheResolution(next);
     }), 'cacheRes');
-    tipKey(renderFolder.add(params, 'cacheUpdateRate', 1, 8, 1).name(t('cacheUpdate')), 'cacheUpdate');
-    tipKey(renderFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
-    tipKey(renderFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
-    tipKey(renderFolder.add(params, 'detailFreq', 0.5, 16.0, 0.1).name(t('detailFreq')), 'detailFreq');
-    tipKey(renderFolder.add(params, 'detailStrength', 0.0, 4.0, 0.01).name(t('detailStrength')), 'detailStrength');
-    tipKey(renderFolder.add(params, 'edgeHardness', 0.0, 1.0, 0.01).name(t('edgeHardness')), 'edgeHardness');
-    tipKey(renderFolder.add(params, 'edgeHardnessThreshold', 0.001, 0.5, 0.001).name(t('edgeHardnessThreshold')), 'edgeHardnessThreshold');
+    tipKey(cacheFolder.add(params, 'cacheUpdateRate', 1, 8, 1).name(t('cacheUpdate')), 'cacheUpdate');
+    tipKey(cacheFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
+    tipKey(cacheFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
+    tipKey(cacheFolder.add(params, 'detailFreq', 0.5, 16.0, 0.1).name(t('detailFreq')), 'detailFreq');
+    tipKey(cacheFolder.add(params, 'detailStrength', 0.0, 4.0, 0.01).name(t('detailStrength')), 'detailStrength');
     const wgProxy = {
       x: params.cacheWorkgroupX,
       y: params.cacheWorkgroupY,
@@ -470,11 +474,20 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       params.cacheWorkgroupZ = wgProxy.z;
       hooks.onCacheWorkgroup(wgProxy.x, wgProxy.y, wgProxy.z);
     };
-    tipKey(renderFolder.add(wgProxy, 'x', 1, 32, 1).name(t('cacheWgX')).onFinishChange(applyWg), 'cacheWgX');
-    tipKey(renderFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');
-    tipKey(renderFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
-    tipKey(renderFolder.add(params, 'tonemapMode', { Reinhard: 0, ACES: 1, AgX: 2 }).name(t('tonemap')), 'tonemap');
-    tipKey(renderFolder.add(params, 'exposure', 0.1, 3.0, 0.01).name(t('exposure')), 'exposure');
+    tipKey(cacheFolder.add(wgProxy, 'x', 1, 32, 1).name(t('cacheWgX')).onFinishChange(applyWg), 'cacheWgX');
+    tipKey(cacheFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');
+    tipKey(cacheFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
+
+    const edgeFolder = renderFolder.addFolder(t('renderEdge'));
+    tipKey(edgeFolder.add(params, 'edgeHardness', 0.0, 1.0, 0.01).name(t('edgeHardness')), 'edgeHardness');
+    tipKey(edgeFolder.add(params, 'edgeHardnessThreshold', 0.001, 0.5, 0.001).name(t('edgeHardnessThreshold')), 'edgeHardnessThreshold');
+
+    const postFolder = renderFolder.addFolder(t('renderPost'));
+    tipKey(postFolder.add(params, 'bloomEnabled').name(t('bloomEnabled')), 'bloomEnabled');
+    tipKey(postFolder.add(params, 'bloomThreshold', 0.0, 3.0, 0.01).name(t('bloomThreshold')), 'bloomThreshold');
+    tipKey(postFolder.add(params, 'bloomAmount', 0.0, 2.0, 0.01).name(t('bloomAmount')), 'bloomAmount');
+    tipKey(postFolder.add(params, 'tonemapMode', { Reinhard: 0, ACES: 1, AgX: 2 }).name(t('tonemap')), 'tonemap');
+    tipKey(postFolder.add(params, 'exposure', 0.1, 3.0, 0.01).name(t('exposure')), 'exposure');
 
     const debugFolder = gui.addFolder(t('debug'));
     const debugOptions: Record<string, number> = {};

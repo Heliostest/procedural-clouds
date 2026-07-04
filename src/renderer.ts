@@ -25,11 +25,60 @@ function halton(index: number, base: number): number {
   return r;
 }
 
+const BLOOM_LEVELS = 5;
+
+const bloomShaderSource = /* wgsl */ `
+struct BloomU { texelSize : vec4f, params : vec4f };
+@group(0) @binding(0) var inputTex : texture_2d<f32>;
+@group(0) @binding(1) var inputSamp : sampler;
+@group(0) @binding(2) var<uniform> u : BloomU;
+struct VOut { @builtin(position) pos : vec4f };
+@vertex fn vsBloom(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+fn luminance(c : vec3f) -> f32 { return dot(c, vec3f(0.2126, 0.7152, 0.0722)); }
+@fragment fn fsBloomExtract(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let uv = (fc.xy + 0.5) / u.texelSize.zw;
+  let col = textureSampleLevel(inputTex, inputSamp, uv, 0.0).rgb * u.params.y;
+  let lum = luminance(col);
+  let contrib = max(lum - u.params.x, 0.0);
+  return vec4f(col * (contrib / max(lum, 1e-5)), 1.0);
+}
+@fragment fn fsBloomDown(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let uv = (fc.xy + 0.5) / u.texelSize.zw;
+  let ts = u.texelSize.xy;
+  var col = textureSampleLevel(inputTex, inputSamp, uv, 0.0).rgb * 4.0;
+  col += textureSampleLevel(inputTex, inputSamp, uv - vec2f(ts.x, 0.0), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(ts.x, 0.0), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv - vec2f(0.0, ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(0.0, ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(-ts.x, -ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(ts.x, -ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(-ts.x, ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(ts.x, ts.y), 0.0).rgb;
+  return vec4f(col / 12.0, 1.0);
+}
+@fragment fn fsBloomUp(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let uv = (fc.xy + 0.5) / u.texelSize.zw;
+  let ts = u.texelSize.xy * 2.0;
+  var col = textureSampleLevel(inputTex, inputSamp, uv, 0.0).rgb * 4.0;
+  col += textureSampleLevel(inputTex, inputSamp, uv - vec2f(ts.x, 0.0), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(ts.x, 0.0), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv - vec2f(0.0, ts.y), 0.0).rgb;
+  col += textureSampleLevel(inputTex, inputSamp, uv + vec2f(0.0, ts.y), 0.0).rgb;
+  return vec4f(col / 8.0, 1.0);
+}
+`;
+
 const postShaderSource = /* wgsl */ `
-struct Post { sun : vec4f, flags : vec4f };
+struct Post { sun : vec4f, flags : vec4f, bloom : vec4f };
 @group(0) @binding(0) var sceneTex : texture_2d<f32>;
 @group(0) @binding(1) var sceneSamp : sampler;
 @group(0) @binding(2) var<uniform> post : Post;
+@group(0) @binding(3) var bloomTex : texture_2d<f32>;
 struct VOut { @builtin(position) pos : vec4f };
 fn acesNarkowicz(x : vec3f) -> vec3f {
   let a = 2.51; let b = 0.03; let c = 2.43; let d = 0.59; let e = 0.14;
@@ -66,6 +115,11 @@ fn agx(colIn : vec3f) -> vec3f {
   let uv = fc.xy / dims;
   var col = textureSampleLevel(sceneTex, sceneSamp, uv, 0.0).rgb;
   if (post.flags.x > 0.5) { return vec4f(col, 1.0); }
+  col = col * max(post.flags.z, 0.01);
+  if (post.flags.w > 0.5 && post.bloom.y > 0.0) {
+    let bloomCol = textureSampleLevel(bloomTex, sceneSamp, uv, 0.0).rgb;
+    col += bloomCol * post.bloom.y;
+  }
   let strength = post.sun.z;
   let vis = post.sun.w;
   if (strength > 0.0 && vis > 0.5) {
@@ -83,7 +137,6 @@ fn agx(colIn : vec3f) -> vec3f {
     }
     col += (acc / f32(NUM)) * strength;
   }
-  col = col * max(post.flags.z, 0.01);
   let mode = i32(post.flags.y);
   if (mode == 1) {
     col = acesNarkowicz(col);
@@ -355,10 +408,51 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     primitive: { topology: 'triangle-list' },
   });
   const postUniformBuffer = device.createBuffer({
+    size: 48,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const postData = new Float32Array(12);
+
+  const bloomModule = device.createShaderModule({ code: bloomShaderSource });
+  const bloomExtractPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: bloomModule, entryPoint: 'vsBloom' },
+    fragment: { module: bloomModule, entryPoint: 'fsBloomExtract', targets: [{ format: OFFSCREEN_FORMAT }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  const bloomDownPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: bloomModule, entryPoint: 'vsBloom' },
+    fragment: { module: bloomModule, entryPoint: 'fsBloomDown', targets: [{ format: OFFSCREEN_FORMAT }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  const bloomUpPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: bloomModule, entryPoint: 'vsBloom' },
+    fragment: {
+      module: bloomModule,
+      entryPoint: 'fsBloomUp',
+      targets: [{
+        format: OFFSCREEN_FORMAT,
+        blend: {
+          color: { srcFactor: 'one', dstFactor: 'one', operation: 'add' },
+          alpha: { srcFactor: 'one', dstFactor: 'zero', operation: 'add' },
+        },
+      }],
+    },
+    primitive: { topology: 'triangle-list' },
+  });
+  const bloomUniformBuffer = device.createBuffer({
     size: 32,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  const postData = new Float32Array(8);
+  const bloomData = new Float32Array(8);
+  const dummyBloomTexture = device.createTexture({
+    size: [1, 1],
+    format: OFFSCREEN_FORMAT,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+  const dummyBloomView = dummyBloomTexture.createView();
 
   const taaModule = device.createShaderModule({ code: taaShaderSource });
   const taaPipeline = device.createRenderPipeline({
@@ -591,13 +685,122 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let historyTex: [GPUTexture, GPUTexture] | null = null;
   let historyViews: [GPUTextureView, GPUTextureView];
   let taaBindGroups: [GPUBindGroup, GPUBindGroup];
-  let postBindGroups: [GPUBindGroup, GPUBindGroup];
   let histIndex = 0;
   let historyValid = false;
   let prevTaaEnabled = false;
   const prevViewProj = new Float32Array(16);
   let sceneW = 0;
   let sceneH = 0;
+  let bloomTextures: GPUTexture[] = [];
+  let bloomViews: GPUTextureView[] = [];
+  let bloomWs: number[] = [];
+  let bloomHs: number[] = [];
+
+  function bloomBindGroup(inputView: GPUTextureView, layout: GPUBindGroupLayout): GPUBindGroup {
+    return device.createBindGroup({
+      layout,
+      entries: [
+        { binding: 0, resource: inputView },
+        { binding: 1, resource: postSampler },
+        { binding: 2, resource: { buffer: bloomUniformBuffer } },
+      ],
+    });
+  }
+
+  function ensureBloomTextures(w: number, h: number): void {
+    const bw = Math.max(1, Math.floor(w / 2));
+    const bh = Math.max(1, Math.floor(h / 2));
+    if (bloomTextures.length > 0 && bloomWs[0] === bw && bloomHs[0] === bh) return;
+    for (const t of bloomTextures) t.destroy();
+    bloomTextures = [];
+    bloomViews = [];
+    bloomWs = [];
+    bloomHs = [];
+    let cw = bw;
+    let ch = bh;
+    for (let i = 0; i < BLOOM_LEVELS; i++) {
+      cw = Math.max(1, cw);
+      ch = Math.max(1, ch);
+      bloomWs.push(cw);
+      bloomHs.push(ch);
+      const tex = device.createTexture({
+        size: [cw, ch],
+        format: OFFSCREEN_FORMAT,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      bloomTextures.push(tex);
+      bloomViews.push(tex.createView());
+      cw = Math.max(1, Math.floor(cw / 2));
+      ch = Math.max(1, Math.floor(ch / 2));
+    }
+  }
+
+  function runBloomPasses(
+    encoder: GPUCommandEncoder,
+    sceneInput: GPUTextureView,
+    params: CloudParams,
+  ): GPUTextureView {
+    ensureBloomTextures(sceneW, sceneH);
+    bloomData[2] = bloomWs[0];
+    bloomData[3] = bloomHs[0];
+    bloomData[4] = params.bloomThreshold;
+    bloomData[5] = Math.max(params.exposure, 0.01);
+    device.queue.writeBuffer(bloomUniformBuffer, 0, bloomData);
+
+    const extractPass = encoder.beginRenderPass({
+      colorAttachments: [{
+        view: bloomViews[0],
+        loadOp: 'clear',
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        storeOp: 'store',
+      }],
+    });
+    extractPass.setPipeline(bloomExtractPipeline);
+    extractPass.setBindGroup(0, bloomBindGroup(sceneInput, bloomExtractPipeline.getBindGroupLayout(0)));
+    extractPass.draw(3);
+    extractPass.end();
+
+    for (let i = 0; i < BLOOM_LEVELS - 1; i++) {
+      bloomData[0] = 1 / bloomWs[i];
+      bloomData[1] = 1 / bloomHs[i];
+      bloomData[2] = bloomWs[i + 1];
+      bloomData[3] = bloomHs[i + 1];
+      device.queue.writeBuffer(bloomUniformBuffer, 0, bloomData);
+      const downPass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: bloomViews[i + 1],
+          loadOp: 'clear',
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          storeOp: 'store',
+        }],
+      });
+      downPass.setPipeline(bloomDownPipeline);
+      downPass.setBindGroup(0, bloomBindGroup(bloomViews[i], bloomDownPipeline.getBindGroupLayout(0)));
+      downPass.draw(3);
+      downPass.end();
+    }
+
+    for (let i = BLOOM_LEVELS - 2; i >= 0; i--) {
+      bloomData[0] = 1 / bloomWs[i + 1];
+      bloomData[1] = 1 / bloomHs[i + 1];
+      bloomData[2] = bloomWs[i];
+      bloomData[3] = bloomHs[i];
+      device.queue.writeBuffer(bloomUniformBuffer, 0, bloomData);
+      const upPass = encoder.beginRenderPass({
+        colorAttachments: [{
+          view: bloomViews[i],
+          loadOp: 'load',
+          storeOp: 'store',
+        }],
+      });
+      upPass.setPipeline(bloomUpPipeline);
+      upPass.setBindGroup(0, bloomBindGroup(bloomViews[i + 1], bloomUpPipeline.getBindGroupLayout(0)));
+      upPass.draw(3);
+      upPass.end();
+    }
+
+    return bloomViews[0];
+  }
 
   function ensureSceneTexture(w: number, h: number): void {
     if (sceneTexture && sceneW === w && sceneH === h) return;
@@ -626,14 +829,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         { binding: 3, resource: { buffer: taaUniformBuffer } },
       ],
     })) as [GPUBindGroup, GPUBindGroup];
-    postBindGroups = [0, 1].map((i) => device.createBindGroup({
-      layout: postPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: historyViews[i] },
-        { binding: 1, resource: postSampler },
-        { binding: 2, resource: { buffer: postUniformBuffer } },
-      ],
-    })) as [GPUBindGroup, GPUBindGroup];
+    ensureBloomTextures(w, h);
     historyValid = false;
   }
 
@@ -895,7 +1091,26 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     postData[4] = params.debugView;
     postData[5] = params.tonemapMode;
     postData[6] = params.exposure;
+    postData[7] = params.bloomEnabled ? 1 : 0;
+    postData[8] = params.bloomThreshold;
+    postData[9] = params.bloomAmount;
     device.queue.writeBuffer(postUniformBuffer, 0, postData);
+
+    const bloomOn = params.bloomEnabled && params.bloomAmount > 0 && params.debugView === 0;
+    let bloomView: GPUTextureView = dummyBloomView;
+    if (bloomOn) {
+      bloomView = runBloomPasses(commandEncoder, historyViews[histIndex], params);
+    }
+
+    const postBindGroup = device.createBindGroup({
+      layout: postPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: historyViews[histIndex] },
+        { binding: 1, resource: postSampler },
+        { binding: 2, resource: { buffer: postUniformBuffer } },
+        { binding: 3, resource: bloomView },
+      ],
+    });
 
     const textureView = context!.getCurrentTexture().createView();
     const postPass = commandEncoder.beginRenderPass({
@@ -910,7 +1125,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : {}),
     });
     postPass.setPipeline(postPipeline);
-    postPass.setBindGroup(0, postBindGroups[histIndex]);
+    postPass.setBindGroup(0, postBindGroup);
     postPass.draw(3);
     postPass.end();
     histIndex ^= 1;

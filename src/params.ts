@@ -164,6 +164,9 @@ export interface CloudParams {
   shadowTintStrength: number;
   taaEnabled: boolean;
   taaBlend: number;
+  bloomEnabled: boolean;
+  bloomThreshold: number;
+  bloomAmount: number;
   measureLightShare: () => void;
 }
 
@@ -294,6 +297,9 @@ export function createDefaultParams(): CloudParams {
     shadowTintStrength: 0.6,
     taaEnabled: false,
     taaBlend: 0.95,
+    bloomEnabled: false,
+    bloomThreshold: 1.0,
+    bloomAmount: 0.5,
     measureLightShare: () => {},
   };
 }

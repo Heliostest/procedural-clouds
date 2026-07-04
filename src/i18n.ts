@@ -86,6 +86,11 @@ const DICT: Dict = {
   copyAllPresets: { en: 'Copy All Presets', zh: '拷贝全部预设' },
 
   render: { en: 'Render', zh: '渲染' },
+  renderMarch: { en: 'Ray March', zh: '光线步进' },
+  renderAA: { en: 'Anti-aliasing', zh: '抗锯齿' },
+  renderCache: { en: 'Density Cache', zh: '密度缓存' },
+  renderEdge: { en: 'Edge Shape', zh: '边缘形态' },
+  renderPost: { en: 'Post-process', zh: '后处理' },
   skipLight: { en: 'Skip Light March', zh: '跳过光照步进' },
   adaptiveMarch: { en: 'Adaptive March', zh: '自适应步进' },
   temporalDither: { en: 'Temporal Dither', zh: '时域抖动' },
@@ -110,6 +115,9 @@ const DICT: Dict = {
   shape: { en: 'Shape', zh: '形状' },
   tonemap: { en: 'Tonemap', zh: '色调映射' },
   exposure: { en: 'Exposure', zh: '曝光' },
+  bloomEnabled: { en: 'Bloom', zh: 'Bloom' },
+  bloomThreshold: { en: 'Bloom Threshold', zh: 'Bloom 阈值' },
+  bloomAmount: { en: 'Bloom Amount', zh: 'Bloom 强度' },
 
   pastePlaceholder: { en: 'Paste Scenario JSON then click Apply', zh: '粘贴 Scenario JSON 后点 Apply' },
   apply: { en: 'Apply', zh: '应用' },
@@ -396,6 +404,9 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   measureLight: { en: 'Run a 2×40-frame A/B test to estimate light-march cost share of the cloud pass.', zh: '运行 2×40 帧 A/B 测试，估算光照步进在云通道中的开销占比。' },
   tonemap: { en: 'Tonemap curve. ACES: higher contrast, natural highlight rolloff. AgX: minimal hue shift in large sky areas. Reinhard: legacy baseline.', zh: '色调映射曲线。ACES：对比度高、高光滚落自然。AgX：大面积天空色相偏移小。Reinhard：旧版基线。' },
   exposure: { en: 'Post-process exposure multiplier applied before tonemapping.', zh: '后处理曝光倍率，在色调映射前应用。' },
+  bloomEnabled: { en: 'HDR bloom glow on bright areas (sun and lit cloud edges).', zh: '高亮区域 HDR 光晕（太阳与受光云缘）。' },
+  bloomThreshold: { en: 'Luminance threshold for bloom extraction (HDR, after exposure).', zh: 'Bloom 提取亮度阈值（曝光后 HDR 域）。' },
+  bloomAmount: { en: 'Bloom overlay strength.', zh: 'Bloom 叠加强度。' },
 };
 
 export function tip(key: string): string {
