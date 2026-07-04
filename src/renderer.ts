@@ -20,7 +20,7 @@ const shaderSource = noiseSource + cloudSource;
 const OFFSCREEN_FORMAT: GPUTextureFormat = 'rgba16float';
 
 const postShaderSource = /* wgsl */ `
-struct Post { sun : vec4f };
+struct Post { sun : vec4f, flags : vec4f };
 @group(0) @binding(0) var sceneTex : texture_2d<f32>;
 @group(0) @binding(1) var sceneSamp : sampler;
 @group(0) @binding(2) var<uniform> post : Post;
@@ -35,6 +35,7 @@ struct VOut { @builtin(position) pos : vec4f };
   let dims = vec2f(textureDimensions(sceneTex));
   let uv = fc.xy / dims;
   var col = textureSampleLevel(sceneTex, sceneSamp, uv, 0.0).rgb;
+  if (post.flags.x > 0.5) { return vec4f(col, 1.0); }
   let strength = post.sun.z;
   let vis = post.sun.w;
   if (strength > 0.0 && vis > 0.5) {
@@ -195,6 +196,7 @@ export interface RenderStats {
   gpuTiming: boolean;
   cloudMs: number;
   cacheMs: number;
+  postMs: number;
   width: number;
   height: number;
   densityRes: number;
@@ -250,10 +252,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     primitive: { topology: 'triangle-list' },
   });
   const postUniformBuffer = device.createBuffer({
-    size: 16,
+    size: 32,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  const postData = new Float32Array(4);
+  const postData = new Float32Array(8);
   const postSampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
@@ -505,7 +507,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let nextCacheTime = 0.0;
   let prevSceneTime = 0.0;
 
-  const TS_COUNT = 4; // [computeStart, computeEnd, renderStart, renderEnd]
+  const TS_COUNT = 6; // [computeStart, computeEnd, renderStart, renderEnd, postStart, postEnd]
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -514,6 +516,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     gpuTiming: hasTimestamp,
     cloudMs: 0,
     cacheMs: 0,
+    postMs: 0,
     width: 0,
     height: 0,
     densityRes,
@@ -558,6 +561,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       cacheWorkgroupX: params.cacheWorkgroupX,
       cacheWorkgroupY: params.cacheWorkgroupY,
       cacheWorkgroupZ: params.cacheWorkgroupZ,
+      debugView: params.debugView,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -690,6 +694,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     postData[2] = params.godrayStrength;
     postData[3] = sunVis;
+    postData[4] = params.debugView;
     device.queue.writeBuffer(postUniformBuffer, 0, postData);
 
     const textureView = context!.getCurrentTexture().createView();
@@ -702,6 +707,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : {}),
     });
     postPass.setPipeline(postPipeline);
     postPass.setBindGroup(0, postBindGroup);
@@ -728,6 +734,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         tsRead.unmap();
         const renderNs = Number(ts[3] - ts[2]);
         if (renderNs >= 0) stats.cloudMs = renderNs / 1e6;
+        const postNs = Number(ts[5] - ts[4]);
+        if (postNs >= 0) stats.postMs = postNs / 1e6;
         if (cacheRan) {
           const cacheNs = Number(ts[1] - ts[0]);
           if (cacheNs >= 0) stats.cacheMs = cacheNs / 1e6;

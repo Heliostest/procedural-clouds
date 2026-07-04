@@ -42,7 +42,7 @@ struct Globals {
   cacheWorkgroupY : f32,
   cacheWorkgroupZ : f32,
   fxAbsorption    : f32,
-  _pad0           : f32,
+  debugView       : f32,
   _pad1           : f32,
   _pad2           : f32,
 };
@@ -695,6 +695,20 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
   return albedo * (direct + ambient);
 }
 
+fn debugBodyColor(i : i32, core : bool) -> vec3f {
+  let palette = array<vec3f, 6>(
+    vec3f(0.2, 1.0, 0.35),
+    vec3f(1.0, 0.6, 0.12),
+    vec3f(0.3, 0.7, 1.0),
+    vec3f(1.0, 0.3, 0.7),
+    vec3f(0.9, 0.9, 0.2),
+    vec3f(0.5, 0.4, 1.0),
+  );
+  let c = palette[i % 6];
+  if (core) { return c; }
+  return c * 0.4 + vec3f(0.15);
+}
+
 @fragment
 fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
   let skipLight = params.g.skipLight > 0.5;
@@ -725,6 +739,9 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   }
 
   var outColor = background;
+  var transmittance = 1.0;
+  var color = vec3f(0.0);
+  var iterCount = 0;
 
   if (hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
@@ -733,8 +750,8 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let dither = interleavedGradientNoise(fragCoord.xy);
     
     var pos = ro + rd * (tEntry + stepSize * dither);
-    var transmittance = 1.0;
-    var color = vec3f(0.0);
+    transmittance = 1.0;
+    color = vec3f(0.0);
     let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
     let blend = clamp01(params.g.typeLightingBlend);
     let bmin = boxMin();
@@ -743,14 +760,15 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
 
     for (var i = 0u; i < RAYMARCH_MAX_STEPS; i++) {
       if (i32(i) >= numSteps) { break; }
+      iterCount = i32(i) + 1;
       let dt = densityAtTyped(pos);
       let d = dt.x;
       if (d > 0.01) {
         let L = blendedLighting(dt.y, dt.z, dt.w);
         let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
         let step_trans = exp(-d * stepSize * extinction);
-        let shadow = select(sunVisibility(lightMarchDepth(pos)), 1.0, skipLight);
-        // Per-genus dual-lobe phase, blended with the global phase.
+        var shadow = 1.0;
+        if (!skipLight) { shadow = sunVisibility(lightMarchDepth(pos)); }
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
         let phase = mix(phaseGlobal, phaseType, blend);
         var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
@@ -759,12 +777,9 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let densW = smoothstep(0.6, 1.4, d);
         let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
         scattering *= heightLight;
-        // Per-genus dark base: deepen the underside for dense genera (cumulonimbus/nimbostratus).
         let darkAmt = mix(0.0, L.baseDark, blend);
         scattering *= 1.0 - darkAmt * (1.0 - zN) * densW;
         var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
-        // Per-genus subsurface transmission: back-lit glow when looking toward the
-        // sun (sunTheta>0) through THIN cloud (exp(-d) -> strong only where thin).
         litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
         let silverScale = mix(1.0, L.silver, blend);
         litColor *= 1.0 + params.g.silverIntensity * silverScale * pow(clamp01(sunTheta), 4.0) * transmittance;
@@ -777,6 +792,63 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       pos += rd * stepSize;
     }
     outColor = color + transmittance * background;
+  }
+
+  if (params.g.debugView > 0.5) {
+    let dv = i32(params.g.debugView);
+    if (dv == 1) { return vec4f(vec3f(transmittance), 1.0); }
+    if (dv == 2) { return vec4f(color, 1.0); }
+    if (dv == 3) {
+      if (!hit.hit) { return vec4f(0.0, 0.0, 0.0, 1.0); }
+      let heat = f32(iterCount) / f32(numSteps);
+      let c = select(mix(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), (heat - 0.5) * 2.0), mix(vec3f(0.0, 0.0, 1.0), vec3f(0.0, 1.0, 0.0), heat * 2.0), heat < 0.5);
+      return vec4f(c, 1.0);
+    }
+    if (dv == 4 || dv == 5) {
+      let bmin = boxMin();
+      let planeY = bmin.y + params.g.cloudHeight * 0.5;
+      let tPlane = (planeY - ro.y) / rd.y;
+      if (abs(rd.y) < 1e-4 || tPlane <= 0.0) { return vec4f(0.0, 0.0, 0.0, 1.0); }
+      let p = ro + rd * tPlane;
+      let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
+      let wUv = (vec2f(p.x, p.z) - vec2f(bmin.x, bmin.z)) / spanXZ;
+      if (dv == 4) {
+        var cov = 0.0;
+        let n = i32(params.g.activeBodyCount);
+        for (var i = 0; i < MAX_BODIES; i++) {
+          if (i >= n) { break; }
+          if (params.bodies[i].geom.w < 0.5) { continue; }
+          cov = max(cov, textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r);
+        }
+        return vec4f(vec3f(cov), 1.0);
+      }
+      var out = vec3f(0.0);
+      let n = i32(params.g.activeBodyCount);
+      for (var i = 0; i < MAX_BODIES; i++) {
+        if (i >= n) { break; }
+        let b = params.bodies[i];
+        if (b.geom.w < 0.5) { continue; }
+        let dx = p.x - b.footprint.x;
+        let dz = p.z - b.footprint.y;
+        let r = max(b.footprint.z, 0.001);
+        let f = b.intensity.w;
+        let shapeId = i32(round(b.footprint.w));
+        var core = false;
+        var feather = false;
+        if (shapeId == 0) {
+          core = abs(dx) <= r && abs(dz) <= r;
+          feather = abs(dx) <= r + f && abs(dz) <= r + f;
+        } else {
+          let d = sqrt(dx * dx + dz * dz);
+          core = d <= r;
+          feather = d <= r + f;
+        }
+        if (core || feather) {
+          out = debugBodyColor(i, core);
+        }
+      }
+      return vec4f(out, 1.0);
+    }
   }
     
   return vec4f(outColor, 1.0);

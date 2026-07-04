@@ -125,6 +125,19 @@ const DICT: Dict = {
   perfQuality: { en: 'quality', zh: '质量' },
   perfGpuNA: { en: 'GPU timing unsupported', zh: 'GPU计时不支持' },
 
+  debug: { en: 'Debug', zh: '调试' },
+  debugView: { en: 'Debug View', zh: '调试视图' },
+  debugOff: { en: 'Off', zh: '关闭' },
+  debugTransmittance: { en: 'Transmittance', zh: '透射率' },
+  debugScattering: { en: 'Scattering', zh: '累计散射' },
+  debugStepHeatmap: { en: 'Step Heatmap', zh: '步数热力' },
+  debugWeatherCoverage: { en: 'Weather Coverage', zh: '天气覆盖' },
+  debugRegionBounds: { en: 'Region Bounds', zh: '区域边界' },
+  measureLight: { en: 'Measure Light Share', zh: '测量光照占比' },
+  measuring: { en: 'measuring...', zh: '测量中...' },
+  lightShare: { en: 'light share', zh: '光照占比' },
+  post: { en: 'post', zh: '后处理' },
+
   info: { en: 'Drag to orbit · Scroll to zoom · WebGPU Procedural Clouds', zh: '拖动旋转 · 滚轮缩放 · WebGPU 程序化云朵' },
 };
 
@@ -353,6 +366,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   cacheWgY: { en: 'Density-cache compute workgroup Y. Default 8.', zh: '密度缓存 compute 工作组 Y。默认 8。' },
   cacheWgZ: { en: 'Density-cache compute workgroup Z. Default 4.', zh: '密度缓存 compute 工作组 Z。默认 4。' },
   shape: { en: 'Body form. Rect/Circle = procedural footprint cloud. Solids (sphere, cube, platonic…) = uniform analytic density (no noise/weather/cache) for debugging the renderer. All other sliders apply identically.', zh: '云体形态。矩形/圆形=程序化轮廓云。实体（球、立方、正多面体…）=均匀解析密度（无噪声/天气/缓存），用于调试渲染。其余滑杆作用完全一致。' },
+  debugView: { en: 'Switch to a debug visualization mode.', zh: '切换到调试可视化模式。' },
+  measureLight: { en: 'Run a 2×40-frame A/B test to estimate light-march cost share of the cloud pass.', zh: '运行 2×40 帧 A/B 测试，估算光照步进在云通道中的开销占比。' },
 };
 
 export function tip(key: string): string {

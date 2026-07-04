@@ -463,6 +463,17 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(renderFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');
     tipKey(renderFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
 
+    const debugFolder = gui.addFolder(t('debug'));
+    const debugOptions: Record<string, number> = {};
+    debugOptions[t('debugOff')] = 0;
+    debugOptions[t('debugTransmittance')] = 1;
+    debugOptions[t('debugScattering')] = 2;
+    debugOptions[t('debugStepHeatmap')] = 3;
+    debugOptions[t('debugWeatherCoverage')] = 4;
+    debugOptions[t('debugRegionBounds')] = 5;
+    tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
+    tipKey(debugFolder.add(params, 'measureLightShare').name(t('measureLight')), 'measureLight');
+
     gui.foldersRecursive().forEach((f) => f.close());
 
     api.refreshTimeline = () => timeFolder.controllers.forEach((c) => c.updateDisplay());

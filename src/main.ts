@@ -24,6 +24,13 @@ async function main(): Promise<void> {
   let lastPlayhead = -1.0;
   let scenarioError = '';
 
+  let measureState: 'idle' | 'skip' | 'full' | 'done' = 'idle';
+  let measureFrame = 0;
+  let measureSum = 0;
+  let measureAvgSkip = 0;
+  let measureOriginalSkip = false;
+  let lightShare = -1.0;
+
   function activateScenario(): void {
     player = createPlayer(currentScenario);
     playhead = 0;
@@ -40,6 +47,16 @@ async function main(): Promise<void> {
 
   window.addEventListener('resize', renderer.resizeCanvas);
   renderer.resizeCanvas();
+
+  params.measureLightShare = () => {
+    measureState = 'skip';
+    measureFrame = 0;
+    measureSum = 0;
+    measureAvgSkip = 0;
+    measureOriginalSkip = params.skipLight;
+    params.skipLight = true;
+    lightShare = -1.0;
+  };
 
   const gui = createGui(params, store, timeline, scenarioState, {
     onBodiesChanged() {
@@ -130,14 +147,19 @@ async function main(): Promise<void> {
     const px = s.width * s.height;
     const fps = emaCpuMs > 0 ? 1000 / emaCpuMs : 0;
     const samples = px * params.rayMarchSteps * (params.skipLight ? 1 : 1 + params.lightMarchSteps);
-    const gpuMs = s.cloudMs + s.cacheMs;
+    const gpuMs = s.cloudMs + s.cacheMs + s.postMs;
     lines.push('');
     lines.push(`── ${t('perfTitle')} ──`);
     lines.push(`${t('perfFps')}: ${fps.toFixed(0)}   ${t('perfCpu')}: ${emaCpuMs.toFixed(2)}ms   ${t('perfLoad')}: ${emaWorkMs.toFixed(2)}ms`);
     if (s.gpuTiming) {
-      lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)})`);
+      lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)} · ${t('post')} ${s.postMs.toFixed(2)})`);
     } else {
       lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}`);
+    }
+    if (measureState !== 'idle') {
+      lines.push(`${t('lightShare')}: ${t('measuring')}`);
+    } else if (lightShare >= 0.0) {
+      lines.push(`${t('lightShare')}: ~${(lightShare * 100.0).toFixed(0)}% of cloud pass`);
     }
     lines.push(`${t('perfRes')}: ${s.width}×${s.height} (${(px / 1e6).toFixed(2)}M px)`);
     lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
@@ -201,6 +223,29 @@ async function main(): Promise<void> {
       : (timeline.scrub ? timeline.time : manualClock);
     renderer.renderFrame(params, cam, elapsed, sceneClock);
     const workMs = performance.now() - now;
+
+    if (measureState !== 'idle') {
+      measureFrame++;
+      if (measureFrame > 10) {
+        measureSum += renderer.getStats().cloudMs;
+      }
+      if (measureState === 'skip' && measureFrame >= 40) {
+        measureAvgSkip = measureSum / 30.0;
+        measureState = 'full';
+        measureFrame = 0;
+        measureSum = 0;
+        params.skipLight = false;
+      } else if (measureState === 'full' && measureFrame >= 40) {
+        const avgFull = measureSum / 30.0;
+        if (avgFull > 0) {
+          lightShare = (avgFull - measureAvgSkip) / avgFull;
+        }
+        params.skipLight = measureOriginalSkip;
+        measureState = 'done';
+        setTimeout(() => { measureState = 'idle'; }, 3000);
+      }
+    }
+
     updateDebug(sceneClock, cpuMs, workMs);
 
     stats.end();

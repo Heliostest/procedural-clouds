@@ -79,9 +79,19 @@
 
 后续阶段的验收（"帧时间下降""调步数观感稳定"）没有它无法量化。
 
-- [ ] `debugView` uniform + 基础调试视图：透射率、累计散射、步数热力图、weatherMap/coverage、区域边界、当前 `sceneTime`（`cloudDepth` 视图归阶段 4，金字塔层级归阶段 12，MS octave 归阶段 13）。
-- [ ] 帧预算分项打点（基于 `getStats` GPU timing）：clouds pass / light march / 后处理分项计时。
-- [ ] 目标预算记录：clouds ≤ 4–6 ms @1080p60，light march ≤ 主步进 ~40%，后处理 ≤ 1.5 ms。
+- [x] `debugView` uniform + 基础调试视图：透射率、累计散射、步数热力图、weatherMap/coverage、区域边界、当前 `sceneTime`（`cloudDepth` 视图归阶段 4，金字塔层级归阶段 12，MS octave 归阶段 13）。
+- [x] 帧预算分项打点（基于 `getStats` GPU timing）：clouds pass / light march / 后处理分项计时。
+- [x] 目标预算记录：clouds ≤ 4–6 ms @1080p60，light march ≤ 主步进 ~40%，后处理 ≤ 1.5 ms。
+- 实测基线（2026-07-04，默认场景 1254×1272，48+4 步）：cloud 1.64ms · cache 1.64ms · post ≈0.00ms（单采样 pass，低于计时精度）· light share ≈35%（A/B 测量）。附带修复：`fs` 中 `select(sunVisibility(...), 1.0, skipLight)` 两侧都求值导致 skipLight 不省时，已改真分支。
+
+实现要点/坑：
+- `debugView` 用 `Globals._pad0` 槽位（offset 33），同步 `src/params.ts` 的 `PARAM_OFFSETS` 与 `packParams` 调用链，无需扩 buffer。
+- 调试输出会被 `fsPost` 的 Reinhard+gamma 扭曲：post uniform（`Post.sun` vec4）扩一个 vec4 带 `debugView` 标志，非 0 时 `fsPost` 跳过 tonemap 与 godray，原样输出。
+- 步数热力图在 `fs` 主循环里计数实际迭代（含早退/未命中），按 `count/numSteps` 走蓝→红色带；透射率视图输出最终 `transmittance` 灰度；散射视图输出未合成背景的 `color`。
+- weatherMap/coverage 视图：取视线与云层中间高度平面交点的 XZ 采样 weatherTex；区域边界视图按 body footprint 着色（bodies 数据 fs 已可访问），羽化带用不同色调。
+- light march 占比无法用 timestamp 测（同一 pass 内）：GUI 加"测量光照占比"按钮，在 `main.ts` 帧循环里先后各采 ~30 帧（强制 `skipLight` on/off）平均 `cloudMs`，差值算占比显示在 HUD。注意 `cloudMs` 回读是异步的，采样窗口要留 buffer。
+- post pass 计时：`TS_COUNT` 4→6，post pass 加 `timestampWrites`，`stats.postMs` 进 HUD；compute pass 不是每帧跑（`cacheRan`），现有分支保持。
+- GUI 新增 Debug folder（视图下拉 + 测量按钮），文案走 `src/i18n.ts` 双语。
 
 **验收**：GUI 可切换各调试视图；每帧分项耗时可读。
 

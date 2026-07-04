@@ -39,6 +39,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   cacheWorkgroupY: 30,
   cacheWorkgroupZ: 31,
   fxAbsorption: 32,
+  debugView: 33,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -137,6 +138,8 @@ export interface CloudParams {
   cacheWorkgroupX: number;
   cacheWorkgroupY: number;
   cacheWorkgroupZ: number;
+  debugView: number;
+  measureLightShare: () => void;
 }
 
 export const SHAPE_ID: Record<string, number> = {
@@ -252,5 +255,7 @@ export function createDefaultParams(): CloudParams {
     cacheWorkgroupX: 8,
     cacheWorkgroupY: 8,
     cacheWorkgroupZ: 4,
+    debugView: 0,
+    measureLightShare: () => {},
   };
 }
