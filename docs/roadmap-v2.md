@@ -58,9 +58,16 @@
 
 主 `fs` 当前把已 tonemap 的 LDR 写进 `rgba16float` offscreen，后续 Bloom/ACES/TAA/aerial 全部依赖线性 HDR。
 
-- [ ] `shaders/cloud.wgsl` `fs`：删结尾 Reinhard + gamma，输出线性 HDR。
-- [ ] `src/renderer.ts` `fsPost`：tonemap + gamma 搬到后处理最末。
-- [ ] offscreen 保持 `rgba16float`，post 输出 swapchain。
+- [x] `shaders/cloud.wgsl` `fs`：删结尾 Reinhard + gamma（`fs` 末尾 `outColor/(outColor+1)` 与 `pow(1/2.2)` 两行），输出线性 HDR。
+- [x] `src/renderer.ts` `fsPost`：tonemap + gamma 搬到后处理最末。
+- [x] offscreen 保持 `rgba16float`，post 输出 swapchain。
+
+实现要点/坑：
+- 本阶段 tonemap 曲线**不换**，仍用 Reinhard + `pow(1/2.2)`（ACES 归阶段 5），只是位置搬到 `fsPost` 结尾。
+- `fsPost` 内的 godray 径向采样循环采样的就是 offscreen 场景纹理，改后它在 HDR 域累加——tonemap 必须放在 godray 叠加**之后**，不能放在采样前。godray 观感可能轻微变化（HDR 域更物理正确），如明显过曝可微调 `godrayStrength` 默认值。
+- gizmo 线框（`linePipeline`）画进 offscreen，会一并被 post tonemap 压暗，属可接受的调试层变化，不做补偿。
+- swapchain 为非 sRGB 格式，手动 gamma `pow(1/2.2)` 必须保留在 `fsPost` 最末。
+- 两个 render pass 的 `clearValue`（`todBackground`）被全屏三角覆盖，无需处理。
 
 **验收**：与改前观感一致，无 banding 加重。
 

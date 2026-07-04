@@ -779,8 +779,6 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     outColor = color + transmittance * background;
   }
     
-  outColor = outColor / (outColor + vec3f(1.0));
-  outColor = pow(outColor, vec3f(1.0 / 2.2));
   return vec4f(outColor, 1.0);
 }
 

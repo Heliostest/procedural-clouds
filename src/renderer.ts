@@ -52,6 +52,8 @@ struct VOut { @builtin(position) pos : vec4f };
     }
     col += (acc / f32(NUM)) * strength;
   }
+  col = col / (col + vec3f(1.0));
+  col = pow(col, vec3f(1.0 / 2.2));
   return vec4f(col, 1.0);
 }
 `;
