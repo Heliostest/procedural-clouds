@@ -43,8 +43,8 @@ struct Globals {
   cacheWorkgroupZ : f32,
   fxAbsorption    : f32,
   debugView       : f32,
-  _pad1           : f32,
-  _pad2           : f32,
+  edgeCurveWidth  : f32,
+  edgeCurveShaper : f32,
 };
 
 struct BodyGPU {
@@ -350,13 +350,15 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
   let wUv = (oRaw.xy - vec2f(bmin.x, bmin.z)) / spanXZ;
   let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
-  if (alpha < 0.01) { return 0.0; }
-  let localCoverage = clamp01(alpha * b.intensity.x);
+  if (alpha < 0.005) { return 0.0; }
+  let wCurve = max(params.g.edgeCurveWidth, 0.01);
+  let cov = pow(smoothstep(0.5 - wCurve, 0.5, alpha), max(params.g.edgeCurveShaper, 0.01));
+  let localCoverage = clamp01(cov * b.intensity.x);
   if (localCoverage < 0.01) { return 0.0; }
   let wDensityScale = b.intensity.y;
   if (wDensityScale < 0.001) { return 0.0; }
   let wMorph = b.intensity.z;
-  let edgeSoft = smoothstep(0.05, 0.45, alpha);
+  let edgeSoft = smoothstep(0.35, 0.65, alpha);
   let shape = presetShape(i32(round(b.geom.z)));
 
   let densityParam  = shape.density;
@@ -812,13 +814,18 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let p = ro + rd * tPlane;
       let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
       let wUv = (vec2f(p.x, p.z) - vec2f(bmin.x, bmin.z)) / spanXZ;
+      if (wUv.x < 0.0 || wUv.x > 1.0 || wUv.y < 0.0 || wUv.y > 1.0) { return vec4f(0.0, 0.0, 0.0, 1.0); }
       if (dv == 4) {
         var cov = 0.0;
         let n = i32(params.g.activeBodyCount);
+        let wCurve = max(params.g.edgeCurveWidth, 0.01);
+        let wShaper = max(params.g.edgeCurveShaper, 0.01);
         for (var i = 0; i < MAX_BODIES; i++) {
           if (i >= n) { break; }
           if (params.bodies[i].geom.w < 0.5) { continue; }
-          cov = max(cov, textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r);
+          let s = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
+          let c = pow(smoothstep(0.5 - wCurve, 0.5, s), wShaper);
+          cov = max(cov, c);
         }
         return vec4f(vec3f(cov), 1.0);
       }

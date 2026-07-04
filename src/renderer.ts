@@ -265,6 +265,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let weatherSize = DEFAULT_WEATHER_SIZE;
   let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
+  let cornerRadius = 0.5;
   let cacheWg: [number, number, number] = [8, 8, 4];
   let computePipeline = device.createComputePipeline({
     layout: 'auto',
@@ -287,7 +288,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let shapeData = createShapeData(weatherSize);
 
   function uploadShapes(): void {
-    paintBodyShapes(shapeData, currentBodies, weatherSize, boxHalfExtent);
+    paintBodyShapes(shapeData, currentBodies, weatherSize, boxHalfExtent, cornerRadius);
     device.queue.writeTexture(
       { texture: shapeTexture },
       shapeData,
@@ -562,6 +563,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       cacheWorkgroupY: params.cacheWorkgroupY,
       cacheWorkgroupZ: params.cacheWorkgroupZ,
       debugView: params.debugView,
+      edgeCurveWidth: params.edgeCurveWidth,
+      edgeCurveShaper: params.edgeCurveShaper,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -612,6 +615,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (params.boxHalfExtent !== boxHalfExtent) {
       boxHalfExtent = params.boxHalfExtent;
       shapeSignature = '';
+      uploadShapes();
+    }
+
+    if (params.cornerRadius !== cornerRadius) {
+      cornerRadius = params.cornerRadius;
       uploadShapes();
     }
 

@@ -238,7 +238,7 @@ async function main(): Promise<void> {
       } else if (measureState === 'full' && measureFrame >= 40) {
         const avgFull = measureSum / 30.0;
         if (avgFull > 0) {
-          lightShare = (avgFull - measureAvgSkip) / avgFull;
+          lightShare = Math.max(0, (avgFull - measureAvgSkip) / avgFull);
         }
         params.skipLight = measureOriginalSkip;
         measureState = 'done';

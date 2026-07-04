@@ -247,6 +247,9 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(globalFolder.add(params, 'verticalEdgeRange', 0.0, 2.0, 0.01).name(t('verticalEdgeRange')), 'verticalEdgeRange');
     tipKey(globalFolder.add(params, 'verticalEdgeShape', 0.1, 8.0, 0.05).name(t('verticalEdgeShape')), 'verticalEdgeShape');
     tipKey(globalFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
+    tipKey(globalFolder.add(params, 'cornerRadius', 0.0, 2.0, 0.05).name(t('cornerRadius')), 'cornerRadius');
+    tipKey(globalFolder.add(params, 'edgeCurveWidth', 0.1, 1.0, 0.01).name(t('edgeCurveWidth')), 'edgeCurveWidth');
+    tipKey(globalFolder.add(params, 'edgeCurveShaper', 0.25, 4.0, 0.05).name(t('edgeCurveShaper')), 'edgeCurveShaper');
 
     const scenarioFolder = gui.addFolder(t('scenario'));
     tipKey(scenarioFolder.add(scenario, 'enabled').name(t('enableScenario')), 'enableScenario');

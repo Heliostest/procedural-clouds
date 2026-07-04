@@ -12,25 +12,28 @@ export function createShapeData(weatherSize: number): Uint8Array {
   return new Uint8Array(shapeLayerBytes(weatherSize) * MAX_BODIES);
 }
 
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  if (edge0 === edge1) return x < edge0 ? 0 : 1;
-  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
-
-function bodyAlpha(b: CloudBody, wx: number, wz: number): number {
-  let dist: number;
+// Normalized SDF brush: 0.5 = boundary, 1 = inside >= feather, 0 = outside >= feather.
+function bodySDF(b: CloudBody, wx: number, wz: number, cornerRadius: number): number {
+  let d: number;
   if (b.shape === 'rect') {
-    const dx = Math.max(b.bounds[0] - wx, wx - b.bounds[2], 0);
-    const dz = Math.max(b.bounds[1] - wz, wz - b.bounds[3], 0);
-    dist = Math.sqrt(dx * dx + dz * dz);
+    const cx = (b.bounds[0] + b.bounds[2]) / 2;
+    const cz = (b.bounds[1] + b.bounds[3]) / 2;
+    const hx = (b.bounds[2] - b.bounds[0]) / 2;
+    const hz = (b.bounds[3] - b.bounds[1]) / 2;
+    const r = Math.max(0, Math.min(cornerRadius, Math.min(hx, hz)));
+    const qx = Math.abs(wx - cx) - (hx - r);
+    const qz = Math.abs(wz - cz) - (hz - r);
+    const mx = Math.max(qx, 0);
+    const mz = Math.max(qz, 0);
+    const dOut = Math.sqrt(mx * mx + mz * mz) + Math.min(Math.max(qx, qz), 0) - r;
+    d = -dOut;
   } else {
     const dx = wx - b.bounds[0];
     const dz = wz - b.bounds[1];
-    dist = Math.max(0, Math.sqrt(dx * dx + dz * dz) - b.bounds[2]);
+    d = b.bounds[2] - Math.sqrt(dx * dx + dz * dz);
   }
   const feather = Math.max(1e-4, b.feather);
-  return 1.0 - smoothstep(0, feather, dist);
+  return Math.max(0, Math.min(1, 0.5 + 0.5 * d / feather));
 }
 
 export function paintBodyShapes(
@@ -38,6 +41,7 @@ export function paintBodyShapes(
   bodies: CloudBody[],
   weatherSize: number,
   boxHalfExtent: number,
+  cornerRadius: number,
 ): void {
   data.fill(0);
   const boxMinXZ = -boxHalfExtent;
@@ -52,8 +56,8 @@ export function paintBodyShapes(
       const wz = boxMinXZ + ((py + 0.5) / weatherSize) * boxSpanXZ;
       for (let px = 0; px < weatherSize; px++) {
         const wx = boxMinXZ + ((px + 0.5) / weatherSize) * boxSpanXZ;
-        const a = bodyAlpha(b, wx, wz);
-        data[layerOff + py * weatherSize + px] = Math.round(Math.min(1, a) * 255);
+        const s = bodySDF(b, wx, wz, cornerRadius);
+        data[layerOff + py * weatherSize + px] = Math.round(s * 255);
       }
     }
   }

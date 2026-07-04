@@ -105,11 +105,19 @@
 
 方案（从原"三个可能方向"中选定距离场路线，羽化不再烘死进纹理）：
 
-- [ ] `src/weather.ts`：coverage 笔刷改写入**归一化有符号距离场**（到区域边界的距离），矩形笔刷加圆角半径参数消直角。
-- [ ] `shaders/cloud.wgsl`：采样后用可调响应曲线（`smoothstep` + pow shaper）把 SDF remap 成 coverage；现有 `edgeSoft`（边缘放宽 `coverageThreshold`）改吃 SDF 距离而非 coverage 值。
-- [ ] GUI 暴露响应曲线陡度与圆角半径。
+- [x] `src/weather.ts`：coverage 笔刷改写入**归一化有符号距离场**（到区域边界的距离），矩形笔刷加圆角半径参数消直角。
+- [x] `shaders/cloud.wgsl`：采样后用可调响应曲线（`smoothstep` + pow shaper）把 SDF remap 成 coverage；现有 `edgeSoft`（边缘放宽 `coverageThreshold`）改吃 SDF 距离而非 coverage 值。
+- [x] GUI 暴露响应曲线陡度与圆角半径（Global folder：Corner Radius / Edge Curve Width / Edge Curve Shaper，默认 0.5/0.5/1.0 复现旧观感）。
 - 纹理分辨率不动：SDF 双线性插值天然平滑，无需提分辨率。
 - 注：阶段 13.1 weather map 多通道重构时保留 SDF 编码（占一通道）。
+
+实现要点/坑：
+- 编码：`s = clamp(0.5 + 0.5*d/feather, 0, 1)`，`d` 为到边界的有符号世界距离（内正外负）；0.5=边界，band 宽 = ±feather，8-bit 足够（双线性平滑）。
+- 圆角矩形 SDF：`q = abs(p-c) - (half - r)`，`dOut = length(max(q,0)) + min(max(q.x,q.y),0) - r`，`d = -dOut`；`r` 需 clamp 到 `min(hw,hd)`。圆形：`d = radius - dist`。
+- 响应曲线（保持旧观感为默认）：`cov = pow(smoothstep(0.5 - w, 0.5, s), shaper)`——边界处 cov=1、向外衰减，与旧"羽化向外"语义一致；`w` default 0.5（=整个 feather band），可到 1.0（软化延伸进边界内），shaper default 1（=旧曲线）。
+- `edgeSoft` 改吃 s：`smoothstep(0.35, 0.65, s)`（距离带）替代 `smoothstep(0.05, 0.45, alpha)`。
+- 新 uniform 用 Globals 剩余槽位：`edgeCurveWidth`(34)、`edgeCurveShaper`(35)；`cornerRadius` 不进 shader（烘进 SDF），但改动后必须触发 weather 重绘——`geometrySignature` 或等价触发链要把 cornerRadius 算进去。
+- 调试视图 4（weather coverage）改为显示 remap 后 coverage，与视图名一致。
 
 **验收**：矩形区域边缘无可辨直边，核心区→晴空的密度渐变无台阶。
 
