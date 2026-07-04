@@ -19,6 +19,12 @@ const shaderSource = noiseSource + cloudSource;
 
 const OFFSCREEN_FORMAT: GPUTextureFormat = 'rgba16float';
 
+function halton(index: number, base: number): number {
+  let f = 1, r = 0, i = index;
+  while (i > 0) { f /= base; r += f * (i % base); i = Math.floor(i / base); }
+  return r;
+}
+
 const postShaderSource = /* wgsl */ `
 struct Post { sun : vec4f, flags : vec4f };
 @group(0) @binding(0) var sceneTex : texture_2d<f32>;
@@ -89,6 +95,70 @@ fn agx(colIn : vec3f) -> vec3f {
   }
   col = pow(col, vec3f(1.0 / 2.2));
   return vec4f(col, 1.0);
+}
+`;
+
+const taaShaderSource = /* wgsl */ `
+struct TaaU { prevViewProj : mat4x4f, invViewProj : mat4x4f, camPos : vec4f, flags : vec4f };
+@group(0) @binding(0) var sceneTex : texture_2d<f32>;
+@group(0) @binding(1) var historyTex : texture_2d<f32>;
+@group(0) @binding(2) var samp : sampler;
+@group(0) @binding(3) var<uniform> u : TaaU;
+fn rgb2ycocg(c : vec3f) -> vec3f {
+  return vec3f(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b, -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
+}
+fn ycocg2rgb(c : vec3f) -> vec3f {
+  let t = c.x - c.z;
+  return vec3f(t + c.y, c.x + c.z, t - c.y);
+}
+struct VOut { @builtin(position) pos : vec4f };
+@vertex fn vsTaa(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+@fragment fn fsTaa(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let dims = vec2f(textureDimensions(sceneTex));
+  let uv = fc.xy / dims;
+  let cur = textureSampleLevel(sceneTex, samp, uv, 0.0);
+  if (u.flags.x < 0.5) { return cur; }
+  let ndc = vec2f(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
+  let pNear = u.invViewProj * vec4f(ndc, 0.0, 1.0);
+  let pFar  = u.invViewProj * vec4f(ndc, 1.0, 1.0);
+  let rd = normalize(pFar.xyz / pFar.w - pNear.xyz / pNear.w);
+  let worldPos = u.camPos.xyz + rd * cur.a;
+  let prevClip = u.prevViewProj * vec4f(worldPos, 1.0);
+  if (prevClip.w <= 0.0) { return cur; }
+  let prevNdc = prevClip.xy / prevClip.w;
+  let prevUv = vec2f(prevNdc.x * 0.5 + 0.5, 0.5 - prevNdc.y * 0.5);
+  if (prevUv.x < 0.0 || prevUv.x > 1.0 || prevUv.y < 0.0 || prevUv.y > 1.0) { return cur; }
+  var hist = textureSampleLevel(historyTex, samp, prevUv, 0.0).rgb;
+  let texel = 1.0 / dims;
+  var m1 = vec3f(0.0);
+  var m2 = vec3f(0.0);
+  for (var y = -1; y <= 1; y = y + 1) {
+    for (var x = -1; x <= 1; x = x + 1) {
+      let s = textureSampleLevel(sceneTex, samp, uv + vec2f(f32(x), f32(y)) * texel, 0.0).rgb;
+      let yc = rgb2ycocg(s);
+      m1 = m1 + yc;
+      m2 = m2 + yc * yc;
+    }
+  }
+  let mean = m1 / 9.0;
+  let variance = max(m2 / 9.0 - mean * mean, vec3f(0.0));
+  let extent = sqrt(variance);
+  let center = mean;
+  let histY = rgb2ycocg(hist);
+  let dir = histY - center;
+  var tScale = 1.0;
+  if (abs(dir.x) > 1e-5) { tScale = min(tScale, extent.x / abs(dir.x)); }
+  if (abs(dir.y) > 1e-5) { tScale = min(tScale, extent.y / abs(dir.y)); }
+  if (abs(dir.z) > 1e-5) { tScale = min(tScale, extent.z / abs(dir.z)); }
+  tScale = clamp(tScale, 0.0, 1.0);
+  hist = ycocg2rgb(center + dir * tScale);
+  let outRgb = mix(cur.rgb, hist, u.flags.y);
+  return vec4f(outRgb, cur.a);
 }
 `;
 
@@ -289,6 +359,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const postData = new Float32Array(8);
+
+  const taaModule = device.createShaderModule({ code: taaShaderSource });
+  const taaPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: taaModule, entryPoint: 'vsTaa' },
+    fragment: { module: taaModule, entryPoint: 'fsTaa', targets: [{ format: OFFSCREEN_FORMAT }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  const taaUniformBuffer = device.createBuffer({
+    size: 160,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const taaData = new Float32Array(40);
+
   const postSampler = device.createSampler({
     magFilter: 'linear',
     minFilter: 'linear',
@@ -504,13 +588,21 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
-  let postBindGroup: GPUBindGroup;
+  let historyTex: [GPUTexture, GPUTexture] | null = null;
+  let historyViews: [GPUTextureView, GPUTextureView];
+  let taaBindGroups: [GPUBindGroup, GPUBindGroup];
+  let postBindGroups: [GPUBindGroup, GPUBindGroup];
+  let histIndex = 0;
+  let historyValid = false;
+  let prevTaaEnabled = false;
+  const prevViewProj = new Float32Array(16);
   let sceneW = 0;
   let sceneH = 0;
 
   function ensureSceneTexture(w: number, h: number): void {
     if (sceneTexture && sceneW === w && sceneH === h) return;
     if (sceneTexture) sceneTexture.destroy();
+    if (historyTex) for (const t of historyTex) t.destroy();
     sceneW = w;
     sceneH = h;
     sceneTexture = device.createTexture({
@@ -519,14 +611,30 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
     sceneView = sceneTexture.createView();
-    postBindGroup = device.createBindGroup({
+    historyTex = [0, 1].map(() => device.createTexture({
+      size: [w, h],
+      format: OFFSCREEN_FORMAT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    })) as [GPUTexture, GPUTexture];
+    historyViews = [historyTex[0].createView(), historyTex[1].createView()];
+    taaBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: taaPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: sceneView! },
+        { binding: 1, resource: historyViews[1 - i] },
+        { binding: 2, resource: postSampler },
+        { binding: 3, resource: { buffer: taaUniformBuffer } },
+      ],
+    })) as [GPUBindGroup, GPUBindGroup];
+    postBindGroups = [0, 1].map((i) => device.createBindGroup({
       layout: postPipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 0, resource: sceneView },
+        { binding: 0, resource: historyViews[i] },
         { binding: 1, resource: postSampler },
         { binding: 2, resource: { buffer: postUniformBuffer } },
       ],
-    });
+    })) as [GPUBindGroup, GPUBindGroup];
+    historyValid = false;
   }
 
   function resizeCanvas(): void {
@@ -561,7 +669,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number): Float32Array {
+  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -605,6 +713,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       aerialInscatter: params.aerialInscatter,
       aerialHeightFalloff: params.aerialHeightFalloff,
       shadowTintStrength: params.shadowTintStrength,
+      jitterX,
+      jitterY,
+      taaEnabled: taaOn,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
@@ -663,7 +774,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       uploadShapes();
     }
 
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex));
+    const taaOn = params.taaEnabled;
+    let jitterX = 0.0;
+    let jitterY = 0.0;
+    if (taaOn) {
+      const hi = (frameIndex % 8) + 1;
+      jitterX = halton(hi, 2) - 0.5;
+      jitterY = halton(hi, 3) - 0.5;
+    }
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn));
 
     const commandEncoder = device.createCommandEncoder();
     let cacheRan = false;
@@ -722,6 +841,37 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     renderPass.end();
 
+    if (taaOn !== prevTaaEnabled) { historyValid = false; prevTaaEnabled = taaOn; }
+    const flagsX = (taaOn && historyValid) ? 1 : 0;
+    taaData.set(prevViewProj, 0);
+    taaData.set(cam.invViewProj, 16);
+    taaData[32] = cam.eye[0];
+    taaData[33] = cam.eye[1];
+    taaData[34] = cam.eye[2];
+    taaData[35] = 0;
+    taaData[36] = flagsX;
+    taaData[37] = params.taaBlend;
+    taaData[38] = 0;
+    taaData[39] = 0;
+    device.queue.writeBuffer(taaUniformBuffer, 0, taaData);
+
+    const taaPass = commandEncoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: historyViews[histIndex],
+          loadOp: 'clear',
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          storeOp: 'store',
+        },
+      ],
+    });
+    taaPass.setPipeline(taaPipeline);
+    taaPass.setBindGroup(0, taaBindGroups[histIndex]);
+    taaPass.draw(3);
+    taaPass.end();
+    historyValid = true;
+    prevViewProj.set(cam.viewProj);
+
     const ar = (params.sunAzimuth * Math.PI) / 180;
     const er = (params.sunElevation * Math.PI) / 180;
     const ce = Math.cos(er);
@@ -760,9 +910,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : {}),
     });
     postPass.setPipeline(postPipeline);
-    postPass.setBindGroup(0, postBindGroup);
+    postPass.setBindGroup(0, postBindGroups[histIndex]);
     postPass.draw(3);
     postPass.end();
+    histIndex ^= 1;
 
     if (tsQuerySet && tsResolve && tsRead && !tsMapping) {
       commandEncoder.resolveQuerySet(tsQuerySet, 0, TS_COUNT, tsResolve, 0);

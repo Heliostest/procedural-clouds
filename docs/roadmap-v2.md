@@ -210,10 +210,18 @@
 
 > 必要性：高 ｜ 收益：高（噪点降、步数可减 30%） ｜ 成本：**高**，全表最难调之一，鬼影/闪烁迭代长 ｜ 模型：最强
 
-- [ ] **最小可关闭版本先行**：`taaEnabled` GUI 开关 + 与无 TAA 路径 A/B 对比，可即时回退。
-- [ ] YCoCg 邻域方差裁剪 + `mix(new, history, 0.95)`，ping-pong history，resize/首帧重置。
-- [ ] history 重投影用阶段 4 的 `cloudDepth`（非仅相机矩阵，否则平移鬼影）。
-- [ ] 相机亚像素 Halton jitter（`src/camera.ts`）；引入后减弱蓝噪声抖动幅度。
+- [x] **最小可关闭版本先行**：`taaEnabled` GUI 开关（默认关，待运动验收后转默认开）+ 禁用时 resolve 直拷、fsPost 恒采样 history、零分支回退。
+- [x] YCoCg 邻域方差裁剪（3×3，AABB 线段 clip）+ `mix(new, history, taaBlend=0.95)`，ping-pong history，resize/首帧/开关切换重置。
+- [x] history 重投影用 `cloudDepth` 重建世界点 → prevViewProj 投影（天空 1e4 退化纯旋转）；出界丢历史。
+- [x] 亚像素 Halton(2,3)×8 jitter——未动矩阵链，改在 `fs` 内用 `dpdx/dpdy` 求 NDC texel 对 uv 偏移，前后帧矩阵均未抖动、重投影干净；debugView 时 jitter 归零。
+- 静态实测：TAA 开启无鬼影/偏色；TAA+时域抖动下 `rayMarchSteps` 48→32 观感不降（cloud pass 2.23→1.70ms，验收达标）；**运动鬼影待用户实机拖动相机验收**，通过后 `taaEnabled`/`temporalDither` 默认值转开。
+
+架构契约（派工前定死）：
+- 新增独立 TAA resolve 全屏 pass：clouds→offscreen（alpha=cloudDepth）→ **TAA resolve**（读 offscreen+historyPrev，写 historyCur）→ fsPost 恒采样 historyCur（禁用时 resolve 退化为直拷，post 路径零分支）。
+- ping-pong：两张 rgba16float history，resize/首帧/开关切换时 `historyValid=false`（当帧直拷）。
+- 重投影：TAA uniform 带 `prevViewProj`（上帧未抖动矩阵，renderer 每帧留存）+ 当帧 `invViewProj`；世界点 = `ro + rd·cloudDepth`（天空 1e4 距离退化为纯旋转重投影），prev NDC 出 [0,1] 则丢历史。gizmo 线框像素 alpha=1 会给出错误深度——线框是调试层，接受。
+- jitter 不动矩阵链：`fs` 内 uv 偏移 Halton(2,3)×texel（Globals 扩 48：jitterX=43(原_pad4)、jitterY=44、taaEnabled=45、pad×2；BODY_BASE 44→48），矩阵前后帧均未抖动，重投影干净；线框 pass 不抖，静态时被 TAA 平均掉。
+- YCoCg 裁剪：3×3 邻域均值±γ·方差（γ≈1.0），history 向 AABB clip（不是 clamp）；混合 `mix(new, history, 0.95)`。
 
 **验收**：静止噪点显著降，`rayMarchSteps` 可降约 30% 观感不劣；慢速移动无明显拖影；**回归**：顶面阶梯条纹时域收敛后基本不可见。
 

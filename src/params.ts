@@ -2,7 +2,7 @@ import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 44;
+export const BODY_BASE = 48;
 export const BODY_STRIDE = 20;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -49,6 +49,9 @@ export const PARAM_OFFSETS: Record<string, number> = {
   aerialInscatter: 40,
   aerialHeightFalloff: 41,
   shadowTintStrength: 42,
+  jitterX: 43,
+  jitterY: 44,
+  taaEnabled: 45,
 };
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
@@ -159,6 +162,8 @@ export interface CloudParams {
   aerialInscatter: number;
   aerialHeightFalloff: number;
   shadowTintStrength: number;
+  taaEnabled: boolean;
+  taaBlend: number;
   measureLightShare: () => void;
 }
 
@@ -287,6 +292,8 @@ export function createDefaultParams(): CloudParams {
     aerialInscatter: 1.0,
     aerialHeightFalloff: 0.15,
     shadowTintStrength: 0.6,
+    taaEnabled: false,
+    taaBlend: 0.95,
     measureLightShare: () => {},
   };
 }

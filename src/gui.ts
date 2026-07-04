@@ -440,6 +440,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(renderFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
     tipKey(renderFolder.add(params, 'adaptiveMarch').name(t('adaptiveMarch')), 'adaptiveMarch');
     tipKey(renderFolder.add(params, 'temporalDither').name(t('temporalDither')), 'temporalDither');
+    tipKey(renderFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
+    tipKey(renderFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');
     tipKey(renderFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
     tipKey(renderFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
     tipKey(renderFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');

@@ -52,7 +52,11 @@ struct Globals {
   aerialInscatter : f32,
   aerialHeightFalloff : f32,
   shadowTintStrength : f32,
-  _pad4           : f32,
+  jitterX         : f32,
+  jitterY         : f32,
+  taaEnabled      : f32,
+  _pad5           : f32,
+  _pad6           : f32,
 };
 
 struct BodyGPU {
@@ -808,8 +812,11 @@ fn debugBodyColor(i : i32, core : bool) -> vec3f {
 fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
   let skipLight = params.g.skipLight > 0.5;
   let numSteps = i32(params.g.rayMarchSteps);
-  let world_near = camera.invViewProj * vec4f(uv, 0.0, 1.0);
-  let world_far  = camera.invViewProj * vec4f(uv, 1.0, 1.0);
+  let texelNdc = vec2f(dpdx(uv.x), dpdy(uv.y));
+  let jitterOn = select(1.0, 0.0, params.g.debugView > 0.5);
+  let uvJ = uv + vec2f(params.g.jitterX, params.g.jitterY) * texelNdc * jitterOn;
+  let world_near = camera.invViewProj * vec4f(uvJ, 0.0, 1.0);
+  let world_far  = camera.invViewProj * vec4f(uvJ, 1.0, 1.0);
   let ro = camera.position;
   let rd = normalize(world_far.xyz/world_far.w - world_near.xyz/world_near.w);
 
