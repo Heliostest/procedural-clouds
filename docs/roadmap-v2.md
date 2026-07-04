@@ -190,9 +190,17 @@
 
 > 必要性：较高 ｜ 收益：高（黄昏/远景是观感短板） ｜ 成本：中 ｜ 模型：中强
 
-- [ ] 解析 aerial perspective：`exp(-σ·t)` 透射 + 朝阳 HG 内散射加亮 + 高度雾，距离取阶段 4 的 `cloudDepth`。
-- [ ] `todColors()` 按太阳高度角分段插值 8 档关键色（dawn/morning/midday/afternoon/golden/sunset/twilight/night）。
-- [ ] 云亮面色与阴影色分离驱动（阴影侧用 cloud-types 的 shadow 列）。
+- [x] 解析 aerial perspective：`exp(-σ·t)` 透射 + 朝阳内散射加亮 + 高度雾；云用 `cloudDepth`、地面用 `tGround`（替换原 /80 粗糙淡出），天空不雾化。
+- [x] `todColors()` 按太阳高度角 8 结点 [-15,-6,0,5,12,25,45,90]° 分段插值（dawn/sunset 共用；45/90 对齐旧白天色防回归）；`SkyColors` 扩 `shadow` 通道。
+- [x] 云亮面色与阴影色分离：阴影处 ambient 按 `(1-sunVisibility)·shadowTintStrength` 混入 TOD shadow 冷色；逐类型 RGB shadow 列因 preset 槽位不足降级为全局方案，13.1 重构时升级。
+
+实现要点/取舍：
+- 8 档关键色按高度角结点 [-15,-6,0,5,12,25,45,90]°，dawn 与 sunset 共用（场景只有高度角无昼夜方向）；高角端（45/90）色值收敛到现有白天常量，保证白天观感不回归。
+- `SkyColors` 扩 `shadow : vec3f`（逐 TOD 冷阴影色）。阴影分离：环境光项按 `(1-sunVisibility)` 混入 `skyC.shadow`，强度走新 uniform `shadowTintStrength`；逐类型 RGB shadow 列放不下（PresetShape 20 槽已用 19），用全局 TOD shadow 色 + 既有 per-type `baseDark` 近似，13.1 扩 preset 布局时再升级。
+- aerial 在 `fs` 内应用（fsPost 拿不到地面距离）：云用 `cloudDepth`（`depthW>1e-4` 时）、地面用 `tGround` 替换现有 `tGround/80` 粗糙淡出；天空不雾化。
+- Globals 40→44：`aerialDensity`(39=原_pad3)、`aerialInscatter`(40)、`aerialHeightFalloff`(41)、`shadowTintStrength`(42)、`_pad4`(43)；`BODY_BASE` 40→44。
+- GUI（光照 folder）：aerialDensity [0,0.2] 默认 0.02、aerialInscatter [0,2] 默认 1.0（复审后语义改为"朝阳暖色染雾程度"，内部 clamp 到 1，雾基色恒为地平线色）、aerialHeightFalloff [0,1] 默认 0.15、shadowTint [0,1] 默认 0.6。
+- 复审修正：①雾光内散射项未乘云不透明度，稀薄云会比天空亮出一圈光晕（已乘 `1-transmittance`）；②`aerialInscatter` 原乘整个雾色，0 时远景雾成黑色、2 时雾亮过天空（已挪进暖色混合因子）；③`applyAerial` 死参数 `rd` 删除。
 
 **验收**：远云不「贴片」，黄昏时云底被低空散射染色；黄昏/暮色下亮面与阴影冷暖分离、过渡自然。
 

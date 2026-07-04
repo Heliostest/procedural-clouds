@@ -309,6 +309,10 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(lightFolder.add(params, 'typeLightingBlend', 0.0, 1.0, 0.01).name(t('typeLighting')), 'typeLighting');
     tipKey(lightFolder.add(params, 'fxAbsorption').name(t('fxAbsorption')), 'fxAbsorption');
     tipKey(lightFolder.add(params, 'godrayStrength', 0.0, 2.0, 0.01).name(t('godRays')), 'godRays');
+    tipKey(lightFolder.add(params, 'aerialDensity', 0, 0.2, 0.001).name(t('aerialDensity')), 'aerialDensity');
+    tipKey(lightFolder.add(params, 'aerialInscatter', 0, 2, 0.01).name(t('aerialInscatter')), 'aerialInscatter');
+    tipKey(lightFolder.add(params, 'aerialHeightFalloff', 0, 1, 0.01).name(t('aerialHeightFalloff')), 'aerialHeightFalloff');
+    tipKey(lightFolder.add(params, 'shadowTintStrength', 0, 1, 0.01).name(t('shadowTintStrength')), 'shadowTintStrength');
 
     function openCompare(initA: string): void {
       const fields = SHAPE_PRESET_KEYS.filter((k) => !RESERVED_PRESET_FIELDS.has(k));

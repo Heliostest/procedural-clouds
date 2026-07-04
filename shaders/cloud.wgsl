@@ -48,7 +48,11 @@ struct Globals {
   frameIndex      : f32,
   adaptiveMarch   : f32,
   temporalDither  : f32,
-  _pad3           : f32,
+  aerialDensity   : f32,
+  aerialInscatter : f32,
+  aerialHeightFalloff : f32,
+  shadowTintStrength : f32,
+  _pad4           : f32,
 };
 
 struct BodyGPU {
@@ -492,16 +496,85 @@ struct SkyColors {
   ambient : vec3f,
   bg      : vec3f,
   top     : vec3f,
+  shadow  : vec3f,
 };
 
+const TOD_KNOTS = array<f32, 8>(-15.0, -6.0, 0.0, 5.0, 12.0, 25.0, 45.0, 90.0);
+
+const TOD_SUN = array<vec3f, 8>(
+  vec3f(0.02, 0.03, 0.08),
+  vec3f(0.45, 0.22, 0.15),
+  vec3f(1.00, 0.38, 0.12),
+  vec3f(1.00, 0.55, 0.22),
+  vec3f(1.00, 0.75, 0.45),
+  vec3f(1.00, 0.92, 0.75),
+  vec3f(1.00, 0.98, 0.92),
+  vec3f(1.00, 1.00, 1.00),
+);
+
+const TOD_AMBIENT = array<vec3f, 8>(
+  vec3f(0.05, 0.06, 0.12),
+  vec3f(0.10, 0.10, 0.20),
+  vec3f(0.16, 0.13, 0.22),
+  vec3f(0.20, 0.17, 0.24),
+  vec3f(0.22, 0.22, 0.30),
+  vec3f(0.24, 0.27, 0.38),
+  vec3f(0.26, 0.30, 0.42),
+  vec3f(0.26, 0.30, 0.42),
+);
+
+const TOD_BG = array<vec3f, 8>(
+  vec3f(0.02, 0.03, 0.07),
+  vec3f(0.25, 0.12, 0.15),
+  vec3f(0.55, 0.25, 0.15),
+  vec3f(0.60, 0.38, 0.22),
+  vec3f(0.48, 0.45, 0.50),
+  vec3f(0.38, 0.52, 0.75),
+  vec3f(0.32, 0.55, 0.84),
+  vec3f(0.30, 0.55, 0.85),
+);
+
+const TOD_TOP = array<vec3f, 8>(
+  vec3f(0.01, 0.01, 0.04),
+  vec3f(0.05, 0.05, 0.15),
+  vec3f(0.10, 0.12, 0.28),
+  vec3f(0.12, 0.20, 0.42),
+  vec3f(0.10, 0.26, 0.60),
+  vec3f(0.09, 0.30, 0.72),
+  vec3f(0.08, 0.32, 0.78),
+  vec3f(0.08, 0.32, 0.78),
+);
+
+const TOD_SHADOW = array<vec3f, 8>(
+  vec3f(0.04, 0.05, 0.10),
+  vec3f(0.08, 0.08, 0.18),
+  vec3f(0.14, 0.12, 0.24),
+  vec3f(0.18, 0.16, 0.26),
+  vec3f(0.20, 0.21, 0.30),
+  vec3f(0.22, 0.25, 0.36),
+  vec3f(0.24, 0.27, 0.40),
+  vec3f(0.24, 0.28, 0.42),
+);
+
 fn todColors() -> SkyColors {
-  let t = clamp(sin(radians(params.g.sunElevation)), 0.0, 1.0);
-  let tk = smoothstep(0.0, 0.5, t);
-  let sun = mix(vec3f(1.0, 0.55, 0.25), vec3f(1.0, 1.0, 1.0), tk);
-  let amb = mix(vec3f(0.18, 0.16, 0.22), vec3f(0.26, 0.30, 0.42), tk);
-  let bg  = mix(vec3f(0.20, 0.09, 0.10), vec3f(0.30, 0.55, 0.85), tk);
-  let top = mix(vec3f(0.35, 0.20, 0.18), vec3f(0.08, 0.32, 0.78), tk);
-  return SkyColors(sun, amb, bg, top);
+  var knots = TOD_KNOTS;
+  var sunTab = TOD_SUN;
+  var ambTab = TOD_AMBIENT;
+  var bgTab = TOD_BG;
+  var topTab = TOD_TOP;
+  var shadowTab = TOD_SHADOW;
+  let e = clamp(params.g.sunElevation, knots[0], knots[7]);
+  var i = 0;
+  for (var k = 0; k < 7; k++) {
+    if (e >= knots[k]) { i = k; }
+  }
+  let tt = smoothstep(0.0, 1.0, (e - knots[i]) / (knots[i + 1] - knots[i]));
+  let sun = mix(sunTab[i], sunTab[i + 1], tt);
+  let amb = mix(ambTab[i], ambTab[i + 1], tt);
+  let bg  = mix(bgTab[i], bgTab[i + 1], tt);
+  let top = mix(topTab[i], topTab[i + 1], tt);
+  let shadow = mix(shadowTab[i], shadowTab[i + 1], tt);
+  return SkyColors(sun, amb, bg, top, shadow);
 }
 
 fn hgPhase(cosTheta: f32, g: f32) -> f32 {
@@ -710,6 +783,13 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
   return albedo * (direct + ambient);
 }
 
+fn applyAerial(col : vec3f, dist : f32, midY : f32, opacity : f32, skyC : SkyColors, sunTheta : f32) -> vec3f {
+  let sigma = params.g.aerialDensity * exp(-max(midY, 0.0) * params.g.aerialHeightFalloff);
+  let trans = exp(-sigma * dist);
+  let haze = mix(skyC.bg, skyC.sun, 0.6 * pow(clamp01(sunTheta), 8.0) * clamp01(params.g.aerialInscatter));
+  return col * trans + haze * (1.0 - trans) * opacity;
+}
+
 fn debugBodyColor(i : i32, core : bool) -> vec3f {
   let palette = array<vec3f, 6>(
     vec3f(0.2, 1.0, 0.35),
@@ -747,9 +827,9 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     if (tGround > 0.0) {
       let gp = ro + rd * tGround;
       let gcol = groundColor(gp, skyC);
-      let fade = clamp(tGround / 80.0, 0.0, 1.0);
+      let gAerial = applyAerial(gcol, tGround, 0.0, 1.0, skyC, sunTheta);
       let horizon = smoothstep(0.0, 0.06, -rd.y);
-      background = mix(finalSky, mix(gcol, finalSky, fade), horizon);
+      background = mix(finalSky, gAerial, horizon);
     }
   }
 
@@ -813,7 +893,8 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         scattering *= heightLight;
         let darkAmt = mix(0.0, L.baseDark, blend);
         scattering *= 1.0 - darkAmt * (1.0 - zN) * densW;
-        var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
+        let ambTint = mix(skyC.ambient, skyC.shadow, clamp01(params.g.shadowTintStrength) * (1.0 - shadow));
+        var litColor = skyC.sun * scattering * params.g.sunIntensity + ambTint * 0.5;
         litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
         let silverScale = mix(1.0, L.silver, blend);
         let silverGate = params.g.silverIntensity * silverScale;
@@ -850,6 +931,10 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       }
     }
     cloudDepth = select(1e4, depthSum / depthW, depthW > 1e-4);
+    if (depthW > 1e-4) {
+      let midY = (ro.y + rd.y * cloudDepth) * 0.5;
+      color = applyAerial(color, cloudDepth, midY, 1.0 - transmittance, skyC, sunTheta);
+    }
     outColor = color + transmittance * background;
   }
 

@@ -601,6 +601,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       frameIndex: frameIndex % 4096,
       adaptiveMarch: params.adaptiveMarch,
       temporalDither: params.temporalDither,
+      aerialDensity: params.aerialDensity,
+      aerialInscatter: params.aerialInscatter,
+      aerialHeightFalloff: params.aerialHeightFalloff,
+      shadowTintStrength: params.shadowTintStrength,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
