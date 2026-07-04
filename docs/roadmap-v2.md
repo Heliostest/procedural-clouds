@@ -175,8 +175,12 @@
 
 > 注：本阶段调参建立在旧密度场上，阶段 13.1 重写密度后需重校准（见 ★校准2）。另：阶段 10 的陡传递函数会改变边缘密度分布，10 完成后需回看银边参数（若跳过 13，此项单独做）。
 
-- [ ] HG 前向叶替换为 Cornette-Shanks（能量归一化）或 Jendersie-d'Eon 2023 Mie 近似。
-- [ ] 银边改边缘检测：`densityAt(pos + SUN_DIR * d_offset)` 估边缘密度，只在背光（`-sunTheta>0`）薄边缘加银边；强度取 per-type `silverLining`，保留全局 `silverIntensity` 作总开关/倍率。
+- [x] HG 前向叶替换为 Cornette-Shanks（能量归一化，同 1/4π 约定；`dualHG` 与 per-type phaseFwd 两处，后向叶保持 HG）。
+- [x] 银边改边缘检测：`densityAt(pos + SUN_DIR·2·lightMarchStepSize)` 估边缘密度，`exp(-d·3)` 门控；仅 `sunTheta>0` 且银边增益 >0.001 时探测（省开销）；per-type `silverLining` 保留，全局 `silverIntensity` 作总倍率。
+
+实现要点：
+- 现有 `hgPhase` 带 1/4π 归一化，CS 同约定：`(1/4π)·(3(1-g²)/(2(2+g²)))·(1+cos²θ)/(1+g²-2g·cosθ)^1.5`；只换前向叶（`dualHG` 与 per-type 的 phaseFwd），后向叶保持 HG。
+- 银边探测：`edgeDens = densityAt(pos + SUN_DIR·offset)`（offset 取 `lightMarchStepSize` 的 2 倍），`edgeThin = exp(-edgeDens·3)`；乘进现有银边项替换纯 `transmittance` 门控。开销门控：仅 `sunTheta>0 && silverIntensity·silverScale > 0.001` 时探测。
 
 **验收**：朝阳薄云亮边更锐更白、背光不过亮；银边只出现在背光云缘，厚云内部不再整体泛白。
 

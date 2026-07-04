@@ -509,8 +509,14 @@ fn hgPhase(cosTheta: f32, g: f32) -> f32 {
     return (1.0 - g2) / (4.0 * 3.14159 * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
 }
 
+fn csPhase(cosTheta : f32, g : f32) -> f32 {
+  let g2 = g * g;
+  let denom = pow(max(1.0 + g2 - 2.0 * g * cosTheta, 1e-4), 1.5);
+  return (3.0 * (1.0 - g2)) / (2.0 * (2.0 + g2)) * (1.0 + cosTheta * cosTheta) / (4.0 * 3.14159 * denom);
+}
+
 fn dualHG(cosTheta: f32) -> f32 {
-    return mix(hgPhase(cosTheta, params.g.hgBackward), hgPhase(cosTheta, params.g.hgForward), clamp01(params.g.hgBlend));
+    return mix(hgPhase(cosTheta, params.g.hgBackward), csPhase(cosTheta, params.g.hgForward), clamp01(params.g.hgBlend));
 }
 
 fn detailNoise(pos : vec3f) -> f32 {
@@ -797,7 +803,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let step_trans = exp(-d * baseStep * extinction);
         var shadow = 1.0;
         if (!skipLight) { shadow = sunVisibility(lightMarchDepth(pos)); }
-        let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), hgPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
+        let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), csPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
         let phase = mix(phaseGlobal, phaseType, blend);
         var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
         scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
@@ -810,7 +816,13 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         var litColor = skyC.sun * scattering * params.g.sunIntensity + skyC.ambient * 0.5;
         litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
         let silverScale = mix(1.0, L.silver, blend);
-        litColor *= 1.0 + params.g.silverIntensity * silverScale * pow(clamp01(sunTheta), 4.0) * transmittance;
+        let silverGate = params.g.silverIntensity * silverScale;
+        if (sunTheta > 0.0 && silverGate > 0.001) {
+          let probeOffset = max(params.g.lightMarchStepSize, 0.001) * 2.0;
+          let edgeDens = densityAt(pos + SUN_DIR * probeOffset);
+          let edgeThin = exp(-edgeDens * 3.0);
+          litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * transmittance;
+        }
 
         let w = transmittance * (1.0 - step_trans);
         color += w * litColor;
