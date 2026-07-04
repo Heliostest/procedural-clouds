@@ -154,10 +154,16 @@
 
 > 必要性：高 ｜ 收益：高（性价比最高的一步） ｜ 成本：低，校准要人眼 ｜ 模型：快
 
-- [ ] 默认 ACES Narkowicz 拟合 + `exposure` 曝光系数。
-- [ ] tonemap 可切换（备选 AgX / Tony McMapface，规避 ACES 对大面积天空的 hue shift）。
-- [ ] 自动曝光微动幅度调小，防闪烁。
-- [ ] **重校准**（人眼，截图反馈循环）：HDR 化 + tonemap 更换后，统一复查现有光照参数（`silverIntensity`/`powderStrength`/per-preset 光照/太阳与环境色强度）并回填默认值。
+- [x] 默认 ACES Narkowicz 拟合 + `exposure` 曝光系数（默认 ACES / 0.7，1.0 时偏亮发灰）。
+- [x] tonemap 可切换（Reinhard 保留作 A/B 基线；AgX 用 Benjamin Wrensch 多项式近似，规避 ACES 对大面积天空的 hue shift；Tony McMapface 需 3D LUT 纹理，暂不做）。
+- [x] ~~自动曝光微动幅度调小~~：项目无自动曝光，不适用。
+- [ ] **重校准**（人眼，截图反馈循环）：HDR 化 + tonemap 更换后，统一复查现有光照参数（`silverIntensity`/`powderStrength`/per-preset 光照/太阳与环境色强度）并回填默认值。**待用户人眼校准**：初查黄昏（太阳 8°）天空偏紫灰、云底暖色偏淡，光照色板本身待阶段 7 `todColors` 重做，此处只需确认云面高光不 clip、暗部不死黑。
+
+实现要点：
+- 全部在 `fsPost`：`col *= exposure` → tonemap（按 mode 分支）→ `pow(1/2.2)`。Post uniform `flags` 复用：y=tonemapMode（0=Reinhard/1=ACES/2=AgX），z=exposure。
+- ACES Narkowicz：`(x*(2.51x+0.03))/(x*(2.43x+0.59)+0.14)`，输入建议先乘 0.6 抵消该拟合偏亮的惯例可不做，靠 exposure 调。
+- AgX 近似：Wrensch/iolite 版多项式（contrast 段可省），注意其自带 sRGB 编码时不要重复 gamma。
+- GUI 放"渲染"folder：tonemap 下拉 + exposure 滑杆 [0.1, 3.0]，默认 ACES / 1.0。
 
 **验收**：云顶高光不 clip、暗部不死黑、天空无明显偏色；默认参数下观感不劣于改前。
 

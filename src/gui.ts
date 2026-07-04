@@ -467,6 +467,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(renderFolder.add(wgProxy, 'x', 1, 32, 1).name(t('cacheWgX')).onFinishChange(applyWg), 'cacheWgX');
     tipKey(renderFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');
     tipKey(renderFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
+    tipKey(renderFolder.add(params, 'tonemapMode', { Reinhard: 0, ACES: 1, AgX: 2 }).name(t('tonemap')), 'tonemap');
+    tipKey(renderFolder.add(params, 'exposure', 0.1, 3.0, 0.01).name(t('exposure')), 'exposure');
 
     const debugFolder = gui.addFolder(t('debug'));
     const debugOptions: Record<string, number> = {};

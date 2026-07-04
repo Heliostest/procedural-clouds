@@ -144,6 +144,8 @@ export interface CloudParams {
   cacheWorkgroupY: number;
   cacheWorkgroupZ: number;
   debugView: number;
+  tonemapMode: number;
+  exposure: number;
   edgeCurveWidth: number;
   edgeCurveShaper: number;
   adaptiveMarch: boolean;
@@ -266,6 +268,8 @@ export function createDefaultParams(): CloudParams {
     cacheWorkgroupY: 8,
     cacheWorkgroupZ: 4,
     debugView: 0,
+    tonemapMode: 1,
+    exposure: 0.7,
     edgeCurveWidth: 0.5,
     edgeCurveShaper: 1.0,
     adaptiveMarch: true,

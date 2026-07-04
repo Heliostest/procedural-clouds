@@ -102,6 +102,8 @@ const DICT: Dict = {
   cacheWgY: { en: 'Cache WG Y', zh: '缓存工作组 Y' },
   cacheWgZ: { en: 'Cache WG Z', zh: '缓存工作组 Z' },
   shape: { en: 'Shape', zh: '形状' },
+  tonemap: { en: 'Tonemap', zh: '色调映射' },
+  exposure: { en: 'Exposure', zh: '曝光' },
 
   pastePlaceholder: { en: 'Paste Scenario JSON then click Apply', zh: '粘贴 Scenario JSON 后点 Apply' },
   apply: { en: 'Apply', zh: '应用' },
@@ -380,6 +382,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   debugView: { en: 'Switch to a debug visualization mode.', zh: '切换到调试可视化模式。' },
   debugCloudDepth: { en: 'Transmittance-weighted mean hit distance along the view ray (near white, far black, sky black).', zh: '沿视线按透射权重加权的平均命中距离（近白远黑，天空黑）。' },
   measureLight: { en: 'Run a 2×40-frame A/B test to estimate light-march cost share of the cloud pass.', zh: '运行 2×40 帧 A/B 测试，估算光照步进在云通道中的开销占比。' },
+  tonemap: { en: 'Tonemap curve. ACES: higher contrast, natural highlight rolloff. AgX: minimal hue shift in large sky areas. Reinhard: legacy baseline.', zh: '色调映射曲线。ACES：对比度高、高光滚落自然。AgX：大面积天空色相偏移小。Reinhard：旧版基线。' },
+  exposure: { en: 'Post-process exposure multiplier applied before tonemapping.', zh: '后处理曝光倍率，在色调映射前应用。' },
 };
 
 export function tip(key: string): string {

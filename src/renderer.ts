@@ -25,6 +25,30 @@ struct Post { sun : vec4f, flags : vec4f };
 @group(0) @binding(1) var sceneSamp : sampler;
 @group(0) @binding(2) var<uniform> post : Post;
 struct VOut { @builtin(position) pos : vec4f };
+fn acesNarkowicz(x : vec3f) -> vec3f {
+  let a = 2.51; let b = 0.03; let c = 2.43; let d = 0.59; let e = 0.14;
+  return clamp((x * (a * x + b)) / (x * (c * x + d) + e), vec3f(0.0), vec3f(1.0));
+}
+fn agx(colIn : vec3f) -> vec3f {
+  let agx_mat = mat3x3f(
+    0.842479062253094, 0.0423282422610123, 0.0423756549057051,
+    0.0784335999999992, 0.878468636469772, 0.0784336,
+    0.0792237451477643, 0.0791661274605434, 0.879142973793104);
+  let agx_mat_inv = mat3x3f(
+    1.19687900512017, -0.0528968517574562, -0.0529716355144438,
+    -0.0980208811401368, 1.15190312990417, -0.0980434501171241,
+    -0.0990297440797205, -0.0989611768448433, 1.15107367264116);
+  let min_ev = -12.47393;
+  let max_ev = 4.026069;
+  var col = agx_mat * colIn;
+  col = clamp(log2(max(col, vec3f(1e-10))), vec3f(min_ev), vec3f(max_ev));
+  col = (col - vec3f(min_ev)) / (max_ev - min_ev);
+  let x2 = col * col;
+  let x4 = x2 * x2;
+  col = 15.5 * x4 * x2 - 40.14 * x4 * col + 31.96 * x4 - 6.868 * x2 * col + 0.4298 * x2 + 0.1191 * col - 0.00232;
+  col = agx_mat_inv * col;
+  return clamp(col, vec3f(0.0), vec3f(1.0));
+}
 @vertex fn vsPost(@builtin(vertex_index) vi : u32) -> VOut {
   let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
   var o : VOut;
@@ -53,7 +77,16 @@ struct VOut { @builtin(position) pos : vec4f };
     }
     col += (acc / f32(NUM)) * strength;
   }
-  col = col / (col + vec3f(1.0));
+  col = col * max(post.flags.z, 0.01);
+  let mode = i32(post.flags.y);
+  if (mode == 1) {
+    col = acesNarkowicz(col);
+  } else if (mode == 2) {
+    col = agx(col);
+    col = pow(col, vec3f(2.2));
+  } else {
+    col = col / (col + vec3f(1.0));
+  }
   col = pow(col, vec3f(1.0 / 2.2));
   return vec4f(col, 1.0);
 }
@@ -706,6 +739,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     postData[2] = params.godrayStrength;
     postData[3] = sunVis;
     postData[4] = params.debugView;
+    postData[5] = params.tonemapMode;
+    postData[6] = params.exposure;
     device.queue.writeBuffer(postUniformBuffer, 0, postData);
 
     const textureView = context!.getCurrentTexture().createView();
