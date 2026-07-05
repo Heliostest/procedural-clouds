@@ -207,6 +207,8 @@ export interface CloudParams {
   typeLightingBlend: number;
   fxAbsorption: boolean;
   boxHalfExtent: number;
+  altitudeScale: number;
+  horizontalScale: number;
   weatherSize: number;
   lightMarchStepSize: number;
   verticalEdgeRange: number;
@@ -277,6 +279,7 @@ export function packParams(dst: Float32Array, values: Record<string, PackValue>)
 
 export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMod[]): void {
   const n = Math.min(bodies.length, MAX_BODIES);
+  const boxHeight = dst[PARAM_OFFSETS.cloudHeight] || 8;
   dst[PARAM_OFFSETS.activeBodyCount] = n;
   for (let i = 0; i < MAX_BODIES; i++) {
     const o = BODY_BASE + i * BODY_STRIDE;
@@ -284,7 +287,7 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMo
       const b = bodies[i];
       const m = mods?.[i];
       const rad = b.windDeg * Math.PI / 180.0;
-      const altTop = Math.min(1.0, b.base + Math.max(0.02, b.thickness));
+      const altTop = Math.min(boxHeight, b.base + Math.max(0.02, b.thickness));
       dst[o + 0] = b.base;
       dst[o + 1] = altTop;
       dst[o + 2] = presetIndex(b.type);
@@ -342,6 +345,8 @@ export function createDefaultParams(): CloudParams {
     typeLightingBlend: 1.0,
     fxAbsorption: true,
     boxHalfExtent: 4.5,
+    altitudeScale: 1.0,
+    horizontalScale: 1.0,
     weatherSize: 256,
     lightMarchStepSize: 0.15,
     verticalEdgeRange: 0.55,

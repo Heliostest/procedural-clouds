@@ -61,7 +61,7 @@ export function parseScenario(json: string | object): Scenario {
       bounds: (sb.bounds as number[]) ?? [0, 0, 0, 0],
       feather: (sb.feather as number) ?? 1.5,
       base: (sb.base as number) ?? 0.0,
-      thickness: (sb.thickness as number) ?? 0.4,
+      thickness: (sb.thickness as number) ?? 3.2,
       type: (sb.type as string) ?? 'cumulus',
     };
   }
@@ -165,8 +165,8 @@ export const DEMO_SCENARIO: Scenario = {
   duration: 70,
   wind: { dirDeg: 90, speed: 0.35 },
   bodies: {
-    A: { shape: 'rect', bounds: [-3.5, -1.5, 0.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus' },
-    H: { shape: 'circle', bounds: [1.5, 1.5, 2.0, 0], feather: 1.8, base: 0.76, thickness: 0.22, type: 'cirrus' },
+    A: { shape: 'rect', bounds: [-3.5, -1.5, 0.5, 1.5], feather: 1.5, base: 0.0, thickness: 3.2, type: 'cumulus' },
+    H: { shape: 'circle', bounds: [1.5, 1.5, 2.0, 0], feather: 1.8, base: 6.08, thickness: 1.76, type: 'cirrus' },
   },
   events: [
     { t: 0, bodyId: 'A', coverage: 0.0, densityScale: 0.0 },

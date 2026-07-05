@@ -60,7 +60,7 @@ struct Globals {
 };
 
 struct BodyGPU {
-  geom : vec4f, // x=base, y=altTop, z=typeIdx, w=enabled
+  geom : vec4f, // x=baseY, y=topY (world), z=typeIdx, w=enabled
   wind : vec4f, // x=dirX, y=dirY, z=speed, w=morphRate
   intensity : vec4f, // x=coverage, y=densityScale, z=morph, w=feather
   footprint : vec4f, // x=centerX, y=centerZ, z=radius, w=shapeId
@@ -352,7 +352,9 @@ fn bodyRotatedPos(pos : vec3f, b : BodyGPU) -> vec3f {
   if (abs(e.x) + abs(e.y) + abs(e.z) < 1e-5) { return pos; }
   let bmin = boxMin();
   let bmaxY = getBoxMax().y;
-  let yMid = mix(bmin.y, bmaxY, clamp01((clamp01(b.geom.x) + clamp01(b.geom.y)) * 0.5));
+  let yBase = clamp(b.geom.x, bmin.y, bmaxY);
+  let yTop = clamp(max(b.geom.y, yBase + 0.02), yBase + 0.02, bmaxY);
+  let yMid = (yBase + yTop) * 0.5;
   let c = vec3f(b.footprint.x, yMid, b.footprint.y);
   var v = pos - c;
   // Inverse rotation (sample the unrotated body), order Rx^-1 then Ry^-1 then Rz^-1.
@@ -372,8 +374,8 @@ fn evalBodySolid(posIn : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
   let cx = b.footprint.x;
   let cz = b.footprint.y;
   let rad = max(b.footprint.z, 0.001);
-  let yBase = mix(bmin.y, bmaxY, clamp01(b.geom.x));
-  let yTop = mix(bmin.y, bmaxY, clamp01(b.geom.y));
+  let yBase = clamp(b.geom.x, bmin.y, bmaxY);
+  let yTop = clamp(max(b.geom.y, yBase + 0.02), yBase + 0.02, bmaxY);
   let yMid = (yBase + yTop) * 0.5;
   let yHalf = max((yTop - yBase) * 0.5, 0.001);
   let p = vec3f((pos.x - cx) / rad, (pos.y - yMid) / yHalf, (pos.z - cz) / rad);
@@ -412,10 +414,11 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let shape = presetShape(i32(round(b.geom.z)));
   let morphology = presetMorphology(i32(round(b.geom.z)));
   let bmin = boxMin();
-  let zNorm = (rp.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
-  let altBase = clamp(b.geom.x, 0.0, 0.98);
-  let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
-  let vLocal = (zNorm - altBase) / max(altTop - altBase, 0.001);
+  let bmaxY = getBoxMax().y;
+  let zNorm = (rp.y - bmin.y) / max(bmaxY - bmin.y, 0.001);
+  let altBase = clamp(b.geom.x, bmin.y, bmaxY - 0.02);
+  let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, bmaxY);
+  let vLocal = (rp.y - altBase) / max(altTop - altBase, 0.001);
 
   // Genus morphology widens only the upper footprint. Edge-style controls are
   // deliberately absent here so disabling edge rendering cannot remove anvils.
@@ -500,7 +503,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let bandHi = max(altTop, altBase + 1e-3);
   let vMid = (altBase + bandHi) * 0.5;
   let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
-  let vT = abs(zNorm - vMid) / vHalf;
+  let vT = abs(rp.y - vMid) / vHalf;
   let vEnvelope = pow(vT, max(params.g.verticalEdgeShape, 0.01)) * params.g.verticalEdgeRange;
   let legacyShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
   // Stage 10 profile: a narrow top transition removes deliberate dome

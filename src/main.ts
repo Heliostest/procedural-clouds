@@ -224,7 +224,10 @@ async function main(): Promise<void> {
       ? playhead
       : (timeline.scrub ? timeline.time : manualClock);
     renderer.renderFrame(params, cam, elapsed, sceneClock);
-    axisLabels.update(params.showAxes, cam.viewProj, canvas, params.boxHalfExtent, params.cloudHeight);
+    axisLabels.update(params.showAxes, cam.viewProj, canvas, params.boxHalfExtent, params.cloudHeight, {
+      altitudeScale: params.altitudeScale,
+      horizontalScale: params.horizontalScale,
+    });
     const workMs = performance.now() - now;
 
     if (measureState !== 'idle') {

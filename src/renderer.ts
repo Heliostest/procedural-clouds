@@ -254,7 +254,7 @@ const BODY_COLORS: [number, number, number][] = [
   [0.5, 0.4, 1.0],
 ];
 
-function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: string | null): Float32Array {
+function buildLineVerts(bodies: CloudBody[], boxHeight: number, selectedId: string | null): Float32Array {
   const out: number[] = [];
   const seg = (ax: number, ay: number, az: number, bx: number, by: number, bz: number, col: [number, number, number]) => {
     out.push(ax, ay, az, col[0], col[1], col[2]);
@@ -266,8 +266,8 @@ function buildLineVerts(bodies: CloudBody[], cloudHeight: number, selectedId: st
     const col: [number, number, number] = sel
       ? [Math.min(1, baseCol[0] + 0.4), Math.min(1, baseCol[1] + 0.4), Math.min(1, baseCol[2] + 0.4)]
       : [baseCol[0] * 0.5, baseCol[1] * 0.5, baseCol[2] * 0.5];
-    const y0 = b.base * cloudHeight;
-    const y1 = Math.min(1, b.base + b.thickness) * cloudHeight;
+    const y0 = b.base;
+    const y1 = Math.min(boxHeight, b.base + b.thickness);
     if (b.shape === 'rect') {
       const [minX, minZ, maxX, maxZ] = b.bounds;
       const corners: [number, number][] = [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];

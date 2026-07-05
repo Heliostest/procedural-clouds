@@ -31,6 +31,63 @@ function tipFolder(f: { $title: HTMLElement }, text: string): void {
   if (text) f.$title.title = text;
 }
 
+const LOG_SCALE_MIN = 0.001;
+const LOG_SCALE_MAX = 10000;
+
+function formatScaleValue(v: number): string {
+  const a = Math.abs(v);
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 10) return v.toFixed(1);
+  if (a >= 1) return v.toFixed(2);
+  if (a >= 0.001) return v.toFixed(3);
+  return v.toExponential(2);
+}
+
+type LogScaleKey = 'altitudeScale' | 'horizontalScale';
+
+interface LogNumberCtrl extends Ctrl {
+  updateDisplay(): LogNumberCtrl;
+  onChange(fn: () => void): LogNumberCtrl;
+  $input: HTMLInputElement;
+  $fill?: HTMLElement;
+  _inputFocused?: boolean;
+}
+
+function addLogScaleSlider(
+  folder: GUI,
+  params: CloudParams,
+  key: LogScaleKey,
+  label: string,
+  tipName: string,
+): void {
+  const logMin = Math.log10(LOG_SCALE_MIN);
+  const logMax = Math.log10(LOG_SCALE_MAX);
+  const clamp = (v: number) => Math.max(LOG_SCALE_MIN, Math.min(LOG_SCALE_MAX, v));
+  const proxy = { logPos: Math.log10(clamp(params[key])) };
+
+  const ctrl = folder.add(proxy, 'logPos', logMin, logMax, 0.001).name(label) as unknown as LogNumberCtrl;
+  tipKey(ctrl, tipName);
+
+  const sync = () => {
+    params[key] = clamp(Math.pow(10, proxy.logPos));
+    if (!ctrl._inputFocused) ctrl.$input.value = formatScaleValue(params[key]);
+    const pct = (proxy.logPos - logMin) / (logMax - logMin);
+    if (ctrl.$fill) ctrl.$fill.style.width = `${Math.max(0, Math.min(1, pct)) * 100}%`;
+  };
+
+  ctrl.updateDisplay = () => { sync(); return ctrl; };
+  ctrl.onChange(sync);
+  ctrl.$input.addEventListener('change', () => {
+    const v = parseFloat(ctrl.$input.value);
+    if (Number.isFinite(v) && v > 0) {
+      params[key] = clamp(v);
+      proxy.logPos = Math.log10(params[key]);
+      sync();
+    }
+  });
+  sync();
+}
+
 export interface GuiHooks {
   onBodiesChanged(): void;
   onCacheResolution(res: number): void;
@@ -228,8 +285,9 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
           tipKey(f.add(proxy, 'r', 0.2, lim, 0.1).name(t('radius')).onChange(apply), 'radius');
         }
         tipKey(f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged), 'feather');
-        tipKey(f.add(b, 'base', 0.0, 0.95, 0.01).name(t('height')).onChange(hooks.onBodiesChanged), 'height');
-        tipKey(f.add(b, 'thickness', 0.05, 1.0, 0.01).name(t('thickness')).onChange(hooks.onBodiesChanged), 'thickness');
+        const bh = params.cloudHeight;
+        tipKey(f.add(b, 'base', 0.0, Math.max(0.02, bh - 0.02), 0.1).name(t('height')).onChange(hooks.onBodiesChanged), 'height');
+        tipKey(f.add(b, 'thickness', 0.02, bh, 0.1).name(t('thickness')).onChange(hooks.onBodiesChanged), 'thickness');
         tipKey(f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged), 'coverage');
         tipKey(f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged), 'density');
         tipKey(f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged), 'windDir');
@@ -256,7 +314,9 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
     tipKey(globalFolder.add(params, 'showAxes').name(t('showAxes')), 'showAxes');
     tipKey(globalFolder.add(params, 'boxHalfExtent', 1.0, 32.0, 0.5).name(t('boxHalfExtent')), 'boxHalfExtent');
-    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 32.0, 0.5).name(t('boxHeight')), 'boxHeight');
+    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 32.0, 0.5).name(t('boxHeight')).onChange(() => { rebuildBodies(); }), 'boxHeight');
+    addLogScaleSlider(globalFolder, params, 'altitudeScale', t('altitudeScale'), 'altitudeScale');
+    addLogScaleSlider(globalFolder, params, 'horizontalScale', t('horizontalScale'), 'horizontalScale');
     tipKey(globalFolder.add(params, 'weatherSize', 64, 1024, 1).name(t('weatherSize')).onFinishChange((v: number) => {
       const next = Math.max(64, Math.min(1024, Math.round(v)));
       params.weatherSize = next;

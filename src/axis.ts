@@ -10,6 +10,11 @@ export interface AxisLabel {
   color: string;
 }
 
+export interface AxisScales {
+  altitudeScale: number;
+  horizontalScale: number;
+}
+
 function pickTickStep(span: number): number {
   if (span <= 0) return 1;
   const target = span / 6;
@@ -54,6 +59,10 @@ export function formatAxisTick(v: number): string {
   return v.toFixed(2);
 }
 
+function scaledTick(world: number, scale: number): string {
+  return formatAxisTick(world * scale);
+}
+
 export function buildAxisMesh(boxHalfExtent: number, cloudHeight: number): Float32Array {
   const out: number[] = [];
   const e = boxHalfExtent;
@@ -87,43 +96,52 @@ export function buildAxisMesh(boxHalfExtent: number, cloudHeight: number): Float
   return new Float32Array(out);
 }
 
-export function buildAxisLabels(boxHalfExtent: number, cloudHeight: number): AxisLabel[] {
+export function buildAxisLabels(boxHalfExtent: number, cloudHeight: number, scales: AxisScales): AxisLabel[] {
   const labels: AxisLabel[] = [];
   const e = boxHalfExtent;
   const h = cloudHeight;
+  const hs = scales.horizontalScale;
+  const vs = scales.altitudeScale;
   const off = Math.max(0.15, Math.min(e, h) * 0.06);
   const col = (c: [number, number, number]) =>
     `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
 
   labels.push({ text: '0', pos: [0, -off, 0], color: '#ccc' });
-  labels.push({ text: `+X ${formatAxisTick(e)}`, pos: [e + off, 0, 0], color: col(WORLD_AXIS_COLS[0]) });
-  labels.push({ text: `+Y ${formatAxisTick(h)}`, pos: [0, h + off, 0], color: col(WORLD_AXIS_COLS[1]) });
-  labels.push({ text: `+Z ${formatAxisTick(e)}`, pos: [0, 0, e + off], color: col(WORLD_AXIS_COLS[2]) });
-  labels.push({ text: `-X ${formatAxisTick(-e)}`, pos: [-e - off, 0, 0], color: col(WORLD_AXIS_COLS[0]) });
-  labels.push({ text: `-Z ${formatAxisTick(-e)}`, pos: [0, 0, -e - off], color: col(WORLD_AXIS_COLS[2]) });
+  labels.push({ text: `+X ${scaledTick(e, hs)}`, pos: [e + off, 0, 0], color: col(WORLD_AXIS_COLS[0]) });
+  labels.push({ text: `+Y ${scaledTick(h, vs)}`, pos: [0, h + off, 0], color: col(WORLD_AXIS_COLS[1]) });
+  labels.push({ text: `+Z ${scaledTick(e, hs)}`, pos: [0, 0, e + off], color: col(WORLD_AXIS_COLS[2]) });
+  labels.push({ text: `-X ${scaledTick(-e, hs)}`, pos: [-e - off, 0, 0], color: col(WORLD_AXIS_COLS[0]) });
+  labels.push({ text: `-Z ${scaledTick(-e, hs)}`, pos: [0, 0, -e - off], color: col(WORLD_AXIS_COLS[2]) });
 
   const xStep = pickTickStep(e * 2);
   for (let t = Math.ceil(-e / xStep) * xStep; t <= e + 1e-6; t += xStep) {
     if (Math.abs(t) < 1e-6) continue;
-    labels.push({ text: formatAxisTick(t), pos: [t, off * 2.2, off], color: col(WORLD_AXIS_COLS[0]) });
+    labels.push({ text: scaledTick(t, hs), pos: [t, off * 2.2, off], color: col(WORLD_AXIS_COLS[0]) });
   }
 
   const yStep = pickTickStep(h);
   for (let t = yStep; t <= h + 1e-6; t += yStep) {
-    labels.push({ text: formatAxisTick(t), pos: [off, t, off], color: col(WORLD_AXIS_COLS[1]) });
+    labels.push({ text: scaledTick(t, vs), pos: [off, t, off], color: col(WORLD_AXIS_COLS[1]) });
   }
 
   const zStep = pickTickStep(e * 2);
   for (let t = Math.ceil(-e / zStep) * zStep; t <= e + 1e-6; t += zStep) {
     if (Math.abs(t) < 1e-6) continue;
-    labels.push({ text: formatAxisTick(t), pos: [off, off * 2.2, t], color: col(WORLD_AXIS_COLS[2]) });
+    labels.push({ text: scaledTick(t, hs), pos: [off, off * 2.2, t], color: col(WORLD_AXIS_COLS[2]) });
   }
 
   return labels;
 }
 
 export interface AxisLabelOverlay {
-  update(show: boolean, viewProj: Float32Array, canvas: HTMLCanvasElement, boxHalfExtent: number, cloudHeight: number): void;
+  update(
+    show: boolean,
+    viewProj: Float32Array,
+    canvas: HTMLCanvasElement,
+    boxHalfExtent: number,
+    cloudHeight: number,
+    scales: AxisScales,
+  ): void;
 }
 
 export function createAxisLabelOverlay(): AxisLabelOverlay {
@@ -134,12 +152,12 @@ export function createAxisLabelOverlay(): AxisLabelOverlay {
   let sig = '';
   let entries: { el: HTMLSpanElement; label: AxisLabel }[] = [];
 
-  function rebuild(boxHalfExtent: number, cloudHeight: number): void {
-    const nextSig = `${boxHalfExtent}:${cloudHeight}`;
+  function rebuild(boxHalfExtent: number, cloudHeight: number, scales: AxisScales): void {
+    const nextSig = `${boxHalfExtent}:${cloudHeight}:${scales.altitudeScale}:${scales.horizontalScale}`;
     if (nextSig === sig) return;
     sig = nextSig;
     root.replaceChildren();
-    entries = buildAxisLabels(boxHalfExtent, cloudHeight).map((label) => {
+    entries = buildAxisLabels(boxHalfExtent, cloudHeight, scales).map((label) => {
       const el = document.createElement('span');
       el.className = 'axis-label';
       el.textContent = label.text;
@@ -163,10 +181,10 @@ export function createAxisLabelOverlay(): AxisLabelOverlay {
   }
 
   return {
-    update(show, viewProj, canvas, boxHalfExtent, cloudHeight) {
+    update(show, viewProj, canvas, boxHalfExtent, cloudHeight, scales) {
       root.style.display = show ? 'block' : 'none';
       if (!show) return;
-      rebuild(boxHalfExtent, cloudHeight);
+      rebuild(boxHalfExtent, cloudHeight, scales);
       const rect = canvas.getBoundingClientRect();
       const w = canvas.width;
       const h = canvas.height;

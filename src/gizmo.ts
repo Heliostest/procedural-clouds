@@ -160,7 +160,7 @@ export function createGizmoController(deps: GizmoDeps): void {
       const dpix = (px - drag.startX) * drag.screenDirX + (py - drag.startY) * drag.screenDirY;
       const dw = dpix / drag.pxPerWorld;
       if (drag.axis === 1) {
-        b.base = Math.max(0, Math.min(0.95, drag.startBase + dw / Math.max(params.cloudHeight, 0.01)));
+        b.base = Math.max(0, Math.min(params.cloudHeight - 0.02, drag.startBase + dw));
       } else {
         const sb = drag.startBounds;
         if (b.shape === 'rect') {
