@@ -353,7 +353,7 @@ export function createDefaultParams(): CloudParams {
     verticalEdgeShape: 2.0,
     edgeHardness: 1,
     edgeHardnessThreshold: 0.05,
-    edgeSharpening: true,
+    edgeSharpening: false,
     cacheWorkgroupX: 8,
     cacheWorkgroupY: 8,
     cacheWorkgroupZ: 4,
