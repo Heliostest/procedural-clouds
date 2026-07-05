@@ -20,7 +20,7 @@ interface GizmoDeps {
 
 interface Drag {
   axis: number;
-  mode: 'move' | 'rotate';
+  mode: 'move' | 'rotate' | 'scale';
   startX: number;
   startY: number;
   screenDirX: number;
@@ -31,6 +31,7 @@ interface Drag {
   startAngle: number;
   startBounds: number[];
   startBase: number;
+  startThickness: number;
   startRot: [number, number, number];
 }
 
@@ -86,7 +87,7 @@ export function createGizmoController(deps: GizmoDeps): void {
     let bestAxis = -1;
     let bestDist = PICK_PX;
 
-    if (params.gizmoMode === 'move') {
+    if (params.gizmoMode === 'move' || params.gizmoMode === 'scale') {
       for (let a = 0; a < 3; a++) {
         const tip = [center[0] + AXIS[a][0] * GIZMO_AXIS_LEN, center[1] + AXIS[a][1] * GIZMO_AXIS_LEN, center[2] + AXIS[a][2] * GIZMO_AXIS_LEN];
         const tS = project(cam.viewProj, tip);
@@ -120,7 +121,7 @@ export function createGizmoController(deps: GizmoDeps): void {
     canvas.setPointerCapture(e.pointerId);
 
     let screenDirX = 0, screenDirY = 0, pxPerWorld = 1;
-    if (params.gizmoMode === 'move') {
+    if (params.gizmoMode === 'move' || params.gizmoMode === 'scale') {
       const tip = [center[0] + AXIS[bestAxis][0] * GIZMO_AXIS_LEN, center[1] + AXIS[bestAxis][1] * GIZMO_AXIS_LEN, center[2] + AXIS[bestAxis][2] * GIZMO_AXIS_LEN];
       const tS = project(cam.viewProj, tip)!;
       const ddx = tS[0] - cS[0];
@@ -144,6 +145,7 @@ export function createGizmoController(deps: GizmoDeps): void {
       startAngle: Math.atan2(py - cS[1], px - cS[0]),
       startBounds: b.bounds.slice(),
       startBase: b.base,
+      startThickness: b.thickness,
       startRot: [b.rot[0], b.rot[1], b.rot[2]],
     };
   }, true);
@@ -170,6 +172,30 @@ export function createGizmoController(deps: GizmoDeps): void {
           if (drag.axis === 0) { b.bounds = [sb[0] + dw, sb[1], sb[2], sb[3]]; }
           else { b.bounds = [sb[0], sb[1] + dw, sb[2], sb[3]]; }
         }
+      }
+    } else if (drag.mode === 'scale') {
+      const dpix = (px - drag.startX) * drag.screenDirX + (py - drag.startY) * drag.screenDirY;
+      const sb = drag.startBounds;
+      let ref = drag.startThickness;
+      if (drag.axis === 0) ref = b.shape === 'rect' ? (sb[2] - sb[0]) / 2 : sb[2];
+      else if (drag.axis === 2) ref = b.shape === 'rect' ? (sb[3] - sb[1]) / 2 : sb[2];
+      const factor = Math.max(0.05, 1 + dpix / (drag.pxPerWorld * Math.max(ref, 0.05)));
+      if (drag.axis === 1) {
+        const cy = drag.startBase + drag.startThickness / 2;
+        const newTh = Math.max(0.02, drag.startThickness * factor);
+        b.base = Math.max(0, cy - newTh / 2);
+        b.thickness = Math.min(params.cloudHeight - b.base, newTh);
+      } else if (b.shape === 'rect') {
+        const cx = (sb[0] + sb[2]) / 2;
+        const cz = (sb[1] + sb[3]) / 2;
+        let hw = (sb[2] - sb[0]) / 2;
+        let hd = (sb[3] - sb[1]) / 2;
+        if (drag.axis === 0) hw = Math.max(0.05, hw * factor);
+        else hd = Math.max(0.05, hd * factor);
+        b.bounds = [cx - hw, cz - hd, cx + hw, cz + hd];
+      } else {
+        const r = Math.max(0.05, sb[2] * factor);
+        b.bounds = [sb[0], sb[1], r, sb[3]];
       }
     } else {
       const ang = Math.atan2(py - drag.centerSY, px - drag.centerSX);

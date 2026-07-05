@@ -306,11 +306,34 @@ const AXIS_COLS: [number, number, number][] = [
   [0.32, 0.55, 1.0],
 ];
 
-function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'rotate'): Float32Array {
+function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'rotate' | 'scale'): Float32Array {
   const out: number[] = [];
   const seg = (a: number[], b: number[], c: [number, number, number]) => {
     out.push(a[0], a[1], a[2], c[0], c[1], c[2]);
     out.push(b[0], b[1], b[2], c[0], c[1], c[2]);
+  };
+  const perp = (d: number[]): [number[], number[]] => {
+    const u = d[1] === 1 ? [1, 0, 0] : [0, 1, 0];
+    const v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+    const vl = Math.hypot(v[0], v[1], v[2]) || 1;
+    const vn = [v[0] / vl, v[1] / vl, v[2] / vl];
+    const un = [vn[1] * d[2] - vn[2] * d[1], vn[2] * d[0] - vn[0] * d[2], vn[0] * d[1] - vn[1] * d[0]];
+    return [un, vn];
+  };
+  const wireCube = (center: number[], d: number[], s: number, col: [number, number, number]) => {
+    const [u, v] = perp(d);
+    const p = (i: number, j: number, k: number) => [
+      center[0] + d[0] * s * i + u[0] * s * j + v[0] * s * k,
+      center[1] + d[1] * s * i + u[1] * s * j + v[1] * s * k,
+      center[2] + d[2] * s * i + u[2] * s * j + v[2] * s * k,
+    ];
+    const c = [
+      p(-1, -1, -1), p(1, -1, -1), p(1, 1, -1), p(-1, 1, -1),
+      p(-1, -1, 1), p(1, -1, 1), p(1, 1, 1), p(-1, 1, 1),
+    ];
+    for (const [i, j] of [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]) {
+      seg(c[i], c[j], col);
+    }
   };
   const [ox, oy, oz] = bodyCenterWorld(body, cloudHeight);
   if (mode === 'move') {
@@ -322,11 +345,20 @@ function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'r
       seg([ox, oy, oz], tip, col);
       const back = 0.18;
       const w = 0.09;
-      const u = a === 1 ? [1, 0, 0] : [0, 1, 0];
-      const v = [d[1] * u[2] - d[2] * u[1], d[2] * u[0] - d[0] * u[2], d[0] * u[1] - d[1] * u[0]];
+      const [, v] = perp(d);
       const bp = [tip[0] - d[0] * back, tip[1] - d[1] * back, tip[2] - d[2] * back];
       seg(tip, [bp[0] + v[0] * w, bp[1] + v[1] * w, bp[2] + v[2] * w], col);
       seg(tip, [bp[0] - v[0] * w, bp[1] - v[1] * w, bp[2] - v[2] * w], col);
+    }
+  } else if (mode === 'scale') {
+    const L = GIZMO_AXIS_LEN;
+    const hs = 0.16;
+    for (let a = 0; a < 3; a++) {
+      const d = AXIS_DIRS[a];
+      const col = AXIS_COLS[a];
+      const tip = [ox + d[0] * L, oy + d[1] * L, oz + d[2] * L];
+      seg([ox, oy, oz], tip, col);
+      wireCube(tip, d, hs, col);
     }
   } else {
     const R = GIZMO_RING_RADIUS;

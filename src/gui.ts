@@ -232,16 +232,20 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         const rotBtn = document.createElement('button');
         rotBtn.textContent = '⟳';
         rotBtn.title = tip('gizmoRotate');
+        const scaleBtn = document.createElement('button');
+        scaleBtn.textContent = '⤢';
+        scaleBtn.title = tip('gizmoScale');
         const delBtn = document.createElement('button');
         delBtn.textContent = '✕';
         delBtn.title = t('remove');
-        for (const btn of [moveBtn, rotBtn, delBtn]) btn.style.cssText = 'font:12px sans-serif;line-height:1;padding:1px 4px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
+        for (const btn of [moveBtn, rotBtn, scaleBtn, delBtn]) btn.style.cssText = 'font:12px sans-serif;line-height:1;padding:1px 4px;cursor:pointer;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px';
         const syncGizmoBtns = () => {
           const active = params.selectedBody === b.id;
           moveBtn.style.background = active && params.gizmoMode === 'move' ? '#2f6db0' : '#2a2a2a';
           rotBtn.style.background = active && params.gizmoMode === 'rotate' ? '#2f6db0' : '#2a2a2a';
+          scaleBtn.style.background = active && params.gizmoMode === 'scale' ? '#2f6db0' : '#2a2a2a';
         };
-        const setGizmo = (mode: 'move' | 'rotate') => {
+        const setGizmo = (mode: 'move' | 'rotate' | 'scale') => {
           if (params.selectedBody === b.id && params.gizmoMode === mode) {
             params.gizmoMode = null;
           } else {
@@ -252,10 +256,11 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         };
         moveBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('move'); });
         rotBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('rotate'); });
+        scaleBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('scale'); });
         f.$title.addEventListener('gizmosync', syncGizmoBtns);
         syncGizmoBtns();
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) { params.selectedBody = null; params.gizmoMode = null; } rebuildBodies(); hooks.onBodiesChanged(); });
-        actions.append(shapeSel, typeSel, moveBtn, rotBtn, delBtn);
+        actions.append(shapeSel, typeSel, moveBtn, rotBtn, scaleBtn, delBtn);
         f.$title.appendChild(actions);
 
         const lim = params.boxHalfExtent;

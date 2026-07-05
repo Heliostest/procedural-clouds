@@ -184,7 +184,7 @@ export interface CloudParams {
   showBodyBounds: boolean;
   showAxes: boolean;
   selectedBody: string | null;
-  gizmoMode: 'move' | 'rotate' | null;
+  gizmoMode: 'move' | 'rotate' | 'scale' | null;
   skipLight: boolean;
   rayMarchSteps: number;
   lightMarchSteps: number;
