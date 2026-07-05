@@ -59,6 +59,38 @@ fn hash_uint3(kx: u32, ky: u32, kz: u32) -> u32 {
     return c;
 }
 
+fn hash_cell_3d(cell : vec3i) -> vec3f {
+    var q = fract(vec3f(cell) * vec3f(0.1031, 0.1030, 0.0973));
+    q += dot(q, q.yzx + vec3f(33.33));
+    return fract((q.xxy + q.yzz) * q.zyx);
+}
+
+// Two-cell Worley F1 approximation for analytic raymarch-edge erosion. The
+// second sample follows the feature-point direction into the most relevant
+// neighboring cell. This keeps the function cheap enough for a guarded inner
+// raymarch branch; Stage 13.1 can replace it with the full 27-cell form when
+// density evaluation is restructured around a dedicated quality path.
+fn worley_f1_3d(p : vec3f) -> f32 {
+    let cell = vec3i(floor(p));
+    let feature = vec3f(cell) + hash_cell_3d(cell);
+    let direction = vec3i(select(vec3f(-1.0), vec3f(1.0), p >= feature));
+    let neighbor = cell + direction;
+    let neighborFeature = vec3f(neighbor) + hash_cell_3d(neighbor);
+    return min(distance(p, feature), distance(p, neighborFeature));
+}
+
+// Analytic curl of a periodic vector potential. It is divergence-free, costs
+// only sin/cos evaluations, and provides stable domain warping without extra
+// texture resources or finite-difference noise samples.
+fn curl_noise_3d(p : vec3f, time : f32) -> vec3f {
+    let c = vec3f(
+        -1.23 * sin(p.y * 1.23 + time * 0.6) - 1.31 * cos(p.z * 1.31 + time * 1.1),
+        -0.91 * sin(p.z * 0.91 - time * 0.7) - 0.97 * cos(p.x * 0.97 - time * 0.8),
+        -1.07 * sin(p.x * 1.07 + time * 0.4) - 1.17 * cos(p.y * 1.17 + time)
+    );
+    return c / max(length(c), 1e-4);
+}
+
 fn hash_uint4(kx: u32, ky: u32, kz: u32, kw: u32) -> u32 {
     var a = 0xdeadbeefu + (4u << 2u) + 13u;
     var b = a;
@@ -411,4 +443,3 @@ fn node_tex_voronoi_f1_4d_distance(
     let Output = fractal_voronoi_x_fx(params, vec4f(coord_scaled, w_scaled));
     return Output.Distance;
 }
-

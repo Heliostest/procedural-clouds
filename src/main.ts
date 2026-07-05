@@ -255,4 +255,12 @@ async function main(): Promise<void> {
   requestAnimationFrame(frame);
 }
 
-main();
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(error);
+  const failure = document.createElement('pre');
+  failure.id = 'startup-error';
+  failure.style.cssText = 'position:fixed;inset:12px;z-index:20000;margin:0;padding:16px;overflow:auto;color:#ffb4b4;background:#180909;font:13px/1.5 monospace;white-space:pre-wrap';
+  failure.textContent = message;
+  document.body.appendChild(failure);
+});

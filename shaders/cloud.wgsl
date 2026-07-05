@@ -55,7 +55,7 @@ struct Globals {
   jitterX         : f32,
   jitterY         : f32,
   taaEnabled      : f32,
-  _pad5           : f32,
+  edgeSharpening  : f32,
   _pad6           : f32,
 };
 
@@ -80,6 +80,7 @@ struct PresetShape {
   p2 : vec4f,
   p3 : vec4f,
   p4 : vec4f,
+  p5 : vec4f,
 };
 
 const PRESET_COUNT = 10;
@@ -135,6 +136,21 @@ fn presetLighting(i : i32) -> Lighting {
   let idx = clamp(i, 0, PRESET_COUNT - 1);
   let p = presets[idx];
   return Lighting(p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z);
+}
+
+fn presetEdgeHardness(i : i32) -> f32 {
+  let idx = clamp(i, 0, PRESET_COUNT - 1);
+  return presets[idx].p5.x;
+}
+
+fn effectiveEdgeHardness(rawHardness : f32) -> f32 {
+  if (params.g.edgeSharpening < 0.5 || params.g.edgeHardness <= 0.0) { return 0.0; }
+  return clamp01(rawHardness * params.g.edgeHardness);
+}
+
+fn blendedEdgeHardness(idx : f32, idx2 : f32, w2 : f32) -> f32 {
+  let h = mix(presetEdgeHardness(i32(idx)), presetEdgeHardness(i32(idx2)), clamp(w2, 0.0, 0.5));
+  return effectiveEdgeHardness(h);
 }
 
 fn mixLighting(a : Lighting, b : Lighting, t : f32) -> Lighting {
@@ -357,10 +373,24 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let advect = vec3f(b.wind.x, b.wind.y, 0.0) * (b.wind.z * params.g.sceneTime);
   let objPos = oRaw - advect;
 
-  // Normalized horizontal silhouette from this body's shape layer.
+  let shape = presetShape(i32(round(b.geom.z)));
+  let shapeHardness = effectiveEdgeHardness(presetEdgeHardness(i32(round(b.geom.z))));
   let bmin = boxMin();
+  let zNorm = (rp.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
+  let altBase = clamp(b.geom.x, 0.0, 0.98);
+  let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
+  let vLocal = (zNorm - altBase) / max(altTop - altBase, 0.001);
+
+  // High-hardness genera widen only their upper footprint, producing the
+  // characteristic cumulonimbus anvil without changing ordinary cumulus.
+  let anvilBand = smoothstep(0.68, 0.90, vLocal) * (1.0 - smoothstep(0.98, 1.02, vLocal));
+  let anvilScale = 1.0 + 0.28 * shapeHardness * anvilBand;
+  let footprintCenter = b.footprint.xy;
+  let footprintPos = footprintCenter + (oRaw.xy - footprintCenter) / anvilScale;
+
+  // Normalized horizontal silhouette from this body's shape layer.
   let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
-  let wUv = (oRaw.xy - vec2f(bmin.x, bmin.z)) / spanXZ;
+  let wUv = (footprintPos - vec2f(bmin.x, bmin.z)) / spanXZ;
   let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
   if (alpha < 0.005) { return 0.0; }
   let wCurve = max(params.g.edgeCurveWidth, 0.01);
@@ -371,8 +401,6 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   if (wDensityScale < 0.001) { return 0.0; }
   let wMorph = b.intensity.z;
   let edgeSoft = smoothstep(0.35, 0.65, alpha);
-  let shape = presetShape(i32(round(b.geom.z)));
-
   let densityParam  = shape.density;
   let altitude      = shape.altitude;
   let factorMacro   = localCoverage;
@@ -390,10 +418,6 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let worleyBlend       = clamp01(shape.worleyBlend + weatherMorph * erosion);
   let detailStrength    = shape.detailStrength * (1.0 + weatherMorph * detailBoost);
   // Per-body vertical band: clouds float within [base, altTop].
-  let altBase           = clamp(b.geom.x, 0.0, 0.98);
-  let altTop            = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
-
-  let zNorm = (rp.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
   let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
 
   // --- STAGE 1: Altitude Mask ---
@@ -442,11 +466,19 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
   let vT = abs(zNorm - vMid) / vHalf;
   let vEnvelope = pow(vT, max(params.g.verticalEdgeShape, 0.01)) * params.g.verticalEdgeRange;
-  let finalShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
+  let legacyShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
+  // Stage 10 profile: a narrow top transition removes deliberate dome
+  // rounding, while baseRoundness chooses a flat-to-rounded lower curve.
+  let topMask = 1.0 - smoothstep(0.975, 1.015, vLocal);
+  let bottomWidth = mix(0.035, 0.22, clamp01(baseRoundness));
+  let bottomMask = smoothstep(-0.01, bottomWidth, vLocal);
+  let hardShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold) * topMask * bottomMask;
+  let finalShaped = mix(legacyShaped, hardShaped, shapeHardness);
 
   // --- STAGE 5: Final Multipliers ---
   let falloffRaw = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
-  let falloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
+  let legacyFalloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
+  let falloff = mix(legacyFalloff, 1.0, shapeHardness);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
   let edgeFade = smoothstep(0.0, 0.25, localCoverage);
   return finalShaped * falloff * densityScale * wDensityScale * edgeFade; // Math.016
@@ -601,12 +633,22 @@ fn detailNoise(pos : vec3f) -> f32 {
   return perlin_noise_4d(vec4f(pos * f, params.g.sceneTime * 0.1));
 }
 
-fn applyEdgeHardness(d: f32) -> f32 {
-  let h = params.g.edgeHardness;
+fn applyEdgeShaping(d : f32, idx : f32, idx2 : f32, w2 : f32, pos : vec3f) -> f32 {
+  let h = blendedEdgeHardness(idx, idx2, w2);
   if (h < 0.0001) { return d; }
   let thr = max(params.g.edgeHardnessThreshold, 0.0001);
-  let w = mix(0.15, 0.001, clamp01(h));
-  return smoothstep(thr - w, thr + w, d);
+  var eroded = max(d, 0.0);
+  let edgeBandWidth = mix(0.045, 0.025, h);
+  let edgeBand = 1.0 - smoothstep(edgeBandWidth * 0.45, edgeBandWidth, abs(eroded - thr));
+  if (edgeBand > 0.001) {
+    let curl = curl_noise_3d(pos * 1.7, params.g.sceneTime * 0.06);
+    let cell = worley_f1_3d(pos * 8.0 + curl * 0.45);
+    let pockets = 1.0 - smoothstep(0.16, 0.52, cell);
+    let erosion = pockets * edgeBand * h * min(thr * 0.7, 0.04);
+    eroded = max(eroded - erosion, 0.0);
+  }
+  let w = mix(0.15, 0.006, h);
+  return smoothstep(thr - w, thr + w, eroded);
 }
 
 // ------------------------------------------------------------
@@ -689,14 +731,14 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
   let mode = i32(params.g.qualityMode);
   if (mode == 2) {
     let dt = cloudDensityTyped(pos);
-    return vec4f(applyEdgeHardness(dt.d), dt.idx, dt.idx2, dt.w2);
+    return vec4f(applyEdgeShaping(dt.d, dt.idx, dt.idx2, dt.w2, pos), dt.idx, dt.idx2, dt.w2);
   }
   let s = sampleDensityTyped(pos);
   var base = s.x;
   if (mode == 1 && base > 0.01) {
     base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
   }
-  return vec4f(applyEdgeHardness(max(base, 0.0)), s.y, s.z, s.w);
+  return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
 }
 
 fn densityAt(pos : vec3f) -> f32 {

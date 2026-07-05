@@ -53,6 +53,7 @@ const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
   silverLining: [0, 1, 0.01],
   baseDarkening: [0, 1, 0.01],
   sssStrength: [0, 1, 0.01],
+  edgeHardness: [0, 1, 0.01],
 };
 
 const RESERVED_PRESET_FIELDS = new Set<ShapeKey>(['cloudHeight', 'altBase', 'altTop']);
@@ -479,7 +480,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(cacheFolder.add(wgProxy, 'z', 1, 16, 1).name(t('cacheWgZ')).onFinishChange(applyWg), 'cacheWgZ');
 
     const edgeFolder = renderFolder.addFolder(t('renderEdge'));
-    tipKey(edgeFolder.add(params, 'edgeHardness', 0.0, 1.0, 0.01).name(t('edgeHardness')), 'edgeHardness');
+    tipKey(edgeFolder.add(params, 'edgeSharpening').name(t('edgeSharpening')), 'edgeSharpening');
+    tipKey(edgeFolder.add(params, 'edgeHardness', 0.0, 2.0, 0.01).name(t('edgeHardness')), 'edgeHardness');
     tipKey(edgeFolder.add(params, 'edgeHardnessThreshold', 0.001, 0.5, 0.001).name(t('edgeHardnessThreshold')), 'edgeHardnessThreshold');
 
     const postFolder = renderFolder.addFolder(t('renderPost'));

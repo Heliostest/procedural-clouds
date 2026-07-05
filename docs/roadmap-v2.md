@@ -287,12 +287,20 @@
 
 **前置约束（对原方案的修正）**：必须在阶段 4（蓝噪声+自适应细分）与阶段 8（TAA）之后——陡传递函数会放大「顶面阶梯条纹」，需先有抖动与时域收敛兜底；命中回退细分保证硬边处步长足够细。
 
-- [ ] 1. 陡峭密度传递函数（≈零成本，约 70% 效果）：采样后过窄窗 `smoothstep(thr-w, thr+w, d)`，窗宽由 `edgeHardness` 控制；配合调高 `densityScale` 让 alpha 一两步饱和。传递函数单调 → 缓存/占据金字塔 max 经同一变换仍保守（阶段 12 兼容）。
-- [ ] 2. 去云顶圆化 + 重做底部（≈零成本）：硬顶类型顶部 `vEnvelope` 换近硬截断（或砧状 anvil 上沿），云顶贴噪声等值面；底部 falloff 从"削平"改为可调圆底/平底曲线，缓解 known issue「云底平直」（根治在 13.1）。
-- [ ] 3. 边界高频解析侵蚀（质量关键，成本中等）：仅边缘带（`d` 接近 `thr`）叠高频 worley/curl 噪声啃边，**raymarch 内解析计算、不进缓存**，给出积雨云"花椰菜"硬块感。`noise.wgsl` 的 worley/curl 与 13.1 共用同一实现——本阶段先落地，13.1 直接复用。
-- [ ] 4. `edgeHardness` 进 `PresetShape`（扩 p5 槽位，同步 `packPresetArray`/`PRESET_FLOAT_COUNT`）+ GUI 滑杆；普通积云保持现状，积雨云调高。
+- [x] 1. 陡峭密度传递函数（≈零成本，约 70% 效果）：采样后过窄窗 `smoothstep(thr-w, thr+w, d)`，窗宽由 `edgeHardness` 控制；配合调高 `densityScale` 让 alpha 一两步饱和。传递函数单调 → 缓存/占据金字塔 max 经同一变换仍保守（阶段 12 兼容）。
+- [x] 2. 去云顶圆化 + 重做底部（≈零成本）：硬顶类型顶部 `vEnvelope` 换近硬截断（或砧状 anvil 上沿），云顶贴噪声等值面；底部 falloff 从"削平"改为可调圆底/平底曲线，缓解 known issue「云底平直」（根治在 13.1）。
+- [x] 3. 边界高频解析侵蚀（质量关键，成本中等）：仅边缘带（`d` 接近 `thr`）叠高频 worley/curl 噪声啃边，**raymarch 内解析计算、不进缓存**，给出积雨云"花椰菜"硬块感。`noise.wgsl` 的 worley/curl 与 13.1 共用同一实现——本阶段先落地，13.1 直接复用。
+- [x] 4. `edgeHardness` 进 `PresetShape`（扩 p5 槽位，同步 `packPresetArray`/`PRESET_FLOAT_COUNT`）+ GUI 滑杆；普通积云保持现状，积雨云调高。
 - [ ] 兜底：若主体边缘仍有波纹，该 body 局部走质量模式 2（解析、不缓存），不全局提分辨率。
 - [ ] 完成后回看阶段 6 银边参数（边缘密度分布已变）。
+
+实现记录（2026-07-05）：
+
+- `cumulonimbus.edgeHardness=0.85`，其余云属默认 0；全局 `edgeHardness` 改为倍率（默认 1），新增 `edgeSharpening` 总开关供 A/B 回退。
+- 高硬度云属顶部使用 4% 窄过渡截断，高层足迹最多扩 1.28 倍形成砧顶；底部过渡宽度由既有 `baseRoundness` 驱动。硬度为 0 时仍走旧对称包络与 falloff。
+- 解析侵蚀使用 `curl_noise_3d` 域扭曲 + 低成本 two-cell `worley_f1_3d`；最初 3³ 搜索嵌入主/光照行进后编译与运行成本不可接受，完整版本留待 13.1 独立质量路径。
+- 启动错误现在会显示在页面诊断层；未保留 `getCompilationInfo()` 的强制整模块等待，因为这份大型 WGSL 在浏览器中会显著阻塞初始化。
+- 浏览器实测（1200×900、Hybrid、48+4 步、积雨云）：关闭锐化 cloud pass 约 0.77ms，开启约 0.97–1.04ms，增量约 0.2–0.27ms；cache pass 均约 1.8ms。总开关可即时关闭并恢复，页面无启动错误/控制台警告。
 
 **验收**：cumulonimbus 云顶锐利、有花椰菜硬块感与砧顶轮廓；无新增阶梯条纹；普通积云观感不变。
 
@@ -403,4 +411,3 @@
 - 色差/暗角：阶段 5 后按需加在 post 末尾。
 - light-march beer-powder 统一（原 borrow C 项）：与 13.2 关闭 powder 矛盾，不单独做。
 - 全局提缓存分辨率求锐边（原 sharp-edges 备选）：立方增长不划算，被阶段 10 的解析方案替代。
-

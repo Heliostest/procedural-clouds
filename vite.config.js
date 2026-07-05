@@ -27,6 +27,7 @@ function referenceStaticPlugin() {
     writeBundle(options) {
       const outDir = join(options.dir ?? join(__dirname, 'dist'), 'reference');
       function copyDir(src, dest) {
+        if (!fs.existsSync(src)) return;
         fs.mkdirSync(dest, { recursive: true });
         for (const name of fs.readdirSync(src)) {
           if (name === 'index.html') continue;
@@ -48,7 +49,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        reference: resolve(__dirname, 'reference/index.html'),
         referenceDemo: resolve(__dirname, 'reference.html'),
       },
     },

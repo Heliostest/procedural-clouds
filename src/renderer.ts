@@ -912,6 +912,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       jitterX,
       jitterY,
       taaEnabled: taaOn,
+      edgeSharpening: params.edgeSharpening,
     });
     packBodies(paramsData, currentBodies, currentMods);
     return paramsData;
