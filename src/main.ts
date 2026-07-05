@@ -7,6 +7,7 @@ import { createDefaultParams } from './params';
 import { createBodyStore, createDefaultBodies, evalBodyMod } from './body';
 import type { BodyMod } from './lifecycle';
 import { createPlayer, parseScenario, serializeScenario, DEMO_SCENARIO, type ScenarioPlayer } from './scenario';
+import { createAxisLabelOverlay } from './axis';
 import { t, onLangChange } from './i18n';
 
 const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
 
   const camera = createOrbitCamera(canvas);
   const renderer = await createRenderer(canvas);
+  const axisLabels = createAxisLabelOverlay();
   renderer.setBodies(store.list());
 
   window.addEventListener('resize', renderer.resizeCanvas);
@@ -222,6 +224,7 @@ async function main(): Promise<void> {
       ? playhead
       : (timeline.scrub ? timeline.time : manualClock);
     renderer.renderFrame(params, cam, elapsed, sceneClock);
+    axisLabels.update(params.showAxes, cam.viewProj, canvas, params.boxHalfExtent, params.cloudHeight);
     const workMs = performance.now() - now;
 
     if (measureState !== 'idle') {

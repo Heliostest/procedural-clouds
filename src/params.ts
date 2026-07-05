@@ -182,6 +182,7 @@ export interface CloudParams {
   cloudHeight: number;
   morphStrength: number;
   showBodyBounds: boolean;
+  showAxes: boolean;
   selectedBody: string | null;
   gizmoMode: 'move' | 'rotate' | null;
   skipLight: boolean;
@@ -316,6 +317,7 @@ export function createDefaultParams(): CloudParams {
     cloudHeight: 8.0,
     morphStrength: 0,
     showBodyBounds: true,
+    showAxes: false,
     selectedBody: null,
     gizmoMode: null,
     skipLight: false,

@@ -254,6 +254,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(globalFolder.add(timeline, 'paused').name(t('pauseAnim')), 'pauseAnim');
     tipKey(globalFolder.add({ resetTime: hooks.onTrigger }, 'resetTime').name(t('resetTime')), 'resetTime');
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
+    tipKey(globalFolder.add(params, 'showAxes').name(t('showAxes')), 'showAxes');
     tipKey(globalFolder.add(params, 'boxHalfExtent', 1.0, 32.0, 0.5).name(t('boxHalfExtent')), 'boxHalfExtent');
     tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 32.0, 0.5).name(t('boxHeight')), 'boxHeight');
     tipKey(globalFolder.add(params, 'weatherSize', 64, 1024, 1).name(t('weatherSize')).onFinishChange((v: number) => {

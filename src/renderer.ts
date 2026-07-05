@@ -12,6 +12,7 @@ import {
 } from './params';
 import { DEFAULT_WEATHER_SIZE, DEFAULT_BOX_HALF_EXTENT, createShapeData, paintBodyShapes } from './weather';
 import { geometrySignature, bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS, type CloudBody } from './body';
+import { buildAxisMesh } from './axis';
 import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 
@@ -243,6 +244,7 @@ struct VOut { @builtin(position) pos : vec4f, @location(0) color : vec3f };
 `;
 
 const MAX_LINE_VERTS = 8192;
+const MAX_AXIS_VERTS = 16384;
 const BODY_COLORS: [number, number, number][] = [
   [0.2, 1.0, 0.35],
   [1.0, 0.6, 0.12],
@@ -562,8 +564,39 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     layout: linePipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: lineCamBuffer } }],
   });
+  const axisPipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: lineModule,
+      entryPoint: 'vsLine',
+      buffers: [{
+        arrayStride: 24,
+        attributes: [
+          { shaderLocation: 0, offset: 0, format: 'float32x3' },
+          { shaderLocation: 1, offset: 12, format: 'float32x3' },
+        ],
+      }],
+    },
+    fragment: {
+      module: lineModule,
+      entryPoint: 'fsLine',
+      targets: [{ format }],
+    },
+    primitive: { topology: 'triangle-list', cullMode: 'none' },
+  });
+  const axisVertexBuffer = device.createBuffer({
+    size: MAX_AXIS_VERTS * 24,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+  });
+  const axisBindGroup = device.createBindGroup({
+    layout: axisPipeline.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: lineCamBuffer } }],
+  });
   const lineCamData = new Float32Array(20);
   let lineVertCount = 0;
+  let axisVertCount = 0;
+  let axisMeshSig = '';
+  let axisMeshCache: Float32Array | null = null;
 
   let currentBodies: CloudBody[] = [];
   let currentMods: BodyMod[] = [];
@@ -936,6 +969,19 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       const gb = currentBodies.find((b) => b.id === params.selectedBody);
       if (gb) arrays.push(buildGizmoVerts(gb, params.cloudHeight, params.gizmoMode));
     }
+    if (params.showAxes) {
+      const sig = `${params.boxHalfExtent}:${params.cloudHeight}`;
+      if (sig !== axisMeshSig) {
+        axisMeshSig = sig;
+        axisMeshCache = buildAxisMesh(params.boxHalfExtent, params.cloudHeight);
+        axisVertCount = Math.min(axisMeshCache.length / 6, MAX_AXIS_VERTS);
+        device.queue.writeBuffer(axisVertexBuffer, 0, axisMeshCache, 0, axisVertCount * 6);
+      } else if (axisMeshCache) {
+        axisVertCount = Math.min(axisMeshCache.length / 6, MAX_AXIS_VERTS);
+      }
+    } else {
+      axisVertCount = 0;
+    }
     if (arrays.length > 0) {
       const total = arrays.reduce((n, a) => n + a.length, 0);
       const verts = new Float32Array(total);
@@ -1030,6 +1076,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     renderPass.setBindGroup(1, densitySampleBindGroup);
     renderPass.draw(3);
 
+    if (lineVertCount > 0) {
+      lineCamData.set(cam.viewProj, 0);
+      lineCamData[16] = 1.0;
+      device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
+    }
     if (lineVertCount > 0) {
       renderPass.setPipeline(linePipeline);
       renderPass.setBindGroup(0, lineBindGroup);
@@ -1129,6 +1180,24 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     postPass.setBindGroup(0, postBindGroup);
     postPass.draw(3);
     postPass.end();
+
+    if (axisVertCount > 0) {
+      lineCamData.set(cam.viewProj, 0);
+      lineCamData[16] = 1.0;
+      device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
+      const axisPass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: textureView,
+          loadOp: 'load',
+          storeOp: 'store',
+        }],
+      });
+      axisPass.setPipeline(axisPipeline);
+      axisPass.setBindGroup(0, axisBindGroup);
+      axisPass.setVertexBuffer(0, axisVertexBuffer);
+      axisPass.draw(axisVertCount);
+      axisPass.end();
+    }
     histIndex ^= 1;
 
     if (tsQuerySet && tsResolve && tsRead && !tsMapping) {
