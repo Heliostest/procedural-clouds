@@ -134,6 +134,6 @@ export function createDefaultBodies(): CloudBody[] {
   return [
     { id: 'B1', shape: 'rect', bounds: [-3.5, -1.5, -0.5, 1.5], feather: 1.5, base: 0.0, thickness: 0.4, type: 'cumulus', coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
     { id: 'B2', shape: 'circle', bounds: [2.0, 1.0, 1.6, 0], feather: 1.5, base: 0.45, thickness: 0.2, type: 'altocumulus', coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B3', shape: 'circle', bounds: [0.0, -2.0, 2.2, 0], feather: 1.8, base: 0.76, thickness: 0.22, type: 'cirrus', coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B3', shape: 'circle', bounds: [0.0, -2.0, 2.2, 0], feather: 1.8, base: 0.4, thickness: 0.22, type: 'cirrus', coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
   ];
 }
