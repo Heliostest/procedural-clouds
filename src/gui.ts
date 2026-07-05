@@ -1,5 +1,15 @@
 import GUI from 'lil-gui';
-import { CLOUD_PRESETS, SHAPE_PRESET_KEYS, type ShapeKey, type CloudParams } from './params';
+import {
+  BASE_PRESET_KEYS,
+  CLOUD_PRESETS,
+  EDGE_STYLE_PRESET_KEYS,
+  MORPHOLOGY_PRESET_KEYS,
+  SHAPE_PRESET_KEYS,
+  getPresetField,
+  setPresetField,
+  type CloudParams,
+  type ShapeKey,
+} from './params';
 import type { BodyStore, CloudBody, BodyShape } from './body';
 import { t, tip, getLang, setLang, cloudTypeName, shapeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
 
@@ -53,15 +63,21 @@ const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
   silverLining: [0, 1, 0.01],
   baseDarkening: [0, 1, 0.01],
   sssStrength: [0, 1, 0.01],
+  anvilStrength: [0, 1, 0.01],
+  topCutoffSharpness: [0, 1, 0.01],
   edgeHardness: [0, 1, 0.01],
+  edgeErosionStrength: [0, 1, 0.01],
 };
 
 const RESERVED_PRESET_FIELDS = new Set<ShapeKey>(['cloudHeight', 'altBase', 'altTop']);
+const MORPHOLOGY_BASE_FIELDS = new Set<ShapeKey>(['edgeSharpness']);
 
 function presetToCode(key: string): string {
   const p = CLOUD_PRESETS[key];
-  const fields = SHAPE_PRESET_KEYS.map((k) => `${k}: ${p[k]}`).join(', ');
-  return `  ${key}: { ${fields} },`;
+  const fields = BASE_PRESET_KEYS.map((k) => `${k}: ${p[k]}`).join(', ');
+  const morphology = MORPHOLOGY_PRESET_KEYS.map((k) => `${k}: ${p.morphology[k]}`).join(', ');
+  const edgeStyle = EDGE_STYLE_PRESET_KEYS.map((k) => `${k}: ${p.edgeStyle[k]}`).join(', ');
+  return `  ${key}: { ${fields}, morphology: { ${morphology} }, edgeStyle: { ${edgeStyle} } },`;
 }
 
 function allPresetsToCode(): string {
@@ -380,22 +396,23 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
           const p = CLOUD_PRESETS[preset];
           for (const k of fields) {
             const [lo, hi, step] = PRESET_FIELD_RANGE[k];
-            const differs = cols.some((other) => CLOUD_PRESETS[other][k] !== p[k]);
+            const value = getPresetField(p, k);
+            const differs = cols.some((other) => getPresetField(CLOUD_PRESETS[other], k) !== value);
             const cell = document.createElement('div');
             cell.style.cssText = `height:24px;display:flex;align-items:center;gap:6px;padding:0 4px;border-radius:3px;background:${differs ? '#3a2a14' : 'transparent'}`;
             const sld = document.createElement('input');
             sld.type = 'range';
             sld.min = String(lo); sld.max = String(hi); sld.step = String(step);
-            sld.value = String(p[k]);
+            sld.value = String(value);
             sld.style.cssText = 'flex:1;width:110px;accent-color:#5af';
             const inp = document.createElement('input');
             inp.type = 'number';
-            inp.value = fmt(p[k]);
+            inp.value = fmt(value);
             inp.min = String(lo); inp.max = String(hi); inp.step = String(step);
             inp.style.cssText = 'height:20px;width:64px;text-align:right;font:12px monospace;background:#0e0e0e;color:#cfe;border:1px solid #333;border-radius:3px';
             const apply = (v: number, redraw: boolean) => {
               if (Number.isNaN(v)) return;
-              p[k] = v; hooks.onPresetsChanged();
+              setPresetField(p, k, v); hooks.onPresetsChanged();
               if (redraw) { render(); } else { inp.value = fmt(v); sld.value = String(v); }
             };
             sld.addEventListener('input', () => apply(parseFloat(sld.value), false));
@@ -420,13 +437,36 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       if (fieldsFolder) fieldsFolder.destroy();
       fieldsFolder = presetFolder.addFolder(cloudTypeName(editState.preset));
       tipFolder(fieldsFolder, getLang() === 'zh'
-        ? '该云属的形状与光照模板。所有云体引用这些预设；悬停每一项查看其设计意图与作用。'
-        : 'Shape & lighting template for this genus. Bodies reference these presets; hover each row to see its design intent.');
+        ? '该云属的形态、边缘风格与光照模板。形态会改变缓存密度；边缘风格只影响取样后的渲染响应。'
+        : 'Morphology, edge style, and lighting for this genus. Morphology changes cached density; edge style changes only post-sample rendering.');
       const p = CLOUD_PRESETS[editState.preset];
-      for (const k of SHAPE_PRESET_KEYS) {
-        if (RESERVED_PRESET_FIELDS.has(k)) continue;
+      const generalFolder = fieldsFolder.addFolder(t('presetProperties'));
+      const morphologyFolder = fieldsFolder.addFolder(t('presetMorphology'));
+      const edgeStyleFolder = fieldsFolder.addFolder(t('presetEdgeStyle'));
+      tipFolder(morphologyFolder, getLang() === 'zh'
+        ? '云属宏观结构；修改后会在后续密度缓存刷新中生效。'
+        : 'Genus macro structure; changes enter the density cache on subsequent refreshes.');
+      tipFolder(edgeStyleFolder, getLang() === 'zh'
+        ? '取样后的边缘渲染；不改变密度缓存中的砧顶、顶部或云底结构。'
+        : 'Post-sample edge rendering; never changes cached anvil, top, or base structure.');
+
+      const addField = (folder: GUI, target: Record<string, number>, k: ShapeKey) => {
         const [lo, hi, step] = PRESET_FIELD_RANGE[k];
-        tipText(fieldsFolder.add(p, k, lo, hi, step).name(presetFieldName(k)).onChange(hooks.onPresetsChanged), presetFieldDesc(k));
+        tipText(folder.add(target, k, lo, hi, step).name(presetFieldName(k)).onChange(hooks.onPresetsChanged), presetFieldDesc(k));
+      };
+
+      for (const k of BASE_PRESET_KEYS) {
+        if (RESERVED_PRESET_FIELDS.has(k) || MORPHOLOGY_BASE_FIELDS.has(k)) continue;
+        addField(generalFolder, p as unknown as Record<string, number>, k);
+      }
+      for (const k of MORPHOLOGY_BASE_FIELDS) {
+        addField(morphologyFolder, p as unknown as Record<string, number>, k);
+      }
+      for (const k of MORPHOLOGY_PRESET_KEYS) {
+        addField(morphologyFolder, p.morphology as Record<string, number>, k);
+      }
+      for (const k of EDGE_STYLE_PRESET_KEYS) {
+        addField(edgeStyleFolder, p.edgeStyle as Record<string, number>, k);
       }
     }
     const typeOpts: Record<string, string> = {};

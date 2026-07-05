@@ -82,6 +82,9 @@ const DICT: Dict = {
 
   presetEditor: { en: 'Preset Editor', zh: '预设编辑器' },
   editPreset: { en: 'Edit Genus', zh: '编辑云属' },
+  presetProperties: { en: 'Other Properties', zh: '其他属性' },
+  presetMorphology: { en: 'Genus Morphology', zh: '云属形态' },
+  presetEdgeStyle: { en: 'Edge Rendering', zh: '边缘渲染' },
   copyPreset: { en: 'Copy This Preset', zh: '拷贝此预设' },
   copyAllPresets: { en: 'Copy All Presets', zh: '拷贝全部预设' },
 
@@ -89,7 +92,7 @@ const DICT: Dict = {
   renderMarch: { en: 'Ray March', zh: '光线步进' },
   renderAA: { en: 'Anti-aliasing', zh: '抗锯齿' },
   renderCache: { en: 'Density Cache', zh: '密度缓存' },
-  renderEdge: { en: 'Edge Shape', zh: '边缘形态' },
+  renderEdge: { en: 'Edge Rendering', zh: '边缘渲染' },
   renderPost: { en: 'Post-process', zh: '后处理' },
   skipLight: { en: 'Skip Light March', zh: '跳过光照步进' },
   adaptiveMarch: { en: 'Adaptive March', zh: '自适应步进' },
@@ -217,10 +220,10 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
     },
   },
   edgeSharpness: {
-    name: { en: 'Edge Sharpness', zh: '边缘锐度' },
+    name: { en: 'Density Shape Sharpness', zh: '密度形状锐度' },
     desc: {
-      en: 'Sharpness of cloud edges. Higher = crisp, well-defined edges; lower = soft, fluffy, diffuse edges.',
-      zh: '云边缘的锐度。越大边缘越硬朗清晰；越小越柔和蓬松、越扩散。',
+      en: 'Pre-cache density-shape contrast inside evalBody. It changes raw cloud structure; it is not the post-sample Edge Hardness control.',
+      zh: 'evalBody 中、进入缓存前的密度形状对比度。它会改变原始云体结构，不是取样后的“边缘硬度”。',
     },
   },
   baseRoundness: {
@@ -228,6 +231,20 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
     desc: {
       en: 'Fades density toward the bottom of the cloud. Higher gives a more rounded, puffy underside.',
       zh: '让云底部的密度逐渐衰减。越大云底越圆润、越蓬松饱满。',
+    },
+  },
+  anvilStrength: {
+    name: { en: 'Anvil Strength', zh: '砧顶强度' },
+    desc: {
+      en: 'Genus morphology: expands only the upper horizontal footprint. Changes raw density/cache structure and is independent of edge rendering.',
+      zh: '云属形态参数：只扩展高层水平足迹。它会改变原始密度/缓存结构，与边缘渲染相互独立。',
+    },
+  },
+  topCutoffSharpness: {
+    name: { en: 'Top Cutoff Sharpness', zh: '顶部截断锐度' },
+    desc: {
+      en: 'Genus morphology: blends from the legacy rounded top to a narrow top cutoff. It remains active when edge sharpening is disabled.',
+      zh: '云属形态参数：从旧圆化顶部过渡到窄范围顶部截断。关闭边缘锐化后仍然生效。',
     },
   },
   worleyBlend: {
@@ -303,8 +320,15 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
   edgeHardness: {
     name: { en: 'Edge Hardness', zh: '边缘硬度' },
     desc: {
-      en: 'Per-genus raymarch edge hardness. Cumulonimbus uses a high value for crisp cauliflower/anvil edges; 0 keeps the legacy density path.',
-      zh: '按云属控制 raymarch 边缘硬度。积雨云使用较高值形成清晰的花椰菜/砧顶轮廓；0 保留旧密度路径。',
+      en: 'Per-genus post-sample density-transfer hardness. It changes opacity transition only and never creates an anvil or alters the cloud base.',
+      zh: '按云属控制取样后的密度传递硬度。它只改变透明度过渡，不会生成砧顶或改变云底。',
+    },
+  },
+  edgeErosionStrength: {
+    name: { en: 'Edge Erosion', zh: '边缘侵蚀' },
+    desc: {
+      en: 'Per-genus analytic Worley/Curl erosion strength in the density threshold band. 0 skips the extra sampling cost.',
+      zh: '按云属控制密度阈值窄带内的 Worley/Curl 解析侵蚀强度。0 会跳过额外采样开销。',
     },
   },
 };
@@ -401,8 +425,8 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   qualityMode: { en: 'Cached = fastest (uses cache), Realtime = full quality (no cache), Hybrid = mix.', zh: 'Cached = 最快（用缓存），Realtime = 全质量（不用缓存），Hybrid = 混合。' },
   detailFreq: { en: 'Global frequency of the high-frequency detail noise added at render time.', zh: '渲染时叠加的高频细节噪声的全局频率。' },
   detailStrength: { en: 'Global strength of the high-frequency detail noise added at render time.', zh: '渲染时叠加的高频细节噪声的全局强度。' },
-  edgeSharpening: { en: 'Master switch for per-genus edge sharpening. Off restores the pre-stage-10 density path immediately.', zh: '按云属边缘锐化总开关。关闭后立即恢复阶段 10 之前的密度路径。' },
-  edgeHardness: { en: 'Global multiplier for each genus preset Edge Hardness. 0 = legacy path; 1 = preset strength.', zh: '各云属预设“边缘硬度”的全局倍率。0 = 旧路径；1 = 预设强度。' },
+  edgeSharpening: { en: 'Master switch for post-sample edge rendering. Off softens edges but preserves cached genus morphology such as cumulonimbus anvils.', zh: '取样后边缘渲染总开关。关闭后边缘变柔，但会保留缓存中的积雨云砧顶等云属形态。' },
+  edgeHardness: { en: 'Global multiplier for each genus edge-transfer hardness. It does not affect anvil, top-cutoff, or base morphology.', zh: '各云属边缘传递硬度的全局倍率。它不会影响砧顶、顶部截断或云底形态。' },
   edgeHardnessThreshold: { en: 'Center threshold for edge hardness smoothstep.', zh: '边缘硬度 smoothstep 中心阈值。' },
   cacheWgX: { en: 'Density-cache compute workgroup X (rebuilds pipeline). Default 8.', zh: '密度缓存 compute 工作组 X（重建管线）。默认 8。' },
   cacheWgY: { en: 'Density-cache compute workgroup Y. Default 8.', zh: '密度缓存 compute 工作组 Y。默认 8。' },

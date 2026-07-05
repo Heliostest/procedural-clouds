@@ -1,80 +1,127 @@
 ## Context
 
-当前密度缓存为 96³ `rgba16float`，`r` 存密度、`g/b/a` 存两个主导云属及次主导权重。`densityAtTyped()` 是主 raymarch、光照行进和地面云影的统一取样入口。旧 `applyEdgeHardness()` 在该入口执行全局 `smoothstep`，但不读取样本云属，且没有解析边缘细节。`evalBody()` 的垂直轮廓则由对称 `vEnvelope = pow(vT, shape) * range` 产生，积雨云顶部仍被刻意圆化。
+当前实现有两条本应独立的处理链：
 
-阶段 4 已提供自适应步进命中回退，阶段 8 已提供可关闭 TAA；阶段 10 可以在统一取样入口引入陡传递函数，并通过总开关即时回退。
+1. `evalBody()` 生成云体原始密度，决定砧顶足迹、顶部垂直包络和云底曲线；其结果会写入 3D 密度缓存。
+2. `densityAtTyped()` 取得 cached、hybrid 或 realtime 密度后调用 `applyEdgeShaping()`，决定阈值附近的透明度过渡和解析侵蚀。
+
+现有代码在两条链中都读取 `effectiveEdgeHardness()`。因此 `edgeSharpening=false` 不仅关闭后置锐化，也把积雨云的砧顶和硬顶混回旧包络。这是参数语义和管线职责的耦合错误。
 
 ## Goals / Non-Goals
 
 **Goals:**
-- 积雨云默认获得锐利边缘、花椰菜硬块感与可辨砧顶。
-- 普通积云及其他硬度为 0 的云属保持阶段 10 前密度路径。
-- cached/hybrid/realtime、主行进/光照行进/地面云影使用一致锐化。
-- 解析侵蚀只减密度，不在缓存空区凭空造云，保持未来占据 max 金字塔的保守性。
-- 提供无需重载的全局 A/B 回退。
+
+- 积雨云砧顶、顶部截断与底部曲线只由云属形态参数决定。
+- 边缘密度传递与解析侵蚀只由边缘渲染参数决定。
+- 两组参数在 GUI 中可独立调节并形成稳定的 2×2 对照。
+- cached、hybrid、realtime、主 raymarch、光照行进与地面云影继续共享一致的后置边缘响应。
+- 普通积云默认形态不突变；现有积雨云阶段 10 观感可由新参数组合近似复现。
 
 **Non-Goals:**
-- 不提高 3D 缓存分辨率。
+
 - 不重写阶段 13.1 的完整 Perlin-Worley 密度模型。
-- 不引入 body 级自动切换 realtime；现有质量模式仍由用户控制。
-- 不在本阶段重新标定全部银边/光照参数，只做回归检查。
+- 不增加 3D 缓存分辨率。
+- 不改变云体 CRUD、天气图、生命周期或场景格式。
+- 本次提案修订不修改实现代码；实施必须等待用户批准。
 
 ## Decisions
 
-### D1：预设扩为六个 vec4
+### D1：参数按职责分组，而不是按当前槽位分组
 
-`ShapePreset.edgeHardness` 追加为第 20 个语义字段；按路线图要求把每预设布局从 `p0..p4` 扩为 `p0..p5`，值写入 `p5.x`，其余分量保留。`packPresetArray()` 仍是唯一打包入口。默认 cumulonimbus 为 `0.85`，其他云属为 `0`，保证普通积云不变。
+CPU 侧预设在语义上分为：
 
-### D2：全局控制语义
+```ts
+interface CloudPreset {
+  morphology: {
+    anvilStrength: number;
+    topCutoffSharpness: number;
+    baseRoundness: number;
+  };
+  edgeStyle: {
+    edgeHardness: number;
+    edgeErosionStrength: number;
+  };
+}
+```
 
-现有全局 `edgeHardness` 改作预设硬度倍率（默认 `1`），`edgeHardnessThreshold` 继续作为传递中心。复用 `Globals` 的 padding 槽增加 `edgeSharpening` 总开关（默认开启）。有效硬度为：
+这不要求 GPU 缓冲使用嵌套布局。为降低迁移风险，现有六个 `vec4` 保持不变：
 
-`effective = edgeSharpening ? clamp(presetHardness * globalScale, 0, 1) : 0`
+- `p5.x`: `edgeHardness`
+- `p5.y`: `anvilStrength`
+- `p5.z`: `topCutoffSharpness`
+- `p5.w`: `edgeErosionStrength`
 
-总开关关闭或倍率为 0 时，取样入口原样返回阶段 10 前的密度。
+`baseRoundness` 保留原槽位。WGSL 分别通过 `presetMorphology()` 和 `presetEdgeStyle()` 读取，禁止使用含混的 `shapeHardness` 中间变量。
 
-### D3：单调传递与解析侵蚀顺序
+### D2：形态先生成，边缘后响应
 
-取样入口先在阈值邻域内做只减不增的解析侵蚀，再执行 `smoothstep(threshold-width, threshold+width, density)`。宽度随有效硬度从 `0.15` 收窄到 `0.006`。该顺序保证侵蚀塑造等值面，而陡传递提供清晰不透明度边缘。
+管线顺序固定为：
 
-解析侵蚀只在 `abs(density-threshold)` 的窄带内且有效硬度大于零时运行。它使用 `curlNoise3D()` 扭曲后的 `worleyF1_3D()`，最大减密度幅度受阈值与硬度限制，输出恒满足 `0 <= shapedDensity <= inputDensity`。
+```text
+云属形态参数
+  -> evalBody() 原始密度
+  -> density cache / realtime density
+  -> densityAtTyped()
+  -> edge style 后置传递与侵蚀
+  -> 光学积分
+```
 
-### D4：可复用 Worley/Curl
+- `evalBody()` 只能读取 morphology 参数；不得读取 `edgeHardness`、`edgeErosionStrength` 或 `edgeSharpening`。
+- `applyEdgeShaping()` 只能读取 edge-style 和全局边缘参数；不得改变足迹坐标、垂直包络或云底曲线。
+- `edgeSharpening=false` 时，`applyEdgeShaping()` 原样返回输入密度，但输入密度仍包含积雨云形态。
 
-在 `noise.wgsl` 提供两个无资源依赖函数：
+### D3：形态参数的明确语义
 
-- `worley_f1_3d(p)`：使用当前 cell 与最相关对角邻居的两点 F1 近似。完整 3³ 搜索在 256 步 raymarch 内会造成着色器展开/运行成本失控，留待阶段 13.1 的独立质量路径。
-- `curl_noise_3d(p, time)`：由多频解析向量势的旋度构造便宜的无散域扭曲。
+- `anvilStrength`：控制高层水平足迹相对中层的扩展量；`0` 表示无砧顶扩张。
+- `topCutoffSharpness`：控制顶部从圆化包络到窄过渡截断的混合；`0` 表示旧圆化顶部。
+- `baseRoundness`：继续控制平底与圆底之间的过渡，不与边缘硬化联动。
 
-两者以稳定函数名留给阶段 13.1 的高频边缘侵蚀直接复用。
+默认 cumulonimbus 使用非零 `anvilStrength` 和 `topCutoffSharpness`；其他云属默认 `anvilStrength=0`。这些默认值不受边缘总开关影响。
 
-### D5：高硬度云属的垂直轮廓
+### D4：边缘参数的明确语义
 
-`evalBody()` 读取预设硬度。硬度为 0 时保留旧对称 `vEnvelope` 与 falloff。硬度升高时：
+- `edgeHardness`：只控制阈值附近单调密度传递窗口的宽度。
+- `edgeErosionStrength`：只控制阈值窄带内 Worley/Curl 解析侵蚀幅度；`0` 时完全跳过该计算。
+- `edgeHardnessThreshold`：保留为全局传递中心。
+- `edgeSharpening`：保留为整个后置边缘阶段的总开关。
 
-- 顶部混入 2% 高度范围的窄过渡截断，去掉圆顶包络。
-- `vLocal > 0.68` 时逐步把天气足迹采样坐标向云体中心收缩，等价于把高层足迹扩到最多 1.28 倍，形成砧顶。
-- 底部使用 `baseRoundness` 决定过渡宽度：低值接近平底，高值为较宽圆底。
+每云属可保留不同 edge-style 默认值，这是渲染风格预设，不是云属结构定义。调整或清零它们不得改变密度缓存中的宏观轮廓。
 
-### D6：验证边界
+### D5：四象限验收是解耦的硬约束
 
-自动验证覆盖 TypeScript、Vite 生产构建、OpenSpec 严格校验与源级布局断言。浏览器验证覆盖：无 WGSL 编译错误、cumulonimbus 预设硬度可见、关闭总开关即时回退、默认普通积云未被锐化。最终肉眼数值仍以本地截图为准。
+| 云属形态 | 边缘渲染 | 预期结果 |
+|---|---|---|
+| 开 | 开 | 积雨云砧顶保留，边缘硬化并受解析侵蚀 |
+| 开 | 关 | 积雨云砧顶保留，边缘恢复柔和过渡 |
+| 关 | 开 | 无砧顶/硬顶结构，但剩余密度轮廓可被硬化 |
+| 关 | 关 | 近似阶段 10 前的形态和软边路径 |
+
+若任一开关同时改变另一列对应的特征，则视为解耦失败。
+
+### D6：GUI 分组反映处理层级
+
+- “云属形态”：`anvilStrength`、`topCutoffSharpness`、`baseRoundness`
+- “边缘渲染”：`edgeSharpening`、`edgeHardness`、`edgeErosionStrength`、`edgeHardnessThreshold`
+
+GUI 标签和帮助文本必须说明：形态参数会改变密度场并触发缓存更新；边缘参数只改变取样后的渲染响应，不要求重建缓存。
 
 ## Risks / Trade-offs
 
-- [Worley 逐样本成本] → 仅 cumulonimbus 阈值窄带执行，并用阶段 2 GPU timing 对比。
-- [硬边放大阶梯条纹] → 保留阶段 4 命中回退；推荐 TAA，且总开关可即时回退。
-- [预设布局与活动变更冲突] → 本变更显式依赖 `per-preset-lighting` 当前五 vec4 布局，在其后追加第六槽，不重排既有 19 个字段。
-- [砧顶过平] → 解析侵蚀作用于顶部阈值带，高层足迹扩展只改变水平尺度；顶部窄过渡而非零宽裁剪。
-- [银边随密度分布变化] → 浏览器回归检查，不在缺少人眼反馈时擅自改全局银边默认值。
+- [参数数量增加] → 只新增两个必要形态参数和一个侵蚀强度参数，不引入通用曲线编辑器。
+- [per-genus edge style 仍可能被误解为结构] → 数据模型、WGSL accessor、GUI 分组和文档均使用 `edgeStyle` 命名，并以四象限测试约束行为。
+- [关闭形态后不能逐像素复现旧图] → 验收定义为近似阶段 10 前观感；现有噪声和其他已完成阶段不回退。
+- [顶部截断放大阶梯条纹] → 保留阶段 4 命中回退和阶段 8 TAA 回归检查；形态与边缘分别关闭定位来源。
 
 ## Migration Plan
 
-1. 扩展预设 CPU/GPU 布局并先保持有效硬度为 0，验证布局。
-2. 引入统一取样锐化和噪声函数，启用 cumulonimbus 默认硬度。
-3. 引入高硬度垂直轮廓与砧顶扩展。
-4. 浏览器 A/B 验证；如出现阶梯条纹，关闭总开关可完整回退。
+1. 先增加 morphology/edge-style 语义访问器并保持现有输出不变。
+2. 把 `evalBody()` 中所有 `shapeHardness` 依赖替换为 `anvilStrength`、`topCutoffSharpness` 和 `baseRoundness`。
+3. 把 `edgeHardness` 限定在 `applyEdgeShaping()`；增加独立 `edgeErosionStrength`。
+4. 拆分 GUI 分组与帮助文本。
+5. 完成四象限浏览器验收、性能对比和 OpenSpec/TypeScript/build 校验。
 
-## Open Questions
+## Review Decisions
 
-- 阶段 13.1 重写密度后是否还需要保留顶部窄截断，将在该阶段的第二次重校准中决定。
+- 使用语义更精确的 `topCutoffSharpness`。
+- 保留 per-genus edge-style，以支持混合云属场景中的不同边缘风格。
+- cumulonimbus 初始硬度保留 `0.85`；解耦后的四象限浏览器复核未发现必须立即改默认值的回归，后续仍可独立肉眼标定。

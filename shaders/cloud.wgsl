@@ -86,6 +86,11 @@ struct PresetShape {
 const PRESET_COUNT = 10;
 const DENSITY_SCALE_MAX = 2.0;
 const RAYMARCH_MAX_STEPS = 256u;
+// Must match PRESET_P5_OFFSETS in src/params.ts.
+const PRESET_P5_EDGE_HARDNESS = 0u;
+const PRESET_P5_ANVIL_STRENGTH = 1u;
+const PRESET_P5_TOP_CUTOFF_SHARPNESS = 2u;
+const PRESET_P5_EDGE_EROSION_STRENGTH = 3u;
 
 override wg_x : u32 = 8u;
 override wg_y : u32 = 8u;
@@ -101,7 +106,7 @@ override wg_z : u32 = 4u;
 @group(1) @binding(2) var densityTex1 : texture_3d<f32>;
 @group(2) @binding(0) var densityStore : texture_storage_3d<rgba16float, write>;
 
-struct Shape13 {
+struct Shape12 {
   density           : f32,
   coverage          : f32,
   altitude          : f32,
@@ -110,17 +115,16 @@ struct Shape13 {
   cloudHeight       : f32,
   coverageThreshold : f32,
   edgeSharpness     : f32,
-  baseRoundness     : f32,
   worleyBlend       : f32,
   detailStrength    : f32,
   altBase           : f32,
   altTop            : f32,
 };
 
-fn presetShape(i : i32) -> Shape13 {
+fn presetShape(i : i32) -> Shape12 {
   let idx = clamp(i, 0, PRESET_COUNT - 1);
   let p = presets[idx];
-  return Shape13(p.p0.x, p.p0.y, p.p0.z, p.p0.w, p.p1.x, p.p1.y, p.p1.z, p.p1.w, p.p2.x, p.p2.y, p.p2.z, p.p2.w, p.p3.x);
+  return Shape12(p.p0.x, p.p0.y, p.p0.z, p.p0.w, p.p1.x, p.p1.y, p.p1.z, p.p1.w, p.p2.y, p.p2.z, p.p2.w, p.p3.x);
 }
 
 struct Lighting {
@@ -138,19 +142,52 @@ fn presetLighting(i : i32) -> Lighting {
   return Lighting(p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z);
 }
 
-fn presetEdgeHardness(i : i32) -> f32 {
+struct Morphology {
+  baseRoundness     : f32,
+  anvilStrength     : f32,
+  topCutoffSharpness : f32,
+};
+
+fn presetMorphology(i : i32) -> Morphology {
   let idx = clamp(i, 0, PRESET_COUNT - 1);
-  return presets[idx].p5.x;
+  let p = presets[idx];
+  return Morphology(
+    p.p2.x,
+    p.p5[PRESET_P5_ANVIL_STRENGTH],
+    p.p5[PRESET_P5_TOP_CUTOFF_SHARPNESS],
+  );
 }
 
-fn effectiveEdgeHardness(rawHardness : f32) -> f32 {
-  if (params.g.edgeSharpening < 0.5 || params.g.edgeHardness <= 0.0) { return 0.0; }
-  return clamp01(rawHardness * params.g.edgeHardness);
+struct EdgeStyle {
+  hardness        : f32,
+  erosionStrength : f32,
+};
+
+fn presetEdgeStyle(i : i32) -> EdgeStyle {
+  let idx = clamp(i, 0, PRESET_COUNT - 1);
+  let p = presets[idx];
+  return EdgeStyle(
+    p.p5[PRESET_P5_EDGE_HARDNESS],
+    p.p5[PRESET_P5_EDGE_EROSION_STRENGTH],
+  );
 }
 
-fn blendedEdgeHardness(idx : f32, idx2 : f32, w2 : f32) -> f32 {
-  let h = mix(presetEdgeHardness(i32(idx)), presetEdgeHardness(i32(idx2)), clamp(w2, 0.0, 0.5));
-  return effectiveEdgeHardness(h);
+fn effectiveEdgeStyle(raw : EdgeStyle) -> EdgeStyle {
+  if (params.g.edgeSharpening < 0.5) { return EdgeStyle(0.0, 0.0); }
+  return EdgeStyle(
+    clamp01(raw.hardness * max(params.g.edgeHardness, 0.0)),
+    clamp01(raw.erosionStrength),
+  );
+}
+
+fn blendedEdgeStyle(idx : f32, idx2 : f32, w2 : f32) -> EdgeStyle {
+  let a = presetEdgeStyle(i32(idx));
+  let b = presetEdgeStyle(i32(idx2));
+  let t = clamp(w2, 0.0, 0.5);
+  return effectiveEdgeStyle(EdgeStyle(
+    mix(a.hardness, b.hardness, t),
+    mix(a.erosionStrength, b.erosionStrength, t),
+  ));
 }
 
 fn mixLighting(a : Lighting, b : Lighting, t : f32) -> Lighting {
@@ -169,8 +206,8 @@ fn blendedLighting(idx : f32, idx2 : f32, w2 : f32) -> Lighting {
   return mixLighting(presetLighting(i32(idx)), presetLighting(i32(idx2)), clamp(w2, 0.0, 0.5));
 }
 
-fn mixShape(a : Shape13, b : Shape13, t : f32) -> Shape13 {
-  return Shape13(
+fn mixShape(a : Shape12, b : Shape12, t : f32) -> Shape12 {
+  return Shape12(
     mix(a.density, b.density, t),
     mix(a.coverage, b.coverage, t),
     mix(a.altitude, b.altitude, t),
@@ -179,7 +216,6 @@ fn mixShape(a : Shape13, b : Shape13, t : f32) -> Shape13 {
     mix(a.cloudHeight, b.cloudHeight, t),
     mix(a.coverageThreshold, b.coverageThreshold, t),
     mix(a.edgeSharpness, b.edgeSharpness, t),
-    mix(a.baseRoundness, b.baseRoundness, t),
     mix(a.worleyBlend, b.worleyBlend, t),
     mix(a.detailStrength, b.detailStrength, t),
     mix(a.altBase, b.altBase, t),
@@ -374,17 +410,17 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let objPos = oRaw - advect;
 
   let shape = presetShape(i32(round(b.geom.z)));
-  let shapeHardness = effectiveEdgeHardness(presetEdgeHardness(i32(round(b.geom.z))));
+  let morphology = presetMorphology(i32(round(b.geom.z)));
   let bmin = boxMin();
   let zNorm = (rp.y - bmin.y) / max(getBoxMax().y - bmin.y, 0.001);
   let altBase = clamp(b.geom.x, 0.0, 0.98);
   let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, 1.0);
   let vLocal = (zNorm - altBase) / max(altTop - altBase, 0.001);
 
-  // High-hardness genera widen only their upper footprint, producing the
-  // characteristic cumulonimbus anvil without changing ordinary cumulus.
+  // Genus morphology widens only the upper footprint. Edge-style controls are
+  // deliberately absent here so disabling edge rendering cannot remove anvils.
   let anvilBand = smoothstep(0.68, 0.90, vLocal) * (1.0 - smoothstep(0.98, 1.02, vLocal));
-  let anvilScale = 1.0 + 0.28 * shapeHardness * anvilBand;
+  let anvilScale = 1.0 + 0.28 * clamp01(morphology.anvilStrength) * anvilBand;
   let footprintCenter = b.footprint.xy;
   let footprintPos = footprintCenter + (oRaw.xy - footprintCenter) / anvilScale;
 
@@ -411,7 +447,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let detail        = shape.detail;
   let coverageThreshold = shape.coverageThreshold;
   let edgeSharpness     = shape.edgeSharpness * edgeSoft;
-  let baseRoundness     = shape.baseRoundness;
+  let baseRoundness     = morphology.baseRoundness;
   let detailBoost       = max(wMorph, 0.0);
   let erosion           = max(-wMorph, 0.0);
   let weatherMorph      = params.g.weatherMorph;
@@ -473,12 +509,13 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let bottomWidth = mix(0.035, 0.22, clamp01(baseRoundness));
   let bottomMask = smoothstep(-0.01, bottomWidth, vLocal);
   let hardShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold) * topMask * bottomMask;
-  let finalShaped = mix(legacyShaped, hardShaped, shapeHardness);
+  let topCutoffSharpness = clamp01(morphology.topCutoffSharpness);
+  let finalShaped = mix(legacyShaped, hardShaped, topCutoffSharpness);
 
   // --- STAGE 5: Final Multipliers ---
   let falloffRaw = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
   let legacyFalloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
-  let falloff = mix(legacyFalloff, 1.0, shapeHardness);
+  let falloff = mix(legacyFalloff, 1.0, topCutoffSharpness);
   let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
   let edgeFade = smoothstep(0.0, 0.25, localCoverage);
   return finalShaped * falloff * densityScale * wDensityScale * edgeFade; // Math.016
@@ -634,19 +671,22 @@ fn detailNoise(pos : vec3f) -> f32 {
 }
 
 fn applyEdgeShaping(d : f32, idx : f32, idx2 : f32, w2 : f32, pos : vec3f) -> f32 {
-  let h = blendedEdgeHardness(idx, idx2, w2);
-  if (h < 0.0001) { return d; }
+  let edgeStyle = blendedEdgeStyle(idx, idx2, w2);
+  let h = edgeStyle.hardness;
+  let erosionStrength = edgeStyle.erosionStrength;
+  if (h < 0.0001 && erosionStrength < 0.0001) { return d; }
   let thr = max(params.g.edgeHardnessThreshold, 0.0001);
   var eroded = max(d, 0.0);
-  let edgeBandWidth = mix(0.045, 0.025, h);
+  let edgeBandWidth = mix(0.045, 0.025, max(h, erosionStrength));
   let edgeBand = 1.0 - smoothstep(edgeBandWidth * 0.45, edgeBandWidth, abs(eroded - thr));
-  if (edgeBand > 0.001) {
+  if (edgeBand > 0.001 && erosionStrength > 0.0001) {
     let curl = curl_noise_3d(pos * 1.7, params.g.sceneTime * 0.06);
     let cell = worley_f1_3d(pos * 8.0 + curl * 0.45);
     let pockets = 1.0 - smoothstep(0.16, 0.52, cell);
-    let erosion = pockets * edgeBand * h * min(thr * 0.7, 0.04);
+    let erosion = pockets * edgeBand * erosionStrength * min(thr * 0.7, 0.04);
     eroded = max(eroded - erosion, 0.0);
   }
+  if (h < 0.0001) { return eroded; }
   let w = mix(0.15, 0.006, h);
   return smoothstep(thr - w, thr + w, eroded);
 }
