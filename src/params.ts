@@ -1,5 +1,7 @@
 import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
+import { DEFAULT_SCENE_SCALE, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
+import { assertCompleteGenusProfiles } from './genusProfile';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 48;
@@ -113,21 +115,22 @@ export function setPresetField(preset: ShapePreset, key: ShapeKey, value: number
 }
 
 export const CLOUD_PRESETS: Record<string, ShapePreset> = {
-  cumulus:       { density: 1.0, coverage: 0.55, altitude: 0.5, scale: 3.75, detail: 1.0, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.6,  worleyBlend: 0.5,  detailStrength: 1.0, altBase: 0.0,  altTop: 0.7,  absorptionCoeff: 0.045, phaseForward: 0.6,  phaseBack: -0.2, silverLining: 0.4,  baseDarkening: 0.35, sssStrength: 0.3,  morphology: { baseRoundness: 0.35, anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  stratus:       { density: 1.2, coverage: 0.9,  altitude: 0.35, scale: 6.0,  detail: 0.5, cloudHeight: 1.0, coverageThreshold: 0.0,  edgeSharpness: 0.15, worleyBlend: 0.1,  detailStrength: 0.4, altBase: 0.0,  altTop: 0.45, absorptionCoeff: 0.06,  phaseForward: 0.3,  phaseBack: -0.1, silverLining: 0.1,  baseDarkening: 0.15, sssStrength: 0.15, morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  stratocumulus: { density: 1.1, coverage: 0.7,  altitude: 0.45, scale: 4.5,  detail: 1.0, cloudHeight: 1.3, coverageThreshold: 0.0,  edgeSharpness: 0.4,  worleyBlend: 0.4,  detailStrength: 0.8, altBase: 0.0,  altTop: 0.6,  absorptionCoeff: 0.05,  phaseForward: 0.4,  phaseBack: -0.2, silverLining: 0.25, baseDarkening: 0.25, sssStrength: 0.25, morphology: { baseRoundness: 0.2,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
+  cumulus:       { density: 1.0, coverage: 0.55, altitude: 0.5, scale: 3.75, detail: 1.0, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.6,  worleyBlend: 0.5,  detailStrength: 1.0, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.045, phaseForward: 0.6, phaseBack: -0.2, silverLining: 0.4, baseDarkening: 0.35, sssStrength: 0.3, morphology: { baseRoundness: 0.35, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  stratus:       { density: 1.2, coverage: 0.9, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.0, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.06, phaseForward: 0.3, phaseBack: -0.1, silverLining: 0.1, baseDarkening: 0.15, sssStrength: 0.15, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  stratocumulus: { density: 1.1, coverage: 0.7, altitude: 0.45, scale: 4.5, detail: 1.0, cloudHeight: 1.3, coverageThreshold: 0.0, edgeSharpness: 0.4, worleyBlend: 0.4, detailStrength: 0.8, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.05, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.25, baseDarkening: 0.25, sssStrength: 0.25, morphology: { baseRoundness: 0.2, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
   cumulonimbus:  { density: 2.2, coverage: 0.5,  altitude: 0.7,  scale: 5.0,  detail: 2.0, cloudHeight: 3.5, coverageThreshold: 0.1,  edgeSharpness: 0.8,  worleyBlend: 0.65, detailStrength: 1.1, altBase: 0.0,  altTop: 1.0,  absorptionCoeff: 0.1,   phaseForward: 0.7,  phaseBack: -0.3, silverLining: 0.6,  baseDarkening: 0.6,  sssStrength: 0.2,  morphology: { baseRoundness: 0.5,  anvilStrength: 0.85, topCutoffSharpness: 0.85 }, edgeStyle: { edgeHardness: 0.85, edgeErosionStrength: 0.85 } },
-  altocumulus:   { density: 0.9, coverage: 0.55, altitude: 0.4, scale: 2.5,  detail: 1.0, cloudHeight: 1.5, coverageThreshold: 0.05, edgeSharpness: 0.5,  worleyBlend: 0.7,  detailStrength: 0.7, altBase: 0.3,  altTop: 0.8,  absorptionCoeff: 0.035, phaseForward: 0.4,  phaseBack: -0.2, silverLining: 0.3,  baseDarkening: 0.2,  sssStrength: 0.35, morphology: { baseRoundness: 0.1,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  altostratus:   { density: 1.0, coverage: 0.85, altitude: 0.35, scale: 6.0,  detail: 0.5, cloudHeight: 1.2, coverageThreshold: 0.0,  edgeSharpness: 0.15, worleyBlend: 0.05, detailStrength: 0.3, altBase: 0.3,  altTop: 0.8,  absorptionCoeff: 0.02,  phaseForward: 0.5,  phaseBack: 0.0,  silverLining: 0.1,  baseDarkening: 0.1,  sssStrength: 0.5,  morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  nimbostratus:  { density: 1.8, coverage: 0.95, altitude: 0.5,  scale: 6.5,  detail: 0.5, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.1,  worleyBlend: 0.1,  detailStrength: 0.4, altBase: 0.1,  altTop: 0.75, absorptionCoeff: 0.09,  phaseForward: 0.2,  phaseBack: 0.0,  silverLining: 0.05, baseDarkening: 0.5,  sssStrength: 0.1,  morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  cirrus:        { density: 0.6, coverage: 0.35, altitude: 0.3, scale: 2.2,  detail: 2.5, cloudHeight: 1.2, coverageThreshold: 0.15, edgeSharpness: 0.7,  worleyBlend: 0.15, detailStrength: 1.3, altBase: 0.65, altTop: 1.0,  absorptionCoeff: 0.008, phaseForward: 0.8,  phaseBack: 0.0,  silverLining: 0.5,  baseDarkening: 0.05, sssStrength: 0.7,  morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  cirrostratus:  { density: 0.5, coverage: 0.7,  altitude: 0.3, scale: 5.0,  detail: 0.5, cloudHeight: 1.1, coverageThreshold: 0.0,  edgeSharpness: 0.1,  worleyBlend: 0.0,  detailStrength: 0.3, altBase: 0.65, altTop: 1.0,  absorptionCoeff: 0.005, phaseForward: 0.85, phaseBack: 0.0,  silverLining: 0.2,  baseDarkening: 0.0,  sssStrength: 0.8,  morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
-  cirrocumulus:  { density: 0.6, coverage: 0.4,  altitude: 0.3, scale: 1.5,  detail: 1.5, cloudHeight: 1.1, coverageThreshold: 0.1,  edgeSharpness: 0.6,  worleyBlend: 0.8,  detailStrength: 0.9, altBase: 0.6,  altTop: 1.0,  absorptionCoeff: 0.01,  phaseForward: 0.7,  phaseBack: 0.0,  silverLining: 0.3,  baseDarkening: 0.1,  sssStrength: 0.6,  morphology: { baseRoundness: 0.0,  anvilStrength: 0.0,  topCutoffSharpness: 0.0 },  edgeStyle: { edgeHardness: 0.0,  edgeErosionStrength: 0.0 } },
+  altocumulus:   { density: 0.9, coverage: 0.55, altitude: 0.4, scale: 2.5, detail: 1.0, cloudHeight: 1.5, coverageThreshold: 0.05, edgeSharpness: 0.5, worleyBlend: 0.7, detailStrength: 0.7, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.035, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.3, baseDarkening: 0.2, sssStrength: 0.35, morphology: { baseRoundness: 0.1, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  altostratus:   { density: 1.0, coverage: 0.85, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.2, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.05, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.02, phaseForward: 0.5, phaseBack: 0.0, silverLining: 0.1, baseDarkening: 0.1, sssStrength: 0.5, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  nimbostratus:  { density: 1.8, coverage: 0.95, altitude: 0.5, scale: 6.5, detail: 0.5, cloudHeight: 1.6, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.09, phaseForward: 0.2, phaseBack: 0.0, silverLining: 0.05, baseDarkening: 0.5, sssStrength: 0.1, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrus:        { density: 0.6, coverage: 0.35, altitude: 0.3, scale: 2.2, detail: 2.5, cloudHeight: 1.2, coverageThreshold: 0.15, edgeSharpness: 0.7, worleyBlend: 0.15, detailStrength: 1.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.008, phaseForward: 0.8, phaseBack: 0.0, silverLining: 0.5, baseDarkening: 0.05, sssStrength: 0.7, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrostratus:  { density: 0.5, coverage: 0.7, altitude: 0.3, scale: 5.0, detail: 0.5, cloudHeight: 1.1, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.0, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.005, phaseForward: 0.85, phaseBack: 0.0, silverLining: 0.2, baseDarkening: 0.0, sssStrength: 0.8, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrocumulus:  { density: 0.6, coverage: 0.4, altitude: 0.3, scale: 1.5, detail: 1.5, cloudHeight: 1.1, coverageThreshold: 0.1, edgeSharpness: 0.6, worleyBlend: 0.8, detailStrength: 0.9, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.01, phaseForward: 0.7, phaseBack: 0.0, silverLining: 0.3, baseDarkening: 0.1, sssStrength: 0.6, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
 };
 
 export type PresetKey = keyof typeof CLOUD_PRESETS;
 
 export const PRESET_ORDER = Object.keys(CLOUD_PRESETS);
+assertCompleteGenusProfiles(PRESET_ORDER);
 export const PRESET_COUNT = PRESET_ORDER.length;
 export const PRESET_VEC4_COUNT = 6;
 export const PRESET_FLOAT_COUNT = PRESET_COUNT * PRESET_VEC4_COUNT * 4;
@@ -180,6 +183,9 @@ export function packPresetArray(): Float32Array {
 
 export interface CloudParams {
   cloudHeight: number;
+  verticalMetersPerWorldUnit: number;
+  horizontalMetersPerWorldUnit: number;
+  enforcePhysicalPlacement: boolean;
   morphStrength: number;
   showBodyBounds: boolean;
   showAxes: boolean;
@@ -207,8 +213,6 @@ export interface CloudParams {
   typeLightingBlend: number;
   fxAbsorption: boolean;
   boxHalfExtent: number;
-  altitudeScale: number;
-  horizontalScale: number;
   weatherSize: number;
   lightMarchStepSize: number;
   verticalEdgeRange: number;
@@ -277,8 +281,14 @@ export function packParams(dst: Float32Array, values: Record<string, PackValue>)
   return dst;
 }
 
-export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMod[]): void {
+export function packBodies(
+  dst: Float32Array,
+  bodies: CloudBody[],
+  mods?: BodyMod[],
+  requestedScale: SceneScale = DEFAULT_SCENE_SCALE,
+): void {
   const n = Math.min(bodies.length, MAX_BODIES);
+  const scale = normalizedSceneScale(requestedScale);
   const boxHeight = dst[PARAM_OFFSETS.cloudHeight] || 8;
   dst[PARAM_OFFSETS.activeBodyCount] = n;
   for (let i = 0; i < MAX_BODIES; i++) {
@@ -287,8 +297,10 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMo
       const b = bodies[i];
       const m = mods?.[i];
       const rad = b.windDeg * Math.PI / 180.0;
-      const altTop = Math.min(boxHeight, b.base + Math.max(0.02, b.thickness));
-      dst[o + 0] = b.base;
+      const base = metersToWorldY(b.base, scale);
+      const thickness = metersToWorldY(b.thickness, scale);
+      const altTop = Math.min(boxHeight, base + Math.max(0.02, thickness));
+      dst[o + 0] = base;
       dst[o + 1] = altTop;
       dst[o + 2] = presetIndex(b.type);
       dst[o + 3] = 1.0;
@@ -299,11 +311,11 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMo
       dst[o + 8] = b.coverage * (m ? m.coverageMul : 1);
       dst[o + 9] = b.densityScale * (m ? m.densityScale : 1);
       dst[o + 10] = m ? m.morph : 0;
-      dst[o + 11] = b.feather;
+      dst[o + 11] = metersToWorldXZ(b.feather, scale);
       const fp = footprintData(b);
-      dst[o + 12] = fp[0];
-      dst[o + 13] = fp[1];
-      dst[o + 14] = fp[2];
+      dst[o + 12] = metersToWorldXZ(fp[0], scale);
+      dst[o + 13] = metersToWorldXZ(fp[1], scale);
+      dst[o + 14] = metersToWorldXZ(fp[2], scale);
       dst[o + 15] = SHAPE_ID[b.shape] ?? 0;
       dst[o + 16] = b.rot ? b.rot[0] : 0;
       dst[o + 17] = b.rot ? b.rot[1] : 0;
@@ -317,7 +329,10 @@ export function packBodies(dst: Float32Array, bodies: CloudBody[], mods?: BodyMo
 
 export function createDefaultParams(): CloudParams {
   return {
-    cloudHeight: 8.0,
+    cloudHeight: 12000,
+    verticalMetersPerWorldUnit: DEFAULT_SCENE_SCALE.verticalMetersPerWorldUnit,
+    horizontalMetersPerWorldUnit: DEFAULT_SCENE_SCALE.horizontalMetersPerWorldUnit,
+    enforcePhysicalPlacement: false,
     morphStrength: 0,
     showBodyBounds: true,
     showAxes: false,
@@ -344,9 +359,7 @@ export function createDefaultParams(): CloudParams {
     detailStrength: 0,
     typeLightingBlend: 1.0,
     fxAbsorption: true,
-    boxHalfExtent: 4.5,
-    altitudeScale: 1.0,
-    horizontalScale: 1.0,
+    boxHalfExtent: 16000,
     weatherSize: 256,
     lightMarchStepSize: 0.15,
     verticalEdgeRange: 0.55,

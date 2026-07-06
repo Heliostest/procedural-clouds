@@ -20,9 +20,12 @@
 | 覆盖度 | Coverage | `coverage` | 云填满范围的比例（云体级 × 云属级） |
 | 密度 | Density | `density` / `densityScale` | 云的厚实/不透光程度（云体级 × 云属级） |
 | 羽化 | Feather | `feather` | 足迹水平边界的柔化宽度 |
-| 高度 | Height | `base` | 云层底部高度（按盒体高度的比例 0–1） |
-| 厚度 | Thickness | `thickness` | 云层竖直厚度，与高度共同决定竖直区间 |
-| 高度剖面 | Altitude Profile | preset `altitude` | 噪声竖直剖面（相对比例，非世界高度） |
+| 高度 | Height above scene ground | `base` | 相对场景地面基准的云底高度，CPU/scenario v2 中单位为米 |
+| 厚度 | Thickness | `thickness` | 云层竖直厚度，CPU/scenario v2 中单位为米 |
+| 云属参考位置 | Genus Profile | `GENUS_PROFILE_SET` | 带版本的推荐云底范围与默认 placement；当前为 `temperate-demo-v1` |
+| 位置锁定 | Placement Lock | `placementLocked` | 手动编辑后保留实例 placement，换属时不自动重置 |
+| 高度剖面 | Altitude Profile | preset `altitude` | 云体内部局部 Y 的噪声竖直剖面（相对比例，非全局盒高） |
+| 属内密度带 | In-body Altitude Band | preset `altBase` / `altTop` | 云体自身 `[base, base+thickness]` 内的相对密度带，不编码高/中/低云绝对位置 |
 | 噪声尺度 | Noise Scale | preset `scale` | 形状噪声采样尺度 |
 | 细节 / 细节强度 | Detail / Detail Strength | `detail` / `detailStrength` | 细节噪声的层级与强度 |
 | 覆盖度阈值 | Coverage Threshold | `coverageThreshold` | 密度裁剪阈值 |
@@ -51,7 +54,11 @@
 
 | 中文 | English | 代码标识 | 说明 |
 |---|---|---|---|
-| 盒体 | Box | `BOX_MIN` / `boxHeight` / `boxHalfExtent` | 云的渲染包围盒（世界尺寸） |
+| 盒体 | Box | `BOX_MIN` / `cloudHeight` / `boxHalfExtent` | CPU 以米定义场景边界，GPU 使用转换后的渲染包围盒 |
+| 场景地面基准 | Scene-ground Datum | Y=0 | 本项目的相对高度零点；不是平均海平面绝对海拔 |
+| 物理场景空间 | Physical Scene Space | CPU body / scenario v2 | 米制数据空间，存储云体 placement 与场景边界 |
+| 渲染世界空间 | Render World Space | GPU / shader / camera | 紧凑 world units；由米制数据按轴向比例转换 |
+| 竖直/水平换算 | Meters per World Unit | `verticalMetersPerWorldUnit` / `horizontalMetersPerWorldUnit` | 一 render world unit 对应的米数，默认均为 1000 |
 | 天气图 | Weather Map | `weather.ts` / `weatherSize` | 每云体的 2D 足迹/形状纹理 |
 | 光线步进 | Ray March | `rayMarchSteps` | 主射线穿过盒体的采样步进 |
 | 光照步进 | Light March | `lightMarch` / `lightMarchSteps` | 朝太阳方向采样以求自阴影 |
@@ -73,4 +80,5 @@
 
 - 云的种类一律称 **云属 / Genus**；不再用“类型 / Type”指代云种（已统一 UI 标签）。
 - 场景中一朵云一律称 **云体 / Body**；历史概念 “region/区域” 已废弃（仅 `scenario.ts` 保留旧 JSON 字段 `regions`/`regionId` 的向后兼容读取）。
-- **高度（Height）** 指云体在盒内的竖直位置比例；**盒体高度（Box Height）** 指渲染盒的世界高度；**高度剖面（Altitude Profile）** 指云属噪声的竖直相对剖面——三者不可混淆。
+- **高度（Height）** 指相对 scene-ground datum 的米制位置；**场景层顶（Scene Ceiling）** 是米制场景边界；**高度剖面（Altitude Profile）** 是云体内部相对形态——三者不可混淆。
+- WMO 的 height（相对观测地面）与 altitude（相对平均海平面）定义不同。本项目当前没有 MSL/地形 datum，因此文档不得把 `base` 称为绝对海拔。

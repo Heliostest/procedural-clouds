@@ -15,6 +15,7 @@ import { geometrySignature, bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS, 
 import { buildAxisMesh } from './axis';
 import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
+import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 
 const shaderSource = noiseSource + cloudSource;
 
@@ -511,6 +512,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let weatherSize = DEFAULT_WEATHER_SIZE;
   let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
   let cornerRadius = 0.5;
+  let sceneScale: SceneScale = { ...DEFAULT_SCENE_SCALE };
   let cacheWg: [number, number, number] = [8, 8, 4];
   let computePipeline = device.createComputePipeline({
     layout: 'auto',
@@ -533,7 +535,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let shapeData = createShapeData(weatherSize);
 
   function uploadShapes(): void {
-    paintBodyShapes(shapeData, currentBodies, weatherSize, boxHalfExtent, cornerRadius);
+    const worldBodies = currentBodies.map((body) => bodyToRenderSpace(body, sceneScale));
+    paintBodyShapes(
+      shapeData,
+      worldBodies,
+      weatherSize,
+      metersToWorldXZ(boxHalfExtent, sceneScale),
+      cornerRadius,
+    );
     device.queue.writeTexture(
       { texture: shapeTexture },
       shapeData,
@@ -938,7 +947,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       sunIntensity: params.sunIntensity,
       skipLight: params.skipLight,
       cacheBlend,
-      cloudHeight: params.cloudHeight,
+      cloudHeight: metersToWorldY(params.cloudHeight, params),
       weatherMorph: params.morphStrength,
       sceneTime,
       deltaTime,
@@ -955,7 +964,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       detailStrength: params.detailStrength,
       typeLightingBlend: params.typeLightingBlend,
       fxAbsorption: params.fxAbsorption,
-      boxHalfExtent: params.boxHalfExtent,
+      boxHalfExtent: metersToWorldXZ(params.boxHalfExtent, params),
       lightMarchStepSize: params.lightMarchStepSize,
       verticalEdgeRange: params.verticalEdgeRange,
       verticalEdgeShape: params.verticalEdgeShape,
@@ -979,7 +988,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       taaEnabled: taaOn,
       edgeSharpening: params.edgeSharpening,
     });
-    packBodies(paramsData, currentBodies, currentMods);
+    packBodies(paramsData, currentBodies, currentMods, params);
     return paramsData;
   }
 
@@ -993,19 +1002,22 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cameraData[18] = cam.eye[2];
     device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
+    const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
+    const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
+    const worldBodies = currentBodies.map((body) => bodyToRenderSpace(body, params));
     const arrays: Float32Array[] = [];
     if (params.showBodyBounds && currentBodies.length > 0) {
-      arrays.push(buildLineVerts(currentBodies, params.cloudHeight, params.selectedBody));
+      arrays.push(buildLineVerts(worldBodies, worldCloudHeight, params.selectedBody));
     }
     if (params.gizmoMode && params.selectedBody) {
-      const gb = currentBodies.find((b) => b.id === params.selectedBody);
-      if (gb) arrays.push(buildGizmoVerts(gb, params.cloudHeight, params.gizmoMode));
+      const gb = worldBodies.find((b) => b.id === params.selectedBody);
+      if (gb) arrays.push(buildGizmoVerts(gb, worldCloudHeight, params.gizmoMode));
     }
     if (params.showAxes) {
-      const sig = `${params.boxHalfExtent}:${params.cloudHeight}`;
+      const sig = `${worldBoxHalfExtent}:${worldCloudHeight}`;
       if (sig !== axisMeshSig) {
         axisMeshSig = sig;
-        axisMeshCache = buildAxisMesh(params.boxHalfExtent, params.cloudHeight);
+        axisMeshCache = buildAxisMesh(worldBoxHalfExtent, worldCloudHeight);
         axisVertCount = Math.min(axisMeshCache.length / 6, MAX_AXIS_VERTS);
         device.queue.writeBuffer(axisVertexBuffer, 0, axisMeshCache, 0, axisVertCount * 6);
       } else if (axisMeshCache) {
@@ -1040,6 +1052,16 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     if (params.boxHalfExtent !== boxHalfExtent) {
       boxHalfExtent = params.boxHalfExtent;
+      shapeSignature = '';
+      uploadShapes();
+    }
+
+    const nextScale = normalizedSceneScale(params);
+    if (
+      nextScale.horizontalMetersPerWorldUnit !== sceneScale.horizontalMetersPerWorldUnit
+      || nextScale.verticalMetersPerWorldUnit !== sceneScale.verticalMetersPerWorldUnit
+    ) {
+      sceneScale = nextScale;
       shapeSignature = '';
       uploadShapes();
     }

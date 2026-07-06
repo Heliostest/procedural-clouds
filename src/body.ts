@@ -1,4 +1,5 @@
 import { evalLifecycleMod, type LifecycleEnvelope, type BodyMod } from './lifecycle';
+import { applyGenusDefaults } from './genusProfile';
 
 export type BodyShape =
   | 'rect'
@@ -36,6 +37,7 @@ export interface CloudBody {
   base: number;
   thickness: number;
   type: string;
+  placementLocked: boolean;
   coverage: number;
   densityScale: number;
   windDeg: number;
@@ -89,20 +91,44 @@ export interface BodyStore {
   list(): CloudBody[];
   add(shape: BodyShape): CloudBody;
   setShape(id: string, shape: BodyShape): void;
+  setType(id: string, type: string): void;
+  applyTypeDefaults(id: string): void;
   remove(id: string): void;
   update(id: string, patch: Partial<CloudBody>): void;
 }
 
-export function createBodyStore(initial: CloudBody[]): BodyStore {
+const PLACEMENT_KEYS = new Set<keyof CloudBody>(['bounds', 'feather', 'base', 'thickness']);
+
+function createBody(id: string, shape: BodyShape): CloudBody {
+  const body: CloudBody = {
+    id,
+    shape,
+    bounds: shape === 'rect' ? [-800, -800, 800, 800] : [0, 0, 800, 0],
+    feather: 300,
+    base: 1000,
+    thickness: 1500,
+    type: 'cumulus',
+    placementLocked: false,
+    coverage: 0.7,
+    densityScale: 1,
+    windDeg: 45,
+    windSpeed: 0.15,
+    morphRate: 0.05,
+    rot: [0, 0, 0],
+    life: defaultLife(),
+  };
+  applyGenusDefaults(body, 12000);
+  return body;
+}
+
+export function createBodyStore(initial: CloudBody[], getCloudHeightM: () => number = () => 12000): BodyStore {
   const bodies = initial.slice();
   let counter = bodies.length;
   return {
     list: () => bodies,
     add(shape) {
-      const id = `B${++counter}`;
-      const body: CloudBody = shape === 'rect'
-        ? { id, shape, bounds: [-1.5, -1.5, 1.5, 1.5], feather: 1.5, base: 0.0, thickness: 3.2, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() }
-        : { id, shape, bounds: [0, 0, 1.8, 0], feather: 1.5, base: 0.0, thickness: 3.2, type: 'cumulus', coverage: 0.7, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() };
+      const body = createBody(`B${++counter}`, shape);
+      applyGenusDefaults(body, getCloudHeightM());
       bodies.push(body);
       return body;
     },
@@ -121,6 +147,17 @@ export function createBodyStore(initial: CloudBody[]): BodyStore {
         b.bounds = [cx - r, cz - r, cx + r, cz + r];
       }
       b.shape = shape;
+      b.placementLocked = true;
+    },
+    setType(id, type) {
+      const b = bodies.find((x) => x.id === id);
+      if (!b) return;
+      b.type = type;
+      if (!b.placementLocked) applyGenusDefaults(b, getCloudHeightM());
+    },
+    applyTypeDefaults(id) {
+      const b = bodies.find((x) => x.id === id);
+      if (b) applyGenusDefaults(b, getCloudHeightM());
     },
     remove(id) {
       const i = bodies.findIndex((b) => b.id === id);
@@ -128,15 +165,19 @@ export function createBodyStore(initial: CloudBody[]): BodyStore {
     },
     update(id, patch) {
       const b = bodies.find((x) => x.id === id);
-      if (b) Object.assign(b, patch);
+      if (!b) return;
+      Object.assign(b, patch);
+      if (Object.keys(patch).some((key) => PLACEMENT_KEYS.has(key as keyof CloudBody))) {
+        b.placementLocked = true;
+      }
     },
   };
 }
 
 export function createDefaultBodies(): CloudBody[] {
   return [
-    { id: 'B1', shape: 'rect', bounds: [-3.5, -1.5, -0.5, 1.5], feather: 1.5, base: 0.0, thickness: 3.2, type: 'cumulus', coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B2', shape: 'circle', bounds: [2.0, 1.0, 1.6, 0], feather: 1.5, base: 3.6, thickness: 1.6, type: 'altocumulus', coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B3', shape: 'circle', bounds: [0.0, -2.0, 2.2, 0], feather: 1.8, base: 3.2, thickness: 1.76, type: 'cirrus', coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B1', shape: 'rect', bounds: [-3500, -1500, -500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus', placementLocked: true, coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B2', shape: 'circle', bounds: [2000, 1000, 1600, 0], feather: 1500, base: 2500, thickness: 2500, type: 'altocumulus', placementLocked: true, coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B3', shape: 'circle', bounds: [0, -2000, 2200, 0], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus', placementLocked: true, coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
   ];
 }

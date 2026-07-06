@@ -32,7 +32,7 @@ function tipFolder(f: { $title: HTMLElement }, text: string): void {
 }
 
 const LOG_SCALE_MIN = 0.001;
-const LOG_SCALE_MAX = 10000;
+const LOG_SCALE_MAX = 100000;
 
 function formatScaleValue(v: number): string {
   const a = Math.abs(v);
@@ -43,7 +43,7 @@ function formatScaleValue(v: number): string {
   return v.toExponential(2);
 }
 
-type LogScaleKey = 'altitudeScale' | 'horizontalScale';
+type LogScaleKey = 'verticalMetersPerWorldUnit' | 'horizontalMetersPerWorldUnit';
 
 interface LogNumberCtrl extends Ctrl {
   updateDisplay(): LogNumberCtrl;
@@ -225,7 +225,11 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         }
         typeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
         typeSel.addEventListener('click', (e) => e.stopPropagation());
-        typeSel.addEventListener('change', () => { b.type = typeSel.value; hooks.onBodiesChanged(); });
+        typeSel.addEventListener('change', () => {
+          store.setType(b.id, typeSel.value);
+          rebuildBodies();
+          hooks.onBodiesChanged();
+        });
         const moveBtn = document.createElement('button');
         moveBtn.textContent = '✥';
         moveBtn.title = tip('gizmoMove');
@@ -272,27 +276,28 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
             hd: (b.bounds[3] - b.bounds[1]) / 2,
           };
           const apply = () => {
-            b.bounds = [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd];
+            store.update(b.id, { bounds: [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd] });
             hooks.onBodiesChanged();
           };
-          tipKey(f.add(proxy, 'cx', -lim, lim, 0.1).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -lim, lim, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'hw', 0.2, lim, 0.1).name(t('halfW')).onChange(apply), 'halfW');
-          tipKey(f.add(proxy, 'hd', 0.2, lim, 0.1).name(t('halfD')).onChange(apply), 'halfD');
+          tipKey(f.add(proxy, 'cx', -lim, lim, 100).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -lim, lim, 100).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'hw', 100, lim, 100).name(t('halfW')).onChange(apply), 'halfW');
+          tipKey(f.add(proxy, 'hd', 100, lim, 100).name(t('halfD')).onChange(apply), 'halfD');
         } else {
           const proxy = { cx: b.bounds[0], cz: b.bounds[1], r: b.bounds[2] };
           const apply = () => {
-            b.bounds = [proxy.cx, proxy.cz, proxy.r, 0];
+            store.update(b.id, { bounds: [proxy.cx, proxy.cz, proxy.r, 0] });
             hooks.onBodiesChanged();
           };
-          tipKey(f.add(proxy, 'cx', -lim, lim, 0.1).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -lim, lim, 0.1).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'r', 0.2, lim, 0.1).name(t('radius')).onChange(apply), 'radius');
+          tipKey(f.add(proxy, 'cx', -lim, lim, 100).name(t('centerX')).onChange(apply), 'centerX');
+          tipKey(f.add(proxy, 'cz', -lim, lim, 100).name(t('centerZ')).onChange(apply), 'centerZ');
+          tipKey(f.add(proxy, 'r', 100, lim, 100).name(t('radius')).onChange(apply), 'radius');
         }
-        tipKey(f.add(b, 'feather', 0.0, 3.0, 0.05).name(t('feather')).onChange(hooks.onBodiesChanged), 'feather');
+        tipKey(f.add(b, 'feather', 0, Math.min(5000, lim), 50).name(t('feather')).onChange(() => { b.placementLocked = true; hooks.onBodiesChanged(); }), 'feather');
         const bh = params.cloudHeight;
-        tipKey(f.add(b, 'base', 0.0, Math.max(0.02, bh - 0.02), 0.1).name(t('height')).onChange(hooks.onBodiesChanged), 'height');
-        tipKey(f.add(b, 'thickness', 0.02, bh, 0.1).name(t('thickness')).onChange(hooks.onBodiesChanged), 'thickness');
+        tipKey(f.add(b, 'base', 0, Math.max(1, bh - 1), 100).name(t('height')).onChange(() => { b.placementLocked = true; hooks.onBodiesChanged(); }), 'height');
+        tipKey(f.add(b, 'thickness', 1, bh, 100).name(t('thickness')).onChange(() => { b.placementLocked = true; hooks.onBodiesChanged(); }), 'thickness');
+        tipKey(f.add({ applyGenusDefaults: () => { store.applyTypeDefaults(b.id); rebuildBodies(); hooks.onBodiesChanged(); } }, 'applyGenusDefaults').name(t('applyGenusDefaults')), 'applyGenusDefaults');
         tipKey(f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged), 'coverage');
         tipKey(f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged), 'density');
         tipKey(f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged), 'windDir');
@@ -318,10 +323,11 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(globalFolder.add({ resetTime: hooks.onTrigger }, 'resetTime').name(t('resetTime')), 'resetTime');
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
     tipKey(globalFolder.add(params, 'showAxes').name(t('showAxes')), 'showAxes');
-    tipKey(globalFolder.add(params, 'boxHalfExtent', 1.0, 32.0, 0.5).name(t('boxHalfExtent')), 'boxHalfExtent');
-    tipKey(globalFolder.add(params, 'cloudHeight', 1.0, 32.0, 0.5).name(t('boxHeight')).onChange(() => { rebuildBodies(); }), 'boxHeight');
-    addLogScaleSlider(globalFolder, params, 'altitudeScale', t('altitudeScale'), 'altitudeScale');
-    addLogScaleSlider(globalFolder, params, 'horizontalScale', t('horizontalScale'), 'horizontalScale');
+    tipKey(globalFolder.add(params, 'boxHalfExtent', 1000, 100000, 500).name(t('boxHalfExtent')), 'boxHalfExtent');
+    tipKey(globalFolder.add(params, 'cloudHeight', 1000, 30000, 500).name(t('boxHeight')).onChange(() => { rebuildBodies(); hooks.onBodiesChanged(); }), 'boxHeight');
+    addLogScaleSlider(globalFolder, params, 'verticalMetersPerWorldUnit', t('verticalMetersPerWorldUnit'), 'verticalMetersPerWorldUnit');
+    addLogScaleSlider(globalFolder, params, 'horizontalMetersPerWorldUnit', t('horizontalMetersPerWorldUnit'), 'horizontalMetersPerWorldUnit');
+    tipKey(globalFolder.add(params, 'enforcePhysicalPlacement').name(t('enforcePhysicalPlacement')).onChange(hooks.onBodiesChanged), 'enforcePhysicalPlacement');
     tipKey(globalFolder.add(params, 'weatherSize', 64, 1024, 1).name(t('weatherSize')).onFinishChange((v: number) => {
       const next = Math.max(64, Math.min(1024, Math.round(v)));
       params.weatherSize = next;

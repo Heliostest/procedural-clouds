@@ -9,14 +9,18 @@ import type { BodyMod } from './lifecycle';
 import { createPlayer, parseScenario, serializeScenario, DEMO_SCENARIO, type ScenarioPlayer } from './scenario';
 import { createAxisLabelOverlay } from './axis';
 import { t, onLangChange } from './i18n';
+import { enforcePlacement, placementWarning } from './genusProfile';
+import { metersToWorldXZ, metersToWorldY } from './space';
+import { verifyPhysicalContracts } from './physicalVerification';
 
 const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
 async function main(): Promise<void> {
+  if (import.meta.env.DEV) verifyPhysicalContracts();
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 
   const params = createDefaultParams();
-  const store = createBodyStore(createDefaultBodies());
+  const store = createBodyStore(createDefaultBodies(), () => params.cloudHeight);
   const timeline = { scrub: false, time: 0, paused: false };
   const scenarioState = { enabled: false, playing: true, speed: 1, loop: false };
   let currentScenario = DEMO_SCENARIO;
@@ -45,6 +49,14 @@ async function main(): Promise<void> {
   const camera = createOrbitCamera(canvas);
   const renderer = await createRenderer(canvas);
   const axisLabels = createAxisLabelOverlay();
+  function applyPlacementPolicy(bodies = store.list()): void {
+    for (const body of bodies) {
+      if (params.enforcePhysicalPlacement) enforcePlacement(body, params.cloudHeight);
+      else placementWarning(body, params.cloudHeight);
+    }
+  }
+
+  applyPlacementPolicy();
   renderer.setBodies(store.list());
 
   window.addEventListener('resize', renderer.resizeCanvas);
@@ -62,6 +74,7 @@ async function main(): Promise<void> {
 
   const gui = createGui(params, store, timeline, scenarioState, {
     onBodiesChanged() {
+      applyPlacementPolicy();
       renderer.setBodies(store.list());
     },
     onCacheResolution(res) {
@@ -88,7 +101,7 @@ async function main(): Promise<void> {
     },
     onScenarioLoad(text) {
       try {
-        currentScenario = parseScenario(text);
+        currentScenario = parseScenario(text, params);
         scenarioError = '';
         activateScenario();
       } catch (err) {
@@ -200,6 +213,7 @@ async function main(): Promise<void> {
       }
       if (Math.abs(playhead - lastPlayhead) > 1e-4) {
         const s = player.sample(playhead);
+        applyPlacementPolicy(s.bodies);
         renderer.setBodies(s.bodies);
         renderer.setBodyMods(s.bodies.map(() => IDENTITY_MOD));
         lastPlayhead = playhead;
@@ -215,6 +229,9 @@ async function main(): Promise<void> {
       renderer.setBodyMods(mods);
     }
 
+    const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
+    const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
+    camera.setSceneBounds(worldBoxHalfExtent, worldCloudHeight);
     camera.update();
 
     const aspect = canvas.width / canvas.height;
@@ -224,9 +241,9 @@ async function main(): Promise<void> {
       ? playhead
       : (timeline.scrub ? timeline.time : manualClock);
     renderer.renderFrame(params, cam, elapsed, sceneClock);
-    axisLabels.update(params.showAxes, cam.viewProj, canvas, params.boxHalfExtent, params.cloudHeight, {
-      altitudeScale: params.altitudeScale,
-      horizontalScale: params.horizontalScale,
+    axisLabels.update(params.showAxes, cam.viewProj, canvas, worldBoxHalfExtent, worldCloudHeight, {
+      verticalMetersPerWorldUnit: params.verticalMetersPerWorldUnit,
+      horizontalMetersPerWorldUnit: params.horizontalMetersPerWorldUnit,
     });
     const workMs = performance.now() - now;
 

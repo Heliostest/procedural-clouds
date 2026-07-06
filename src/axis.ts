@@ -11,8 +11,8 @@ export interface AxisLabel {
 }
 
 export interface AxisScales {
-  altitudeScale: number;
-  horizontalScale: number;
+  verticalMetersPerWorldUnit: number;
+  horizontalMetersPerWorldUnit: number;
 }
 
 function pickTickStep(span: number): number {
@@ -100,8 +100,8 @@ export function buildAxisLabels(boxHalfExtent: number, cloudHeight: number, scal
   const labels: AxisLabel[] = [];
   const e = boxHalfExtent;
   const h = cloudHeight;
-  const hs = scales.horizontalScale;
-  const vs = scales.altitudeScale;
+  const hs = scales.horizontalMetersPerWorldUnit;
+  const vs = scales.verticalMetersPerWorldUnit;
   const off = Math.max(0.15, Math.min(e, h) * 0.06);
   const col = (c: [number, number, number]) =>
     `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
@@ -153,7 +153,7 @@ export function createAxisLabelOverlay(): AxisLabelOverlay {
   let entries: { el: HTMLSpanElement; label: AxisLabel }[] = [];
 
   function rebuild(boxHalfExtent: number, cloudHeight: number, scales: AxisScales): void {
-    const nextSig = `${boxHalfExtent}:${cloudHeight}:${scales.altitudeScale}:${scales.horizontalScale}`;
+    const nextSig = `${boxHalfExtent}:${cloudHeight}:${scales.verticalMetersPerWorldUnit}:${scales.horizontalMetersPerWorldUnit}`;
     if (nextSig === sig) return;
     sig = nextSig;
     root.replaceChildren();

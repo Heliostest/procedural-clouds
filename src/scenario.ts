@@ -1,4 +1,5 @@
 import { defaultLife, type BodyShape, type CloudBody } from './body';
+import { DEFAULT_SCENE_SCALE, normalizedSceneScale, worldToMetersXZ, worldToMetersY, type SceneScale } from './space';
 
 export type Ease = 'linear' | 'smooth';
 
@@ -25,6 +26,8 @@ export interface ScenarioEvent {
 }
 
 export interface Scenario {
+  schemaVersion: 2;
+  distanceUnit: 'm';
   duration: number;
   wind?: { dirDeg: number; speed: number };
   bodies: Record<string, ScenarioBody>;
@@ -42,13 +45,25 @@ function smoothstep(t: number): number {
 
 type NumKey = 'coverage' | 'densityScale' | 'base' | 'thickness' | 'windDeg' | 'windSpeed';
 
-export function parseScenario(json: string | object): Scenario {
+function legacyBoundsToMeters(shape: BodyShape, bounds: number[], scale: SceneScale): number[] {
+  const next = bounds.slice();
+  const count = shape === 'rect' ? 4 : 3;
+  for (let i = 0; i < count; i++) next[i] = worldToMetersXZ(next[i] ?? 0, scale);
+  return next;
+}
+
+export function parseScenario(json: string | object, requestedScale: SceneScale = DEFAULT_SCENE_SCALE): Scenario {
   const raw = typeof json === 'string' ? JSON.parse(json) : (json as Record<string, unknown>);
   if (!raw || typeof raw !== 'object') throw new Error('scenario: not an object');
   const r = raw as Record<string, unknown>;
   if (typeof r.duration !== 'number') throw new Error('scenario: missing duration');
 
-  // Backward compat: old "regions" / "regionId".
+  const version = r.schemaVersion;
+  const legacy = version === undefined;
+  if (!legacy && version !== 2) throw new Error(`scenario: unsupported schemaVersion '${String(version)}'`);
+  if (!legacy && r.distanceUnit !== 'm') throw new Error(`scenario: unsupported distanceUnit '${String(r.distanceUnit)}'`);
+  const scale = normalizedSceneScale(requestedScale);
+
   const rawBodies = (r.bodies ?? r.regions) as Record<string, Record<string, unknown>> | undefined;
   if (!rawBodies || typeof rawBodies !== 'object') throw new Error('scenario: missing bodies');
   if (!Array.isArray(r.events)) throw new Error('scenario: missing events');
@@ -56,12 +71,17 @@ export function parseScenario(json: string | object): Scenario {
   const bodies: Record<string, ScenarioBody> = {};
   for (const id of Object.keys(rawBodies)) {
     const sb = rawBodies[id];
+    const shape = (sb.shape as BodyShape) ?? 'rect';
+    const rawBounds = (sb.bounds as number[]) ?? [0, 0, 0, 0];
+    const rawFeather = (sb.feather as number) ?? 1.5;
+    const rawBase = (sb.base as number) ?? 0;
+    const rawThickness = (sb.thickness as number) ?? 3.2;
     bodies[id] = {
-      shape: (sb.shape as BodyShape) ?? 'rect',
-      bounds: (sb.bounds as number[]) ?? [0, 0, 0, 0],
-      feather: (sb.feather as number) ?? 1.5,
-      base: (sb.base as number) ?? 0.0,
-      thickness: (sb.thickness as number) ?? 3.2,
+      shape,
+      bounds: legacy ? legacyBoundsToMeters(shape, rawBounds, scale) : rawBounds.slice(),
+      feather: legacy ? worldToMetersXZ(rawFeather, scale) : rawFeather,
+      base: legacy ? worldToMetersY(rawBase, scale) : rawBase,
+      thickness: legacy ? worldToMetersY(rawThickness, scale) : rawThickness,
       type: (sb.type as string) ?? 'cumulus',
     };
   }
@@ -73,11 +93,16 @@ export function parseScenario(json: string | object): Scenario {
       throw new Error('scenario: invalid event');
     }
     if (!(bodyId in bodies)) throw new Error(`scenario: event bodyId '${bodyId}' not in bodies`);
-    return { ...(e as unknown as ScenarioEvent), bodyId, ease: (e.ease as Ease) ?? 'linear' };
+    const event = { ...(e as unknown as ScenarioEvent), bodyId, ease: (e.ease as Ease) ?? 'linear' };
+    if (legacy && event.base !== undefined) event.base = worldToMetersY(event.base, scale);
+    if (legacy && event.thickness !== undefined) event.thickness = worldToMetersY(event.thickness, scale);
+    return event;
   });
   events.sort((a, b) => a.t - b.t);
 
   return {
+    schemaVersion: 2,
+    distanceUnit: 'm',
     duration: r.duration as number,
     wind: { dirDeg: wind.dirDeg ?? 0, speed: wind.speed ?? 0 },
     bodies,
@@ -86,7 +111,7 @@ export function parseScenario(json: string | object): Scenario {
 }
 
 export function serializeScenario(s: Scenario): string {
-  return JSON.stringify(s, null, 2);
+  return JSON.stringify({ ...s, schemaVersion: 2, distanceUnit: 'm' }, null, 2);
 }
 
 export function createPlayer(scenario: Scenario) {
@@ -140,11 +165,12 @@ export function createPlayer(scenario: Scenario) {
         bodies.push({
           id,
           shape: sb.shape,
-          bounds: sb.bounds,
+          bounds: sb.bounds.slice(),
           feather: sb.feather,
           base: sampleField(evs, t, 'base', sb.base),
           thickness: sampleField(evs, t, 'thickness', sb.thickness),
           type: sampleType(evs, t, sb.type),
+          placementLocked: true,
           coverage: sampleField(evs, t, 'coverage', 0),
           densityScale: sampleField(evs, t, 'densityScale', 1),
           windDeg: sampleField(evs, t, 'windDeg', windDeg0),
@@ -162,11 +188,13 @@ export function createPlayer(scenario: Scenario) {
 export type ScenarioPlayer = ReturnType<typeof createPlayer>;
 
 export const DEMO_SCENARIO: Scenario = {
+  schemaVersion: 2,
+  distanceUnit: 'm',
   duration: 70,
   wind: { dirDeg: 90, speed: 0.35 },
   bodies: {
-    A: { shape: 'rect', bounds: [-3.5, -1.5, 0.5, 1.5], feather: 1.5, base: 0.0, thickness: 3.2, type: 'cumulus' },
-    H: { shape: 'circle', bounds: [1.5, 1.5, 2.0, 0], feather: 1.8, base: 6.08, thickness: 1.76, type: 'cirrus' },
+    A: { shape: 'rect', bounds: [-3500, -1500, 500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus' },
+    H: { shape: 'circle', bounds: [1500, 1500, 2000, 0], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus' },
   },
   events: [
     { t: 0, bodyId: 'A', coverage: 0.0, densityScale: 0.0 },

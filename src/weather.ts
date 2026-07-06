@@ -2,7 +2,7 @@ import { MAX_BODIES } from './params';
 import type { CloudBody } from './body';
 
 export const DEFAULT_WEATHER_SIZE = 256;
-export const DEFAULT_BOX_HALF_EXTENT = 4.5;
+export const DEFAULT_BOX_HALF_EXTENT = 16000;
 
 export function shapeLayerBytes(weatherSize: number): number {
   return weatherSize * weatherSize;

@@ -2,6 +2,7 @@ import type { CameraFrame } from './camera';
 import type { BodyStore } from './body';
 import { bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS } from './body';
 import type { CloudParams } from './params';
+import { bodyToRenderSpace } from './space';
 
 const AXIS: [number, number, number][] = [
   [1, 0, 0],
@@ -79,7 +80,8 @@ export function createGizmoController(deps: GizmoDeps): void {
     const cam = deps.getCam();
     const b = selectedBody();
     if (!cam || !b) return;
-    const center = bodyCenterWorld(b, params.cloudHeight);
+    const worldBody = bodyToRenderSpace(b, params);
+    const center = bodyCenterWorld(worldBody, params.cloudHeight / params.verticalMetersPerWorldUnit);
     const cS = project(cam.viewProj, center);
     if (!cS) return;
     const [px, py] = pointer(e);
@@ -161,28 +163,29 @@ export function createGizmoController(deps: GizmoDeps): void {
     if (drag.mode === 'move') {
       const dpix = (px - drag.startX) * drag.screenDirX + (py - drag.startY) * drag.screenDirY;
       const dw = dpix / drag.pxPerWorld;
+      const dm = dw * (drag.axis === 1 ? params.verticalMetersPerWorldUnit : params.horizontalMetersPerWorldUnit);
       if (drag.axis === 1) {
-        b.base = Math.max(0, Math.min(params.cloudHeight - 0.02, drag.startBase + dw));
+        b.base = Math.max(0, Math.min(params.cloudHeight - 1, drag.startBase + dm));
       } else {
         const sb = drag.startBounds;
         if (b.shape === 'rect') {
-          if (drag.axis === 0) { b.bounds = [sb[0] + dw, sb[1], sb[2] + dw, sb[3]]; }
-          else { b.bounds = [sb[0], sb[1] + dw, sb[2], sb[3] + dw]; }
+          if (drag.axis === 0) { b.bounds = [sb[0] + dm, sb[1], sb[2] + dm, sb[3]]; }
+          else { b.bounds = [sb[0], sb[1] + dm, sb[2], sb[3] + dm]; }
         } else {
-          if (drag.axis === 0) { b.bounds = [sb[0] + dw, sb[1], sb[2], sb[3]]; }
-          else { b.bounds = [sb[0], sb[1] + dw, sb[2], sb[3]]; }
+          if (drag.axis === 0) { b.bounds = [sb[0] + dm, sb[1], sb[2], sb[3]]; }
+          else { b.bounds = [sb[0], sb[1] + dm, sb[2], sb[3]]; }
         }
       }
     } else if (drag.mode === 'scale') {
       const dpix = (px - drag.startX) * drag.screenDirX + (py - drag.startY) * drag.screenDirY;
       const sb = drag.startBounds;
-      let ref = drag.startThickness;
-      if (drag.axis === 0) ref = b.shape === 'rect' ? (sb[2] - sb[0]) / 2 : sb[2];
-      else if (drag.axis === 2) ref = b.shape === 'rect' ? (sb[3] - sb[1]) / 2 : sb[2];
+      let ref = drag.startThickness / params.verticalMetersPerWorldUnit;
+      if (drag.axis === 0) ref = (b.shape === 'rect' ? (sb[2] - sb[0]) / 2 : sb[2]) / params.horizontalMetersPerWorldUnit;
+      else if (drag.axis === 2) ref = (b.shape === 'rect' ? (sb[3] - sb[1]) / 2 : sb[2]) / params.horizontalMetersPerWorldUnit;
       const factor = Math.max(0.05, 1 + dpix / (drag.pxPerWorld * Math.max(ref, 0.05)));
       if (drag.axis === 1) {
         const cy = drag.startBase + drag.startThickness / 2;
-        const newTh = Math.max(0.02, drag.startThickness * factor);
+        const newTh = Math.max(1, drag.startThickness * factor);
         b.base = Math.max(0, cy - newTh / 2);
         b.thickness = Math.min(params.cloudHeight - b.base, newTh);
       } else if (b.shape === 'rect') {
@@ -190,11 +193,11 @@ export function createGizmoController(deps: GizmoDeps): void {
         const cz = (sb[1] + sb[3]) / 2;
         let hw = (sb[2] - sb[0]) / 2;
         let hd = (sb[3] - sb[1]) / 2;
-        if (drag.axis === 0) hw = Math.max(0.05, hw * factor);
-        else hd = Math.max(0.05, hd * factor);
+        if (drag.axis === 0) hw = Math.max(50, hw * factor);
+        else hd = Math.max(50, hd * factor);
         b.bounds = [cx - hw, cz - hd, cx + hw, cz + hd];
       } else {
-        const r = Math.max(0.05, sb[2] * factor);
+        const r = Math.max(50, sb[2] * factor);
         b.bounds = [sb[0], sb[1], r, sb[3]];
       }
     } else {
@@ -202,6 +205,7 @@ export function createGizmoController(deps: GizmoDeps): void {
       const d = ang - drag.startAngle;
       b.rot[drag.axis] = drag.startRot[drag.axis] - d;
     }
+    b.placementLocked = true;
     deps.onChange();
   }, true);
 

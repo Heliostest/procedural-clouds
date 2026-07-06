@@ -415,10 +415,12 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let morphology = presetMorphology(i32(round(b.geom.z)));
   let bmin = boxMin();
   let bmaxY = getBoxMax().y;
-  let zNorm = (rp.y - bmin.y) / max(bmaxY - bmin.y, 0.001);
   let altBase = clamp(b.geom.x, bmin.y, bmaxY - 0.02);
   let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, bmaxY);
   let vLocal = (rp.y - altBase) / max(altTop - altBase, 0.001);
+  let profileBase = clamp(shape.altBase, 0.0, 0.99);
+  let profileTop = clamp(max(shape.altTop, profileBase + 0.01), profileBase + 0.01, 1.0);
+  let profileLocal = (vLocal - profileBase) / max(profileTop - profileBase, 0.001);
 
   // Genus morphology widens only the upper footprint. Edge-style controls are
   // deliberately absent here so disabling edge rendering cannot remove anvils.
@@ -457,7 +459,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let worleyBlend       = clamp01(shape.worleyBlend + weatherMorph * erosion);
   let detailStrength    = shape.detailStrength * (1.0 + weatherMorph * detailBoost);
   // Per-body vertical band: clouds float within [base, altTop].
-  let Z = 1.0 - clamp(zNorm, 0.0, 1.0);
+  let Z = 1.0 - clamp(profileLocal, 0.0, 1.0);
 
   // --- STAGE 1: Altitude Mask ---
   // Map Range.010: Z from [0, Altitude/5] -> [1 - LowAlt, 1]
@@ -500,17 +502,14 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   // forms horizontal edges: a height envelope raises the threshold toward the
   // top/bottom, so those surfaces fall on the 3D-noise iso-surface and stay
   // irregular instead of being clipped to flat planes.
-  let bandHi = max(altTop, altBase + 1e-3);
-  let vMid = (altBase + bandHi) * 0.5;
-  let vHalf = max((bandHi - altBase) * 0.5, 1e-3);
-  let vT = abs(rp.y - vMid) / vHalf;
+  let vT = abs(profileLocal - 0.5) * 2.0;
   let vEnvelope = pow(vT, max(params.g.verticalEdgeShape, 0.01)) * params.g.verticalEdgeRange;
   let legacyShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
   // Stage 10 profile: a narrow top transition removes deliberate dome
   // rounding, while baseRoundness chooses a flat-to-rounded lower curve.
-  let topMask = 1.0 - smoothstep(0.975, 1.015, vLocal);
+  let topMask = 1.0 - smoothstep(0.975, 1.015, profileLocal);
   let bottomWidth = mix(0.035, 0.22, clamp01(baseRoundness));
-  let bottomMask = smoothstep(-0.01, bottomWidth, vLocal);
+  let bottomMask = smoothstep(-0.01, bottomWidth, profileLocal);
   let hardShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold) * topMask * bottomMask;
   let topCutoffSharpness = clamp01(morphology.topCutoffSharpness);
   let finalShaped = mix(legacyShaped, hardShaped, topCutoffSharpness);
@@ -1095,7 +1094,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       return vec4f(out, 1.0);
     }
   }
-    
+
   return vec4f(outColor, cloudDepth);
 }
 
