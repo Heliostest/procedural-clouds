@@ -43,11 +43,14 @@
 | 风速 | Wind Speed | `windSpeedMps` | 水平平流速度，单位 m/s；正常演示范围 0–80 m/s |
 | 累计平流位移 | Advection Offset | `WindAdvectionSample.offsetM` | 对速度按场景秒积分得到的米制世界运输位移，GPU pack 时只换算一次 |
 | 平流 / 世界运输 | Advection / World Transport | — | 足迹、密度、实体调试体、线框和 gizmo 沿世界 XZ 共同移动；不改写作者 bounds，也不移动垂直高度带 |
+| 仿真倍率 | Simulation Rate | `SimulationState.rate` | 游戏式四按钮 `0×/1×/2×/4×`；缩放手动时钟、生命周期、平流、形变和 scenario 播放头，不改变渲染 FPS |
+| 仿真增量 | Simulation Delta | `scaledSimulationDelta` | `wallDeltaSeconds × simulationRate`，每帧在 CPU 时间入口只计算一次 |
+| 场景暂停 | Scenario Pause | `scenario.playing` | 仅控制 scenario 播放头；手动模式不再有独立暂停 checkbox，使用 `0×` 冻结 |
 | 生命周期 | Lifecycle | `BodyLife` / `lifecycle.ts` | 单云体的生成→生长→衰减→消亡包络 |
 | 生成/生长/衰减/消亡 | Birth/Grow/Decay/Death | `birth/grow/decay/death` | 生命周期四阶段时间点 |
 | 峰值 | Peak | `peak` | 成熟期密度/覆盖度倍率峰值 |
 | 场景 | Scenario | `Scenario` / `scenario.ts` | 数据驱动的时间轴脚本；v3 显式声明 `distanceUnit="m"` 与 `windUnit="m/s"` |
-| 时间轴 | Timeline | `timeline` | 场景的时间控制（播放/拖动） |
+| 时间轴 | Timeline | `timeline` | 场景的时间控制（播放/绝对时间拖动）；scrub 值不乘仿真倍率 |
 | 播放头 | Playhead | `playhead` | 场景当前播放时刻 |
 | 场景时间 | Scene Time | `sceneTime` | 驱动动画的时钟（区别于噪声时间轴） |
 
@@ -78,6 +81,15 @@
 | 体积光 | God Rays | `godrayStrength` | 屏幕空间径向光束 |
 
 ## 五、术语统一原则 Conventions
+
+### 地面云影 Ground cloud shadows
+
+| 中文 | English | 代码标识 | 说明 |
+|---|---|---|---|
+| 地面云影积分 | Ground-shadow Integration | `integrateGroundShadow` | 从场景地面沿太阳方向积分统一的 `densityAt()`；Adaptive 使用有界动态步数和世界空间稳定抖动 |
+| 透射率云影图 | Transmittance Shadow Map | `groundShadowTex` | 覆盖 scene-ground XZ 的二维 `rgba16float` 世界空间缓存；不是三维密度缓存 |
+| 云影历史 | Ground-shadow History | `groundShadowHistoryTextures` | 与相机 TAA 独立的双缓冲历史；场景、时间或过大平流变化时失效或降权 |
+| 云影守卫带 | Shadow Guard Band | `groundShadowMapGuard` | 在云影图边界把缓存结果连续混合回 Adaptive，避免硬接缝 |
 
 - 云的种类一律称 **云属 / Genus**；不再用“类型 / Type”指代云种（已统一 UI 标签）。
 - 场景中一朵云一律称 **云体 / Body**；历史概念 “region/区域” 已废弃（仅 `scenario.ts` 保留旧 JSON 字段 `regions`/`regionId` 的向后兼容读取）。

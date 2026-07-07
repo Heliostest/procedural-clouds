@@ -13,6 +13,7 @@ import { enforcePlacement, placementWarning } from './genusProfile';
 import { metersToWorldXZ, metersToWorldY } from './space';
 import { verifyPhysicalContracts } from './physicalVerification';
 import { createWindAdvectionController, WIND_DEMO_MAX_MPS } from './wind';
+import { DEFAULT_SIMULATION_RATE, scaledSimulationDelta, type SimulationState } from './simulationTime';
 
 const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
@@ -23,8 +24,9 @@ async function main(): Promise<void> {
   const params = createDefaultParams();
   const store = createBodyStore(createDefaultBodies(), () => params.cloudHeight);
   const manualWind = createWindAdvectionController();
-  const timeline = { scrub: false, time: 0, paused: false };
-  const scenarioState = { enabled: false, playing: true, speed: 1, loop: false };
+  const timeline = { scrub: false, time: 0 };
+  const simulationState: SimulationState = { rate: DEFAULT_SIMULATION_RATE };
+  const scenarioState = { enabled: false, playing: true, loop: false };
   let currentScenario = DEMO_SCENARIO;
   let player: ScenarioPlayer = createPlayer(currentScenario);
   let playhead = 0.0;
@@ -75,7 +77,7 @@ async function main(): Promise<void> {
     lightShare = -1.0;
   };
 
-  const gui = createGui(params, store, timeline, scenarioState, {
+  const gui = createGui(params, store, timeline, simulationState, scenarioState, {
     onBodiesChanged() {
       applyPlacementPolicy();
       renderer.setBodies(store.list());
@@ -177,8 +179,12 @@ async function main(): Promise<void> {
     const lines: string[] = [];
     lines.push(`${t('dbgMode')}: ${scenarioState.enabled ? t('dbgScenario') : t('dbgManual')}`);
     lines.push(`${t('dbgClock')}: ${sceneClock.toFixed(2)}s`);
+    const simulationAdvancing = simulationState.rate > 0
+      && !timeline.scrub
+      && (!scenarioState.enabled || scenarioState.playing);
+    lines.push(`${t('dbgSimulation')}: ${simulationState.rate}× ${t(simulationAdvancing ? 'dbgRunning' : 'dbgFrozen')}`);
     if (scenarioState.enabled) {
-      lines.push(`play:${scenarioState.playing ? '▶' : '⏸'} speed:${scenarioState.speed.toFixed(1)} loop:${scenarioState.loop}`);
+      lines.push(`play:${scenarioState.playing ? '▶' : '⏸'} loop:${scenarioState.loop}`);
       lines.push(`${t('dbgPlayhead')}: ${playhead.toFixed(2)} / ${player.duration}s   ${t('dbgScrub')}:${timeline.scrub}`);
     } else {
       lines.push(`${t('dbgBodies')}: ${store.list().length}  ${t('dbgSelected')}:${params.selectedBody ?? '-'}`);
@@ -237,12 +243,13 @@ async function main(): Promise<void> {
     const elapsed = (now - startTime) / 1000.0;
     const deltaTime = elapsed - lastElapsed;
     lastElapsed = elapsed;
+    const simulationDelta = scaledSimulationDelta(deltaTime, simulationState.rate);
 
     if (scenarioState.enabled) {
       if (timeline.scrub) {
         playhead = timeline.time;
       } else if (scenarioState.playing) {
-        playhead += deltaTime * scenarioState.speed;
+        playhead += simulationDelta;
         if (playhead > player.duration) {
           playhead = scenarioState.loop ? playhead % player.duration : player.duration;
         }
@@ -261,9 +268,9 @@ async function main(): Promise<void> {
         renderer.setWindSamples(manualWind.samples(store.list()));
         lastPlayhead = -1;
       }
-      if (!timeline.scrub && !timeline.paused) {
-        manualClock += deltaTime;
-        manualWind.advance(store.list(), deltaTime);
+      if (!timeline.scrub) {
+        manualClock += simulationDelta;
+        manualWind.advance(store.list(), simulationDelta);
       }
       const sceneTime = timeline.scrub ? timeline.time : manualClock;
       const mods = store.list().map((b) => evalBodyMod(b, sceneTime));

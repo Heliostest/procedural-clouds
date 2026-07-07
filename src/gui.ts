@@ -13,6 +13,7 @@ import {
 import type { BodyStore, CloudBody, BodyShape } from './body';
 import { t, tip, getLang, setLang, cloudTypeName, shapeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
 import { WIND_DEMO_MAX_MPS } from './wind';
+import { SIMULATION_RATES, type SimulationState } from './simulationTime';
 
 const ALL_SHAPES: BodyShape[] = [
   'rect', 'circle', 'sphere', 'cube', 'octahedron', 'tetrahedron', 'dodecahedron', 'icosahedron', 'torus',
@@ -146,7 +147,6 @@ function allPresetsToCode(): string {
 export interface ScenarioState {
   enabled: boolean;
   playing: boolean;
-  speed: number;
   loop: boolean;
 }
 
@@ -159,10 +159,9 @@ export interface CloudGui {
 export interface TimelineState {
   scrub: boolean;
   time: number;
-  paused: boolean;
 }
 
-export function createGui(params: CloudParams, store: BodyStore, timeline: TimelineState, scenario: ScenarioState, hooks: GuiHooks): CloudGui {
+export function createGui(params: CloudParams, store: BodyStore, timeline: TimelineState, simulation: SimulationState, scenario: ScenarioState, hooks: GuiHooks): CloudGui {
   const presetKeys = Object.keys(CLOUD_PRESETS);
   const api: CloudGui = { refreshTimeline() {}, refreshScenario() {}, refreshBodies() {} };
   let gui: GUI | null = null;
@@ -340,7 +339,33 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     rebuildBodies();
 
     const globalFolder = gui.addFolder(t('global'));
-    tipKey(globalFolder.add(timeline, 'paused').name(t('pauseAnim')), 'pauseAnim');
+    const simulationRateRow = document.createElement('div');
+    simulationRateRow.className = 'lil-controller simulation-rate-buttons';
+    simulationRateRow.title = tip('simulationRate');
+    const simulationRateName = document.createElement('div');
+    simulationRateName.className = 'lil-name';
+    simulationRateName.textContent = t('simulationRate');
+    const simulationRateWidget = document.createElement('div');
+    simulationRateWidget.className = 'lil-widget';
+    const simulationRateButtons = SIMULATION_RATES.map((rate) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${rate}×`;
+      button.setAttribute('aria-label', `${t('simulationRate')} ${rate}×`);
+      button.addEventListener('click', () => {
+        simulation.rate = rate;
+        simulationRateButtons.forEach((candidate, index) => {
+          candidate.setAttribute('aria-pressed', String(SIMULATION_RATES[index] === simulation.rate));
+        });
+      });
+      simulationRateWidget.appendChild(button);
+      return button;
+    });
+    simulationRateButtons.forEach((button, index) => {
+      button.setAttribute('aria-pressed', String(SIMULATION_RATES[index] === simulation.rate));
+    });
+    simulationRateRow.append(simulationRateName, simulationRateWidget);
+    globalFolder.$children.appendChild(simulationRateRow);
     tipKey(globalFolder.add({ resetTime: hooks.onTrigger }, 'resetTime').name(t('resetTime')), 'resetTime');
     tipKey(globalFolder.add({ resetWindAdvection: hooks.onResetWindAdvection }, 'resetWindAdvection').name(t('resetWindAdvection')), 'resetWindAdvection');
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
@@ -365,7 +390,6 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     const scenarioFolder = gui.addFolder(t('scenario'));
     tipKey(scenarioFolder.add(scenario, 'enabled').name(t('enableScenario')), 'enableScenario');
     tipKey(scenarioFolder.add(scenario, 'playing').name(t('playPause')), 'playPause');
-    tipKey(scenarioFolder.add(scenario, 'speed', 0.1, 8.0, 0.1).name(t('speed')), 'speed');
     tipKey(scenarioFolder.add(scenario, 'loop').name(t('loop')), 'loop');
     const timeFolder = scenarioFolder.addFolder(t('timeline'));
     tipKey(timeFolder.add({ trigger: hooks.onTrigger }, 'trigger').name(t('triggerNow')), 'triggerNow');

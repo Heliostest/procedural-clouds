@@ -4,6 +4,7 @@ import { BODY_BASE, BODY_WIND_OFFSETS, CLOUD_PRESETS, PARAMS_FLOAT_COUNT, PARAM_
 import { createPlayer, parseScenario, serializeScenario, type Scenario } from './scenario';
 import { DEFAULT_SCENE_SCALE, bodyToTransportedRenderSpace } from './space';
 import { createWindAdvectionController } from './wind';
+import { SIMULATION_RATES, scaledSimulationDelta, validateSimulationRate } from './simulationTime';
 
 function assertClose(actual: number, expected: number, label: string): void {
   if (Math.abs(actual - expected) > 1e-5) {
@@ -12,6 +13,25 @@ function assertClose(actual: number, expected: number, label: string): void {
 }
 
 export function verifyPhysicalContracts(): void {
+  const expectedSimulationSeconds = [0, 10, 20, 40];
+  SIMULATION_RATES.forEach((rate, index) => {
+    assertClose(scaledSimulationDelta(10, rate), expectedSimulationSeconds[index], `${rate}x simulation delta`);
+  });
+  let invalidSimulationRateRejected = false;
+  try {
+    validateSimulationRate(3);
+  } catch {
+    invalidSimulationRateRejected = true;
+  }
+  if (!invalidSimulationRateRejected) throw new Error('physical verification: unsupported simulation rate must be rejected');
+  let invalidWallDeltaRejected = false;
+  try {
+    scaledSimulationDelta(Number.POSITIVE_INFINITY, 1);
+  } catch {
+    invalidWallDeltaRejected = true;
+  }
+  if (!invalidWallDeltaRejected) throw new Error('physical verification: invalid wall delta must be rejected');
+
   const legacy = {
     duration: 10,
     wind: { dirDeg: 0, speed: 0.15 },
@@ -55,7 +75,7 @@ export function verifyPhysicalContracts(): void {
     life: defaultLife(),
   };
   const windController = createWindAdvectionController();
-  windController.advance([body], 10);
+  windController.advance([body], scaledSimulationDelta(10, 1));
   const windSamples = windController.samples([body]);
   assertClose(windSamples[0].offsetM[0], 100, '10 mps for 10 seconds');
   assertClose(windSamples[0].offsetM[1], 0, 'zero cross-wind displacement');
@@ -63,6 +83,17 @@ export function verifyPhysicalContracts(): void {
   const transportedBody = bodyToTransportedRenderSpace(body, windSamples[0].offsetM, DEFAULT_SCENE_SCALE);
   assertClose(transportedBody.bounds[0], authorCenterX / 1000 + 0.1, 'transported render-space body center');
   assertClose(body.bounds[0], authorCenterX, 'wind transport preserves author bounds');
+
+  for (const rate of SIMULATION_RATES) {
+    const rateWind = createWindAdvectionController();
+    rateWind.advance([body], scaledSimulationDelta(10, rate));
+    assertClose(rateWind.samples([body])[0].offsetM[0], rate * 100, `${rate}x wind displacement`);
+  }
+  const resumedWind = createWindAdvectionController();
+  resumedWind.advance([body], scaledSimulationDelta(10, 0));
+  assertClose(resumedWind.samples([body])[0].offsetM[0], 0, '0x freezes wind displacement');
+  resumedWind.advance([body], scaledSimulationDelta(1, 1));
+  assertClose(resumedWind.samples([body])[0].offsetM[0], 10, 'resume after 0x has no wall-time catch-up');
   const packed = new Float32Array(PARAMS_FLOAT_COUNT);
   packParams(packed, { cloudHeight: 12 });
   packBodies(packed, [body], undefined, windSamples, DEFAULT_SCENE_SCALE);

@@ -534,6 +534,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     compute: { module: shaderModule, entryPoint: 'csGroundShadow' },
   });
   const groundShadowResolveModule = device.createShaderModule({ code: groundShadowResolveSource });
+  const groundShadowFilterPipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: groundShadowResolveModule, entryPoint: 'csGroundShadowFilter' },
+  });
   const groundShadowResolvePipeline = device.createComputePipeline({
     layout: 'auto',
     compute: { module: groundShadowResolveModule, entryPoint: 'csGroundShadowResolve' },
@@ -813,6 +817,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const groundShadowResolveData = new Float32Array(4);
   let groundShadowResolution = 0;
   let groundShadowRawTexture: GPUTexture;
+  let groundShadowFilterTexture: GPUTexture;
   let groundShadowHistoryTextures: [GPUTexture, GPUTexture];
   let groundShadowHistoryViews: [GPUTextureView, GPUTextureView];
   let groundShadowStoreBindGroup: GPUBindGroup;
@@ -843,6 +848,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const resolution = normalizeGroundShadowResolution(requestedResolution);
     if (resolution === groundShadowResolution) return false;
     groundShadowRawTexture?.destroy();
+    groundShadowFilterTexture?.destroy();
     if (groundShadowHistoryTextures) for (const texture of groundShadowHistoryTextures) texture.destroy();
     groundShadowResolution = resolution;
     const descriptor: GPUTextureDescriptor = {
@@ -851,6 +857,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     };
     groundShadowRawTexture = device.createTexture(descriptor);
+    groundShadowFilterTexture = device.createTexture(descriptor);
     groundShadowHistoryTextures = [device.createTexture(descriptor), device.createTexture(descriptor)];
     groundShadowHistoryViews = [groundShadowHistoryTextures[0].createView(), groundShadowHistoryTextures[1].createView()];
     groundShadowStoreBindGroup = device.createBindGroup({
@@ -1029,7 +1036,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let frameIndex = 0;
   let prevSceneTime = 0.0;
 
-  const TS_COUNT = 10; // cache, shadow integration, shadow resolve, cloud render, post
+  const TS_COUNT = 12; // cache, shadow integration, shadow horizontal filter, shadow resolve, cloud render, post
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -1350,17 +1357,36 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       );
       integrationPass.end();
 
+      const filterBindGroup = device.createBindGroup({
+        layout: groundShadowFilterPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: groundShadowRawTexture.createView() },
+          { binding: 2, resource: { buffer: groundShadowResolveUniformBuffer } },
+          { binding: 3, resource: groundShadowFilterTexture.createView() },
+        ],
+      });
+      const filterPass = commandEncoder.beginComputePass(
+        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : undefined,
+      );
+      filterPass.setPipeline(groundShadowFilterPipeline);
+      filterPass.setBindGroup(0, filterBindGroup);
+      filterPass.dispatchWorkgroups(
+        Math.ceil(groundShadowResolution / 8),
+        Math.ceil(groundShadowResolution / 8),
+      );
+      filterPass.end();
+
       const resolveBindGroup = device.createBindGroup({
         layout: groundShadowResolvePipeline.getBindGroupLayout(0),
         entries: [
-          { binding: 0, resource: groundShadowRawTexture.createView() },
+          { binding: 0, resource: groundShadowFilterTexture.createView() },
           { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
           { binding: 2, resource: { buffer: groundShadowResolveUniformBuffer } },
           { binding: 3, resource: groundShadowHistoryViews[outputIndex] },
         ],
       });
       const resolvePass = commandEncoder.beginComputePass(
-        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : undefined,
+        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 6, endOfPassWriteIndex: 7 } } : undefined,
       );
       resolvePass.setPipeline(groundShadowResolvePipeline);
       resolvePass.setBindGroup(0, resolveBindGroup);
@@ -1387,7 +1413,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 6, endOfPassWriteIndex: 7 } } : {}),
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
     });
 
     renderPass.setPipeline(pipeline);
@@ -1494,7 +1520,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 10, endOfPassWriteIndex: 11 } } : {}),
     });
     postPass.setPipeline(postPipeline);
     postPass.setBindGroup(0, postBindGroup);
@@ -1541,9 +1567,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       tsRead.mapAsync(GPUMapMode.READ).then(() => {
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
         tsRead.unmap();
-        const renderNs = Number(ts[7] - ts[6]);
+        const renderNs = Number(ts[9] - ts[8]);
         if (renderNs >= 0) stats.cloudMs = renderNs / 1e6;
-        const postNs = Number(ts[9] - ts[8]);
+        const postNs = Number(ts[11] - ts[10]);
         if (postNs >= 0) stats.postMs = postNs / 1e6;
         if (cacheRan) {
           const cacheNs = Number(ts[1] - ts[0]);
@@ -1551,8 +1577,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         }
         if (shadowRan) {
           const integrationNs = Number(ts[3] - ts[2]);
-          const resolveNs = Number(ts[5] - ts[4]);
-          if (integrationNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + resolveNs) / 1e6;
+          const filterNs = Number(ts[5] - ts[4]);
+          const resolveNs = Number(ts[7] - ts[6]);
+          if (integrationNs >= 0 && filterNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + filterNs + resolveNs) / 1e6;
         }
         tsMapping = false;
       }).catch(() => { tsMapping = false; });

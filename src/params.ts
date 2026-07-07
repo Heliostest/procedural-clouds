@@ -411,7 +411,7 @@ export function createDefaultParams(): CloudParams {
     aerialInscatter: 1.0,
     aerialHeightFalloff: 0.15,
     shadowTintStrength: 0.6,
-    groundShadowMode: GROUND_SHADOW_MODE.adaptive,
+    groundShadowMode: GROUND_SHADOW_MODE.transmittance,
     groundShadowMaxSteps: 32,
     groundShadowStepScale: 1.0,
     groundShadowJitter: 1.0,
