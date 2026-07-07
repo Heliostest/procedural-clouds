@@ -1,5 +1,6 @@
 import noiseSource from '../shaders/noise.wgsl?raw';
 import cloudSource from '../shaders/cloud.wgsl?raw';
+import groundShadowResolveSource from '../shaders/ground-shadow-resolve.wgsl?raw';
 import {
   packParams,
   packBodies,
@@ -388,12 +389,16 @@ export interface RenderStats {
   gpuTiming: boolean;
   cloudMs: number;
   cacheMs: number;
+  shadowMs: number;
   postMs: number;
   width: number;
   height: number;
   densityRes: number;
   weatherSize: number;
   cacheWg: [number, number, number];
+  shadowMapResolution: number;
+  shadowUpdated: boolean;
+  shadowHistoryResetReason: string;
 }
 
 export interface Renderer {
@@ -524,6 +529,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       constants: { wg_x: cacheWg[0], wg_y: cacheWg[1], wg_z: cacheWg[2] },
     },
   });
+  const groundShadowPipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: shaderModule, entryPoint: 'csGroundShadow' },
+  });
+  const groundShadowResolveModule = device.createShaderModule({ code: groundShadowResolveSource });
+  const groundShadowResolvePipeline = device.createComputePipeline({
+    layout: 'auto',
+    compute: { module: groundShadowResolveModule, entryPoint: 'csGroundShadowResolve' },
+  });
 
   function createShapeTexture(size: number): GPUTexture {
     return device.createTexture({
@@ -554,11 +568,21 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   let computeBindGroup: GPUBindGroup;
+  let groundShadowComputeBindGroup: GPUBindGroup;
   let bindGroup: GPUBindGroup;
 
   function rebuildSceneBindGroups(): void {
     computeBindGroup = device.createBindGroup({
       layout: computePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 1, resource: { buffer: paramsBuffer } },
+        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
+        { binding: 3, resource: linearSampler },
+        { binding: 4, resource: { buffer: presetBuffer } },
+      ],
+    });
+    groundShadowComputeBindGroup = device.createBindGroup({
+      layout: groundShadowPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 1, resource: { buffer: paramsBuffer } },
         { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
@@ -688,6 +712,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   function updatePresets(): void {
     device.queue.writeBuffer(presetBuffer, 0, packPresetArray());
+    shadowRevision++;
   }
 
   function setWeatherSize(size: number): void {
@@ -698,6 +723,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     shapeTexture = createShapeTexture(weatherSize);
     shapeData = createShapeData(weatherSize);
     shapeSignature = '';
+    shadowRevision++;
     rebuildSceneBindGroups();
     uploadShapes();
   }
@@ -733,9 +759,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let cacheTransitionDuration = 1 / 60;
   let lastCacheUpdateElapsed = 0.0;
   let lastCachedWindOffsets: Array<[number, number]> = [];
+  let shadowRevision = 0;
   let densityRes = 96;
   let densityTextures: [GPUTexture, GPUTexture] | null = null;
   let densitySampleBindGroup: GPUBindGroup;
+  let groundShadowDensityBindGroup: GPUBindGroup;
   let densityStoreBindGroup: GPUBindGroup;
 
   function setDensityResolution(res: number): void {
@@ -762,12 +790,82 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         { binding: 2, resource: densityTextures[1].createView({ dimension: '3d' }) },
       ],
     });
+    groundShadowDensityBindGroup = device.createBindGroup({
+      layout: groundShadowPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 0, resource: linearSampler },
+        { binding: 1, resource: densityTextures[0].createView({ dimension: '3d' }) },
+        { binding: 2, resource: densityTextures[1].createView({ dimension: '3d' }) },
+      ],
+    });
     cacheValidCount = 0;
     lastCachedWindOffsets = [];
+    shadowRevision++;
   }
 
   setDensityResolution(densityRes);
   rebuildSceneBindGroups();
+
+  const groundShadowResolveUniformBuffer = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const groundShadowResolveData = new Float32Array(4);
+  let groundShadowResolution = 0;
+  let groundShadowRawTexture: GPUTexture;
+  let groundShadowHistoryTextures: [GPUTexture, GPUTexture];
+  let groundShadowHistoryViews: [GPUTextureView, GPUTextureView];
+  let groundShadowStoreBindGroup: GPUBindGroup;
+  let groundShadowSampleBindGroup: GPUBindGroup;
+  let groundShadowHistoryIndex = 0;
+  let groundShadowHistoryValid = false;
+  let lastGroundShadowSignature = '';
+  let lastGroundShadowWindOffsets: Array<[number, number]> = [];
+  let groundShadowResetReason = 'initial';
+
+  function normalizeGroundShadowResolution(value: number): number {
+    if (value <= 384) return 256;
+    if (value <= 768) return 512;
+    return 1024;
+  }
+
+  function rebuildGroundShadowSampleBindGroup(): void {
+    groundShadowSampleBindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(3),
+      entries: [
+        { binding: 0, resource: linearSampler },
+        { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
+      ],
+    });
+  }
+
+  function ensureGroundShadowResources(requestedResolution: number): boolean {
+    const resolution = normalizeGroundShadowResolution(requestedResolution);
+    if (resolution === groundShadowResolution) return false;
+    groundShadowRawTexture?.destroy();
+    if (groundShadowHistoryTextures) for (const texture of groundShadowHistoryTextures) texture.destroy();
+    groundShadowResolution = resolution;
+    const descriptor: GPUTextureDescriptor = {
+      size: [resolution, resolution],
+      format: 'rgba16float',
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    };
+    groundShadowRawTexture = device.createTexture(descriptor);
+    groundShadowHistoryTextures = [device.createTexture(descriptor), device.createTexture(descriptor)];
+    groundShadowHistoryViews = [groundShadowHistoryTextures[0].createView(), groundShadowHistoryTextures[1].createView()];
+    groundShadowStoreBindGroup = device.createBindGroup({
+      layout: groundShadowPipeline.getBindGroupLayout(2),
+      entries: [{ binding: 1, resource: groundShadowRawTexture.createView() }],
+    });
+    groundShadowHistoryIndex = 0;
+    groundShadowHistoryValid = false;
+    lastGroundShadowWindOffsets = [];
+    groundShadowResetReason = 'resolution';
+    rebuildGroundShadowSampleBindGroup();
+    return true;
+  }
+
+  ensureGroundShadowResources(512);
 
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
@@ -931,7 +1029,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let frameIndex = 0;
   let prevSceneTime = 0.0;
 
-  const TS_COUNT = 6; // [computeStart, computeEnd, renderStart, renderEnd, postStart, postEnd]
+  const TS_COUNT = 10; // cache, shadow integration, shadow resolve, cloud render, post
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -940,18 +1038,22 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     gpuTiming: hasTimestamp,
     cloudMs: 0,
     cacheMs: 0,
+    shadowMs: 0,
     postMs: 0,
     width: 0,
     height: 0,
     densityRes,
     weatherSize,
     cacheWg: [cacheWg[0], cacheWg[1], cacheWg[2]] as [number, number, number],
+    shadowMapResolution: groundShadowResolution,
+    shadowUpdated: false,
+    shadowHistoryResetReason: groundShadowResetReason,
   };
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean): Float32Array {
+  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -999,6 +1101,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       jitterY,
       taaEnabled: taaOn,
       edgeSharpening: params.edgeSharpening,
+      groundShadowMode: params.groundShadowMode,
+      groundShadowMaxSteps: params.groundShadowMaxSteps,
+      groundShadowStepScale: params.groundShadowStepScale,
+      groundShadowJitter: params.groundShadowJitter,
+      groundShadowMapValid,
+      groundShadowMapGuard: Math.max(2 / Math.max(1, groundShadowResolution), 0.002),
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
@@ -1017,6 +1125,46 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   function snapshotCachedWindOffsets(): void {
     lastCachedWindOffsets = currentWindSamples.map((sample) => [sample.offsetM[0], sample.offsetM[1]]);
+  }
+
+  function groundShadowSignature(params: CloudParams): string {
+    return [
+      params.sunAzimuth,
+      params.sunElevation,
+      params.boxHalfExtent,
+      params.cloudHeight,
+      params.horizontalMetersPerWorldUnit,
+      params.verticalMetersPerWorldUnit,
+      params.qualityMode,
+      densityRes,
+      params.edgeHardness,
+      params.edgeHardnessThreshold,
+      params.edgeCurveWidth,
+      params.edgeCurveShaper,
+      params.verticalEdgeRange,
+      params.verticalEdgeShape,
+      params.detailFreq,
+      params.detailStrength,
+      params.shadowDarkness,
+      shapeSignature,
+      JSON.stringify(currentMods),
+      shadowRevision,
+    ].join('|');
+  }
+
+  function groundShadowWindMotionMeters(): number {
+    if (currentWindSamples.length !== lastGroundShadowWindOffsets.length) return Number.POSITIVE_INFINITY;
+    let maxMotion = 0;
+    for (let i = 0; i < currentWindSamples.length; i++) {
+      const current = currentWindSamples[i].offsetM;
+      const previous = lastGroundShadowWindOffsets[i];
+      maxMotion = Math.max(maxMotion, Math.hypot(current[0] - previous[0], current[1] - previous[1]));
+    }
+    return maxMotion;
+  }
+
+  function snapshotGroundShadowWindOffsets(): void {
+    lastGroundShadowWindOffsets = currentWindSamples.map((sample) => [sample.offsetM[0], sample.offsetM[1]]);
   }
 
   function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
@@ -1119,10 +1267,43 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       jitterX = halton(hi, 2) - 0.5;
       jitterY = halton(hi, 3) - 0.5;
     }
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn));
+    const shadowResourcesChanged = ensureGroundShadowResources(params.groundShadowMapResolution);
+    const transmittanceMode = Math.round(params.groundShadowMode) === 2;
+    const shadowSignature = groundShadowSignature(params);
+    const shadowSignatureChanged = shadowSignature !== lastGroundShadowSignature;
+    const shadowTimeDiscontinuity = deltaTime < -1e-5 || Math.abs(deltaTime) > 0.25;
+    const shadowTexelMeters = (params.boxHalfExtent * 2) / groundShadowResolution;
+    const shadowWindMotion = groundShadowWindMotionMeters();
+    const shadowWindExceeded = shadowWindMotion > shadowTexelMeters * 0.5;
+    let shadowResetThisFrame = '';
+    if (transmittanceMode && shadowResourcesChanged) shadowResetThisFrame = 'resolution';
+    else if (transmittanceMode && shadowSignatureChanged) shadowResetThisFrame = 'scene';
+    else if (transmittanceMode && shadowTimeDiscontinuity) shadowResetThisFrame = 'time';
+    else if (transmittanceMode && shadowWindExceeded) shadowResetThisFrame = 'wind';
+    if (shadowResetThisFrame) {
+      groundShadowHistoryValid = false;
+      groundShadowResetReason = shadowResetThisFrame;
+    }
+    const scheduledShadowUpdate = frameIndex % Math.max(1, Math.round(params.groundShadowMapUpdateRate)) === 0;
+    const groundShadowWillRun = transmittanceMode && (
+      !groundShadowHistoryValid
+      || scheduledShadowUpdate
+      || cacheWillRun
+      || shadowSignatureChanged
+      || shadowTimeDiscontinuity
+      || shadowWindExceeded
+    );
+    const groundShadowWillBeValid = transmittanceMode && (groundShadowHistoryValid || groundShadowWillRun);
+    const motionHistoryScale = Number.isFinite(shadowWindMotion)
+      ? Math.max(0, 1 - shadowWindMotion / Math.max(shadowTexelMeters * 0.5, 1e-5))
+      : 0;
+    const effectiveShadowHistoryWeight = params.groundShadowHistoryWeight * motionHistoryScale;
+    if (transmittanceMode) lastGroundShadowSignature = shadowSignature;
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid));
 
     const commandEncoder = device.createCommandEncoder();
     let cacheRan = false;
+    let shadowRan = false;
 
     if (cacheWillRun) {
       cacheRan = true;
@@ -1147,6 +1328,54 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       pass.end();
     }
 
+    if (groundShadowWillRun) {
+      shadowRan = true;
+      const outputIndex = 1 - groundShadowHistoryIndex;
+      groundShadowResolveData[0] = effectiveShadowHistoryWeight;
+      groundShadowResolveData[1] = groundShadowHistoryValid ? 1 : 0;
+      groundShadowResolveData[2] = params.groundShadowFilterRadius;
+      groundShadowResolveData[3] = 0;
+      device.queue.writeBuffer(groundShadowResolveUniformBuffer, 0, groundShadowResolveData);
+
+      const integrationPass = commandEncoder.beginComputePass(
+        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : undefined,
+      );
+      integrationPass.setPipeline(groundShadowPipeline);
+      integrationPass.setBindGroup(0, groundShadowComputeBindGroup);
+      integrationPass.setBindGroup(1, groundShadowDensityBindGroup);
+      integrationPass.setBindGroup(2, groundShadowStoreBindGroup);
+      integrationPass.dispatchWorkgroups(
+        Math.ceil(groundShadowResolution / 8),
+        Math.ceil(groundShadowResolution / 8),
+      );
+      integrationPass.end();
+
+      const resolveBindGroup = device.createBindGroup({
+        layout: groundShadowResolvePipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: groundShadowRawTexture.createView() },
+          { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
+          { binding: 2, resource: { buffer: groundShadowResolveUniformBuffer } },
+          { binding: 3, resource: groundShadowHistoryViews[outputIndex] },
+        ],
+      });
+      const resolvePass = commandEncoder.beginComputePass(
+        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : undefined,
+      );
+      resolvePass.setPipeline(groundShadowResolvePipeline);
+      resolvePass.setBindGroup(0, resolveBindGroup);
+      resolvePass.dispatchWorkgroups(
+        Math.ceil(groundShadowResolution / 8),
+        Math.ceil(groundShadowResolution / 8),
+      );
+      resolvePass.end();
+
+      groundShadowHistoryIndex = outputIndex;
+      groundShadowHistoryValid = true;
+      snapshotGroundShadowWindOffsets();
+      rebuildGroundShadowSampleBindGroup();
+    }
+
     ensureSceneTexture(canvas.width, canvas.height);
 
     const renderPass = commandEncoder.beginRenderPass({
@@ -1158,12 +1387,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : {}),
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 6, endOfPassWriteIndex: 7 } } : {}),
     });
 
     renderPass.setPipeline(pipeline);
     renderPass.setBindGroup(0, bindGroup);
     renderPass.setBindGroup(1, densitySampleBindGroup);
+    renderPass.setBindGroup(3, groundShadowSampleBindGroup);
     renderPass.draw(3);
 
     if (lineVertCount > 0) {
@@ -1264,7 +1494,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : {}),
+      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
     });
     postPass.setPipeline(postPipeline);
     postPass.setBindGroup(0, postBindGroup);
@@ -1302,19 +1532,27 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityRes = densityRes;
     stats.weatherSize = weatherSize;
     stats.cacheWg = [cacheWg[0], cacheWg[1], cacheWg[2]];
+    stats.shadowMapResolution = groundShadowResolution;
+    stats.shadowUpdated = shadowRan;
+    stats.shadowHistoryResetReason = groundShadowResetReason;
 
     if (tsRead && !tsMapping) {
       tsMapping = true;
       tsRead.mapAsync(GPUMapMode.READ).then(() => {
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
         tsRead.unmap();
-        const renderNs = Number(ts[3] - ts[2]);
+        const renderNs = Number(ts[7] - ts[6]);
         if (renderNs >= 0) stats.cloudMs = renderNs / 1e6;
-        const postNs = Number(ts[5] - ts[4]);
+        const postNs = Number(ts[9] - ts[8]);
         if (postNs >= 0) stats.postMs = postNs / 1e6;
         if (cacheRan) {
           const cacheNs = Number(ts[1] - ts[0]);
           if (cacheNs >= 0) stats.cacheMs = cacheNs / 1e6;
+        }
+        if (shadowRan) {
+          const integrationNs = Number(ts[3] - ts[2]);
+          const resolveNs = Number(ts[5] - ts[4]);
+          if (integrationNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + resolveNs) / 1e6;
         }
         tsMapping = false;
       }).catch(() => { tsMapping = false; });

@@ -151,6 +151,26 @@ async function main(): Promise<void> {
   let emaCpuMs = 0;
   let emaWorkMs = 0;
   const QUALITY_NAMES = ['Cached', 'Hybrid', 'Realtime'];
+  const GROUND_SHADOW_NAMES = ['Legacy', 'Adaptive', 'Transmittance'];
+
+  function estimatedGroundShadowSteps(): number {
+    if (params.groundShadowMode === 0) return 18;
+    const az = params.sunAzimuth * Math.PI / 180;
+    const el = params.sunElevation * Math.PI / 180;
+    const ce = Math.cos(el);
+    const sx = Math.abs(ce * Math.sin(az));
+    const sy = Math.max(Math.sin(el), 0.01);
+    const sz = Math.abs(ce * Math.cos(az));
+    const half = params.boxHalfExtent / params.horizontalMetersPerWorldUnit;
+    const height = params.cloudHeight / params.verticalMetersPerWorldUnit;
+    const path = Math.min(
+      height / sy,
+      sx > 1e-5 ? half / sx : Number.POSITIVE_INFINITY,
+      sz > 1e-5 ? half / sz : Number.POSITIVE_INFINITY,
+    );
+    const voxel = (half * 2) / Math.max(1, renderer.getStats().densityRes);
+    return Math.min(params.groundShadowMaxSteps, Math.max(8, Math.ceil(path / Math.max(voxel * params.groundShadowStepScale, 0.001))));
+  }
   function updateDebug(sceneClock: number, cpuMs: number, workMs: number): void {
     emaCpuMs = emaCpuMs === 0 ? cpuMs : emaCpuMs * 0.9 + cpuMs * 0.1;
     emaWorkMs = emaWorkMs === 0 ? workMs : emaWorkMs * 0.9 + workMs * 0.1;
@@ -173,12 +193,13 @@ async function main(): Promise<void> {
     const px = s.width * s.height;
     const fps = emaCpuMs > 0 ? 1000 / emaCpuMs : 0;
     const samples = px * params.rayMarchSteps * (params.skipLight ? 1 : 1 + params.lightMarchSteps);
-    const gpuMs = s.cloudMs + s.cacheMs + s.postMs;
+    const gpuMs = s.cloudMs + s.cacheMs + s.shadowMs + s.postMs;
     lines.push('');
     lines.push(`── ${t('perfTitle')} ──`);
     lines.push(`${t('perfFps')}: ${fps.toFixed(0)}   ${t('perfCpu')}: ${emaCpuMs.toFixed(2)}ms   ${t('perfLoad')}: ${emaWorkMs.toFixed(2)}ms`);
     if (s.gpuTiming) {
       lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)} · ${t('post')} ${s.postMs.toFixed(2)})`);
+      if (params.groundShadowMode === 2) lines.push(`shadow compute: ${s.shadowMs.toFixed(2)}ms`);
     } else {
       lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}`);
     }
@@ -191,6 +212,10 @@ async function main(): Promise<void> {
     lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
     lines.push(`${t('perfVoxels')}: ${s.densityRes}³ (${((s.densityRes ** 3) / 1e6).toFixed(2)}M) wg ${s.cacheWg.join('×')}`);
     lines.push(`${t('perfQuality')}: ${QUALITY_NAMES[params.qualityMode] ?? params.qualityMode}   weather ${s.weatherSize}²`);
+    lines.push(`ground shadow: ${GROUND_SHADOW_NAMES[params.groundShadowMode] ?? params.groundShadowMode} ~${estimatedGroundShadowSteps()}/${params.groundShadowMaxSteps} samples`);
+    if (params.groundShadowMode === 2) {
+      lines.push(`shadow map: ${s.shadowMapResolution}² ${s.shadowUpdated ? 'updated' : 'reused'} history-reset:${s.shadowHistoryResetReason}`);
+    }
     dbg.textContent = lines.join('\n');
   }
 

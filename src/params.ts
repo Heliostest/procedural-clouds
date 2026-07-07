@@ -5,7 +5,7 @@ import { assertCompleteGenusProfiles } from './genusProfile';
 import type { WindAdvectionSample } from './wind';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 48;
+export const BODY_BASE = 56;
 export const BODY_STRIDE = 20;
 
 export const BODY_WIND_OFFSETS = {
@@ -63,7 +63,19 @@ export const PARAM_OFFSETS: Record<string, number> = {
   jitterY: 44,
   taaEnabled: 45,
   edgeSharpening: 46,
+  groundShadowMode: 47,
+  groundShadowMaxSteps: 48,
+  groundShadowStepScale: 49,
+  groundShadowJitter: 50,
+  groundShadowMapValid: 51,
+  groundShadowMapGuard: 52,
 };
+
+export const GROUND_SHADOW_MODE = {
+  legacy: 0,
+  adaptive: 1,
+  transmittance: 2,
+} as const;
 
 export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
 export const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
@@ -243,6 +255,14 @@ export interface CloudParams {
   aerialInscatter: number;
   aerialHeightFalloff: number;
   shadowTintStrength: number;
+  groundShadowMode: number;
+  groundShadowMaxSteps: number;
+  groundShadowStepScale: number;
+  groundShadowJitter: number;
+  groundShadowMapResolution: number;
+  groundShadowMapUpdateRate: number;
+  groundShadowHistoryWeight: number;
+  groundShadowFilterRadius: number;
   taaEnabled: boolean;
   taaBlend: number;
   bloomEnabled: boolean;
@@ -391,6 +411,14 @@ export function createDefaultParams(): CloudParams {
     aerialInscatter: 1.0,
     aerialHeightFalloff: 0.15,
     shadowTintStrength: 0.6,
+    groundShadowMode: GROUND_SHADOW_MODE.adaptive,
+    groundShadowMaxSteps: 32,
+    groundShadowStepScale: 1.0,
+    groundShadowJitter: 1.0,
+    groundShadowMapResolution: 512,
+    groundShadowMapUpdateRate: 2,
+    groundShadowHistoryWeight: 0.8,
+    groundShadowFilterRadius: 1,
     taaEnabled: true,
     taaBlend: 0.95,
     bloomEnabled: false,

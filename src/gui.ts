@@ -583,6 +583,16 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(marchFolder.add(params, 'shadowDarkness', 0.5, 20.0, 0.1).name(t('shadowDark')), 'shadowDark');
     tipKey(marchFolder.add(params, 'sunIntensity', 0.5, 20.0, 0.1).name(t('sunIntensity')), 'sunIntensity');
 
+    const groundShadowFolder = renderFolder.addFolder(t('groundShadow'));
+    tipKey(groundShadowFolder.add(params, 'groundShadowMode', { Legacy: 0, Adaptive: 1, Transmittance: 2 }).name(t('groundShadowMode')), 'groundShadowMode');
+    tipKey(groundShadowFolder.add(params, 'groundShadowMaxSteps', 8, 64, 1).name(t('groundShadowMaxSteps')), 'groundShadowMaxSteps');
+    tipKey(groundShadowFolder.add(params, 'groundShadowStepScale', 0.25, 4.0, 0.05).name(t('groundShadowStepScale')), 'groundShadowStepScale');
+    tipKey(groundShadowFolder.add(params, 'groundShadowJitter', 0.0, 1.0, 0.01).name(t('groundShadowJitter')), 'groundShadowJitter');
+    tipKey(groundShadowFolder.add(params, 'groundShadowMapResolution', { '256': 256, '512': 512, '1024': 1024 }).name(t('groundShadowMapResolution')), 'groundShadowMapResolution');
+    tipKey(groundShadowFolder.add(params, 'groundShadowMapUpdateRate', 1, 8, 1).name(t('groundShadowMapUpdateRate')), 'groundShadowMapUpdateRate');
+    tipKey(groundShadowFolder.add(params, 'groundShadowHistoryWeight', 0.0, 0.98, 0.01).name(t('groundShadowHistoryWeight')), 'groundShadowHistoryWeight');
+    tipKey(groundShadowFolder.add(params, 'groundShadowFilterRadius', 0, 2, 1).name(t('groundShadowFilterRadius')), 'groundShadowFilterRadius');
+
     const aaFolder = renderFolder.addFolder(t('renderAA'));
     tipKey(aaFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
     tipKey(aaFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');

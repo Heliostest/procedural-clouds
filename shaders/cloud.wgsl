@@ -56,7 +56,15 @@ struct Globals {
   jitterY         : f32,
   taaEnabled      : f32,
   edgeSharpening  : f32,
-  _pad6           : f32,
+  groundShadowMode : f32,
+  groundShadowMaxSteps : f32,
+  groundShadowStepScale : f32,
+  groundShadowJitter : f32,
+  groundShadowMapValid : f32,
+  groundShadowMapGuard : f32,
+  _pad7           : f32,
+  _pad8           : f32,
+  _pad9           : f32,
 };
 
 struct BodyGPU {
@@ -86,6 +94,7 @@ struct PresetShape {
 const PRESET_COUNT = 10;
 const DENSITY_SCALE_MAX = 2.0;
 const RAYMARCH_MAX_STEPS = 256u;
+const GROUND_SHADOW_MAX_STEPS = 64;
 // Must match PRESET_P5_OFFSETS in src/params.ts.
 const PRESET_P5_EDGE_HARDNESS = 0u;
 const PRESET_P5_ANVIL_STRENGTH = 1u;
@@ -105,6 +114,9 @@ override wg_z : u32 = 4u;
 @group(1) @binding(1) var densityTex0 : texture_3d<f32>;
 @group(1) @binding(2) var densityTex1 : texture_3d<f32>;
 @group(2) @binding(0) var densityStore : texture_storage_3d<rgba16float, write>;
+@group(2) @binding(1) var groundShadowStore : texture_storage_2d<rgba16float, write>;
+@group(3) @binding(0) var groundShadowSampler : sampler;
+@group(3) @binding(1) var groundShadowTex : texture_2d<f32>;
 
 struct Shape12 {
   density           : f32,
@@ -856,23 +868,91 @@ fn groundHeight(xz : vec2f) -> f32 {
   return n * 0.85;
 }
 
-fn cloudShadowAt(p : vec3f) -> f32 {
+struct GroundShadowResult {
+  transmittance : f32,
+  samples : f32,
+};
+
+fn legacyGroundShadow(p : vec3f) -> GroundShadowResult {
   let sd = sunDir();
-  if (sd.y <= 0.01) { return 1.0; }
+  if (sd.y <= 0.01) { return GroundShadowResult(1.0, 0.0); }
   let h = intersectBox(p, sd);
-  if (!h.hit) { return 1.0; }
+  if (!h.hit) { return GroundShadowResult(1.0, 0.0); }
   let t0 = max(h.tNear, 0.0);
   let t1 = h.tFar;
-  if (t1 <= t0) { return 1.0; }
+  if (t1 <= t0) { return GroundShadowResult(1.0, 0.0); }
   let steps = 18;
   let dt = (t1 - t0) / f32(steps);
   var dens = 0.0;
   for (var i = 0; i < steps; i++) {
     let sp = p + sd * (t0 + dt * (f32(i) + 0.5));
     dens += densityAt(sp) * dt;
-    if (dens * params.g.shadowDarkness > 4.6) { return 0.01; }
+    if (dens * params.g.shadowDarkness > 4.6) {
+      return GroundShadowResult(0.01, f32(i + 1));
+    }
   }
-  return exp(-dens * params.g.shadowDarkness);
+  return GroundShadowResult(exp(-dens * params.g.shadowDarkness), f32(steps));
+}
+
+fn groundShadowHash(xz : vec2f, sampleIndex : i32) -> f32 {
+  let cell = floor(xz * 64.0);
+  let offset = vec2f(f32(sampleIndex) * 17.0, f32(sampleIndex) * 43.0);
+  return interleavedGradientNoise(cell + offset);
+}
+
+fn integrateGroundShadow(p : vec3f, seed : f32) -> GroundShadowResult {
+  let sd = sunDir();
+  if (sd.y <= 0.01) { return GroundShadowResult(1.0, 0.0); }
+  let h = intersectBox(p, sd);
+  if (!h.hit) { return GroundShadowResult(1.0, 0.0); }
+  let t0 = max(h.tNear, 0.0);
+  let t1 = h.tFar;
+  if (t1 <= t0) { return GroundShadowResult(1.0, 0.0); }
+
+  let dims = max(vec3f(textureDimensions(densityTex0, 0)), vec3f(1.0));
+  let voxel = (getBoxMax() - boxMin()) / dims;
+  let targetStep = max(max(voxel.x, voxel.z) * max(params.g.groundShadowStepScale, 0.1), 0.001);
+  let maxSteps = clamp(i32(round(params.g.groundShadowMaxSteps)), 8, GROUND_SHADOW_MAX_STEPS);
+  let desiredSteps = max(8, i32(ceil((t1 - t0) / targetStep)));
+  let steps = min(maxSteps, desiredSteps);
+  let dt = (t1 - t0) / f32(steps);
+  let jitterStrength = clamp01(params.g.groundShadowJitter);
+  var dens = 0.0;
+  var used = 0;
+  for (var i = 0; i < GROUND_SHADOW_MAX_STEPS; i++) {
+    if (i >= steps) { break; }
+    let stable = groundShadowHash(p.xz + vec2f(seed), i);
+    let stratumOffset = mix(0.5, stable, jitterStrength);
+    let sp = p + sd * (t0 + dt * (f32(i) + stratumOffset));
+    dens += densityAt(sp) * dt;
+    used = i + 1;
+    if (dens * params.g.shadowDarkness > 4.6) {
+      return GroundShadowResult(0.01, f32(used));
+    }
+  }
+  return GroundShadowResult(exp(-dens * params.g.shadowDarkness), f32(used));
+}
+
+fn cloudShadowAt(p : vec3f) -> GroundShadowResult {
+  let mode = i32(round(params.g.groundShadowMode));
+  if (mode == 0) {
+    return legacyGroundShadow(p);
+  }
+  if (mode == 2 && params.g.groundShadowMapValid > 0.5) {
+    let extent = max(params.g.boxHalfExtent, 0.001);
+    let uv = p.xz / (2.0 * extent) + 0.5;
+    let edgeDistance = min(min(uv.x, uv.y), min(1.0 - uv.x, 1.0 - uv.y));
+    if (edgeDistance > 0.0) {
+      let cached = textureSampleLevel(groundShadowTex, groundShadowSampler, clamp(uv, vec2f(0.0), vec2f(1.0)), 0.0);
+      let mapWeight = smoothstep(0.0, max(params.g.groundShadowMapGuard, 0.0001), edgeDistance);
+      if (mapWeight >= 0.999) {
+        return GroundShadowResult(cached.r, cached.g * params.g.groundShadowMaxSteps);
+      }
+      let fallback = integrateGroundShadow(p, 0.0);
+      return GroundShadowResult(mix(fallback.transmittance, cached.r, mapWeight), mix(fallback.samples, cached.g * params.g.groundShadowMaxSteps, mapWeight));
+    }
+  }
+  return integrateGroundShadow(p, 0.0);
 }
 
 fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
@@ -885,7 +965,8 @@ fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
 
   let sd = sunDir();
   let ndl = clamp(dot(n, sd), 0.0, 1.0);
-  let shadow = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
+  let shadowResult = cloudShadowAt(vec3f(gp.x, GROUND_Y + groundHeight(gp.xz), gp.z));
+  let shadow = shadowResult.transmittance;
 
   let base = vec3f(0.10, 0.62, 0.06);
   let tint = noise_fbm(vec4f(gp.xz * 0.6, 0.0, 0.0), 4.0, 0.5, 2.0, true) * 0.5 + 0.5;
@@ -1136,4 +1217,18 @@ fn cs(@builtin(global_invocation_id) gid : vec3u) {
   let pos = mix(boxMin(), getBoxMax(), uvw);
   let dt = cloudDensityTyped(pos);
   textureStore(densityStore, vec3i(gid), vec4f(dt.d, dt.idx, dt.idx2, dt.w2));
+}
+
+@compute @workgroup_size(8, 8, 1)
+fn csGroundShadow(@builtin(global_invocation_id) gid : vec3u) {
+  let dims = textureDimensions(groundShadowStore);
+  if (gid.x >= dims.x || gid.y >= dims.y) { return; }
+
+  let uv = (vec2f(gid.xy) + 0.5) / vec2f(dims);
+  let extent = params.g.boxHalfExtent;
+  let xz = (uv - 0.5) * (2.0 * extent);
+  let p = vec3f(xz.x, GROUND_Y + groundHeight(xz), xz.y);
+  let result = integrateGroundShadow(p, 19.0);
+  let normalizedSamples = result.samples / max(params.g.groundShadowMaxSteps, 1.0);
+  textureStore(groundShadowStore, vec2i(gid.xy), vec4f(result.transmittance, normalizedSamples, 0.0, 1.0));
 }
