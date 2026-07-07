@@ -2,10 +2,18 @@ import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 import { DEFAULT_SCENE_SCALE, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 import { assertCompleteGenusProfiles } from './genusProfile';
+import type { WindAdvectionSample } from './wind';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 48;
 export const BODY_STRIDE = 20;
+
+export const BODY_WIND_OFFSETS = {
+  advectionOffsetWorldX: 4,
+  advectionOffsetWorldZ: 5,
+  morphTime: 6,
+  reserved: 7,
+} as const;
 
 export const PARAM_OFFSETS: Record<string, number> = {
   rayMarchSteps: 0,
@@ -285,6 +293,7 @@ export function packBodies(
   dst: Float32Array,
   bodies: CloudBody[],
   mods?: BodyMod[],
+  windSamples?: readonly WindAdvectionSample[],
   requestedScale: SceneScale = DEFAULT_SCENE_SCALE,
 ): void {
   const n = Math.min(bodies.length, MAX_BODIES);
@@ -296,7 +305,7 @@ export function packBodies(
     if (i < n) {
       const b = bodies[i];
       const m = mods?.[i];
-      const rad = b.windDeg * Math.PI / 180.0;
+      const wind = windSamples?.[i];
       const base = metersToWorldY(b.base, scale);
       const thickness = metersToWorldY(b.thickness, scale);
       const altTop = Math.min(boxHeight, base + Math.max(0.02, thickness));
@@ -304,10 +313,10 @@ export function packBodies(
       dst[o + 1] = altTop;
       dst[o + 2] = presetIndex(b.type);
       dst[o + 3] = 1.0;
-      dst[o + 4] = Math.cos(rad);
-      dst[o + 5] = Math.sin(rad);
-      dst[o + 6] = b.windSpeed;
-      dst[o + 7] = b.morphRate;
+      dst[o + BODY_WIND_OFFSETS.advectionOffsetWorldX] = metersToWorldXZ(wind?.offsetM[0] ?? 0, scale);
+      dst[o + BODY_WIND_OFFSETS.advectionOffsetWorldZ] = metersToWorldXZ(wind?.offsetM[1] ?? 0, scale);
+      dst[o + BODY_WIND_OFFSETS.morphTime] = wind?.morphTime ?? 0;
+      dst[o + BODY_WIND_OFFSETS.reserved] = 0;
       dst[o + 8] = b.coverage * (m ? m.coverageMul : 1);
       dst[o + 9] = b.densityScale * (m ? m.densityScale : 1);
       dst[o + 10] = m ? m.morph : 0;
@@ -335,7 +344,7 @@ export function createDefaultParams(): CloudParams {
     enforcePhysicalPlacement: false,
     morphStrength: 0,
     showBodyBounds: true,
-    showAxes: false,
+    showAxes: true,
     selectedBody: null,
     gizmoMode: null,
     skipLight: false,

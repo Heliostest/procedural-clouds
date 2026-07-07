@@ -15,7 +15,8 @@ import { geometrySignature, bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS, 
 import { buildAxisMesh } from './axis';
 import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
-import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
+import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, bodyToTransportedRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
+import type { WindAdvectionSample } from './wind';
 
 const shaderSource = noiseSource + cloudSource;
 
@@ -403,6 +404,7 @@ export interface Renderer {
   setCacheWorkgroup(x: number, y: number, z: number): void;
   setBodies(bodies: CloudBody[]): void;
   setBodyMods(mods: BodyMod[]): void;
+  setWindSamples(samples: readonly WindAdvectionSample[]): void;
   updatePresets(): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
 }
@@ -641,6 +643,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let currentBodies: CloudBody[] = [];
   let currentMods: BodyMod[] = [];
+  let currentWindSamples: readonly WindAdvectionSample[] = [];
   let shapeSignature = '';
 
   const cameraBuffer = device.createBuffer({
@@ -677,6 +680,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   function setBodyMods(mods: BodyMod[]): void {
     currentMods = mods;
+  }
+
+  function setWindSamples(samples: readonly WindAdvectionSample[]): void {
+    currentWindSamples = samples;
   }
 
   function updatePresets(): void {
@@ -720,6 +727,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
   }
 
+  let cacheIndex = 0;
+  let cacheValidCount = 0;
+  let cacheTransitionStart = 0.0;
+  let cacheTransitionDuration = 1 / 60;
+  let lastCacheUpdateElapsed = 0.0;
+  let lastCachedWindOffsets: Array<[number, number]> = [];
   let densityRes = 96;
   let densityTextures: [GPUTexture, GPUTexture] | null = null;
   let densitySampleBindGroup: GPUBindGroup;
@@ -749,6 +762,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         { binding: 2, resource: densityTextures[1].createView({ dimension: '3d' }) },
       ],
     });
+    cacheValidCount = 0;
+    lastCachedWindOffsets = [];
   }
 
   setDensityResolution(densityRes);
@@ -914,9 +929,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   let frameIndex = 0;
-  let cacheIndex = 0;
-  let prevCacheTime = 0.0;
-  let nextCacheTime = 0.0;
   let prevSceneTime = 0.0;
 
   const TS_COUNT = 6; // [computeStart, computeEnd, renderStart, renderEnd, postStart, postEnd]
@@ -988,8 +1000,23 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       taaEnabled: taaOn,
       edgeSharpening: params.edgeSharpening,
     });
-    packBodies(paramsData, currentBodies, currentMods, params);
+    packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
+  }
+
+  function windMovedPastVoxel(params: CloudParams): boolean {
+    if (currentWindSamples.length !== lastCachedWindOffsets.length) return true;
+    const horizontalVoxelM = (params.boxHalfExtent * 2) / Math.max(1, densityRes);
+    for (let i = 0; i < currentWindSamples.length; i++) {
+      const current = currentWindSamples[i].offsetM;
+      const previous = lastCachedWindOffsets[i];
+      if (Math.hypot(current[0] - previous[0], current[1] - previous[1]) > horizontalVoxelM) return true;
+    }
+    return false;
+  }
+
+  function snapshotCachedWindOffsets(): void {
+    lastCachedWindOffsets = currentWindSamples.map((sample) => [sample.offsetM[0], sample.offsetM[1]]);
   }
 
   function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
@@ -1004,7 +1031,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
-    const worldBodies = currentBodies.map((body) => bodyToRenderSpace(body, params));
+    const worldBodies = currentBodies.map((body, index) => bodyToTransportedRenderSpace(body, currentWindSamples[index]?.offsetM ?? [0, 0], params));
     const arrays: Float32Array[] = [];
     if (params.showBodyBounds && currentBodies.length > 0) {
       arrays.push(buildLineVerts(worldBodies, worldCloudHeight, params.selectedBody));
@@ -1040,11 +1067,24 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
-    const blendDenom = Math.max(1e-5, nextCacheTime - prevCacheTime);
-    const linearBlend = Math.min(1.0, Math.max(0.0, (elapsed - prevCacheTime) / blendDenom));
-    let cacheBlend = linearBlend;
-    if (params.cacheSmooth > 0.0) {
-      cacheBlend = Math.pow(linearBlend, 1.0 / (1.0 + params.cacheSmooth * 4.0));
+    const scheduledCacheUpdate = frameIndex % Math.max(1, params.cacheUpdateRate) === 0;
+    const cacheWillRun = params.qualityMode !== 2 && (scheduledCacheUpdate || windMovedPastVoxel(params));
+    if (cacheWillRun) {
+      const interval = lastCacheUpdateElapsed > 0 ? elapsed - lastCacheUpdateElapsed : 1 / 60;
+      cacheTransitionDuration = Math.max(1 / 240, interval);
+      cacheTransitionStart = elapsed;
+      lastCacheUpdateElapsed = elapsed;
+      cacheIndex = 1 - cacheIndex;
+      cacheValidCount++;
+      snapshotCachedWindOffsets();
+    }
+    let cacheBlend: number;
+    if (cacheValidCount <= 1) {
+      cacheBlend = cacheIndex === 0 ? 0 : 1;
+    } else {
+      let progress = Math.min(1, Math.max(0, (elapsed - cacheTransitionStart) / cacheTransitionDuration));
+      if (params.cacheSmooth > 0) progress = Math.pow(progress, 1 / (1 + params.cacheSmooth * 4));
+      cacheBlend = cacheIndex === 1 ? progress : 1 - progress;
     }
 
     const deltaTime = clock - prevSceneTime;
@@ -1084,12 +1124,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const commandEncoder = device.createCommandEncoder();
     let cacheRan = false;
 
-    if (params.qualityMode !== 2 && frameIndex % params.cacheUpdateRate === 0) {
+    if (cacheWillRun) {
       cacheRan = true;
-      prevCacheTime = nextCacheTime;
-      nextCacheTime = elapsed;
-      cacheIndex = 1 - cacheIndex;
-
       densityStoreBindGroup = device.createBindGroup({
         layout: computePipeline.getBindGroupLayout(2),
         entries: [
@@ -1297,6 +1333,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     setCacheWorkgroup,
     setBodies,
     setBodyMods,
+    setWindSamples,
     updatePresets,
     renderFrame,
   };

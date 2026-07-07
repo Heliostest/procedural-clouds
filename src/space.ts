@@ -1,4 +1,5 @@
 import type { CloudBody } from './body';
+import type { WindOffsetM } from './wind';
 
 export interface SceneScale {
   verticalMetersPerWorldUnit: number;
@@ -59,4 +60,21 @@ export function bodyToRenderSpace(body: CloudBody, scale: SceneScale): CloudBody
     rot: [body.rot[0], body.rot[1], body.rot[2]],
     life: { ...body.life },
   };
+}
+
+export function bodyToTransportedRenderSpace(body: CloudBody, offsetM: WindOffsetM, scale: SceneScale): CloudBody {
+  const worldBody = bodyToRenderSpace(body, scale);
+  const dx = metersToWorldXZ(offsetM[0], scale);
+  const dz = metersToWorldXZ(offsetM[1], scale);
+  const bounds = worldBody.bounds.slice();
+  if (worldBody.shape === 'rect') {
+    bounds[0] += dx;
+    bounds[1] += dz;
+    bounds[2] += dx;
+    bounds[3] += dz;
+  } else {
+    bounds[0] += dx;
+    bounds[1] += dz;
+  }
+  return { ...worldBody, bounds };
 }

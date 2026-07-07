@@ -41,7 +41,7 @@ export interface CloudBody {
   coverage: number;
   densityScale: number;
   windDeg: number;
-  windSpeed: number;
+  windSpeedMps: number;
   morphRate: number;
   rot: [number, number, number];
   life: BodyLife;
@@ -112,7 +112,7 @@ function createBody(id: string, shape: BodyShape): CloudBody {
     coverage: 0.7,
     densityScale: 1,
     windDeg: 45,
-    windSpeed: 0.15,
+    windSpeedMps: 10,
     morphRate: 0.05,
     rot: [0, 0, 0],
     life: defaultLife(),
@@ -176,8 +176,8 @@ export function createBodyStore(initial: CloudBody[], getCloudHeightM: () => num
 
 export function createDefaultBodies(): CloudBody[] {
   return [
-    { id: 'B1', shape: 'rect', bounds: [-3500, -1500, -500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus', placementLocked: true, coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeed: 0.15, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B2', shape: 'circle', bounds: [2000, 1000, 1600, 0], feather: 1500, base: 2500, thickness: 2500, type: 'altocumulus', placementLocked: true, coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeed: 0.3, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B3', shape: 'circle', bounds: [0, -2000, 2200, 0], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus', placementLocked: true, coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeed: 0.6, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B1', shape: 'rect', bounds: [-3500, -1500, -500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus', placementLocked: true, coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeedMps: 5, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B2', shape: 'circle', bounds: [2000, 1000, 1600, 0], feather: 1500, base: 2500, thickness: 2500, type: 'altocumulus', placementLocked: true, coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeedMps: 10, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
+    { id: 'B3', shape: 'circle', bounds: [0, -2000, 2200, 0], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus', placementLocked: true, coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeedMps: 20, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
   ];
 }

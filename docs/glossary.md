@@ -20,8 +20,8 @@
 | 覆盖度 | Coverage | `coverage` | 云填满范围的比例（云体级 × 云属级） |
 | 密度 | Density | `density` / `densityScale` | 云的厚实/不透光程度（云体级 × 云属级） |
 | 羽化 | Feather | `feather` | 足迹水平边界的柔化宽度 |
-| 高度 | Height above scene ground | `base` | 相对场景地面基准的云底高度，CPU/scenario v2 中单位为米 |
-| 厚度 | Thickness | `thickness` | 云层竖直厚度，CPU/scenario v2 中单位为米 |
+| 高度 | Height above scene ground | `base` | 相对场景地面基准的云底高度，CPU/scenario v3 中单位为米 |
+| 厚度 | Thickness | `thickness` | 云层竖直厚度，CPU/scenario v3 中单位为米 |
 | 云属参考位置 | Genus Profile | `GENUS_PROFILE_SET` | 带版本的推荐云底范围与默认 placement；当前为 `temperate-demo-v1` |
 | 位置锁定 | Placement Lock | `placementLocked` | 手动编辑后保留实例 placement，换属时不自动重置 |
 | 高度剖面 | Altitude Profile | preset `altitude` | 云体内部局部 Y 的噪声竖直剖面（相对比例，非全局盒高） |
@@ -39,13 +39,14 @@
 
 | 中文 | English | 代码标识 | 说明 |
 |---|---|---|---|
-| 风向 | Wind Direction | `windDeg` | 云噪声漂移方向（度） |
-| 风速 | Wind Speed | `windSpeed` | 漂移速度（平流位移） |
-| 平流 | Advection | — | 云团整体沿风向水平位移（区别于就地形变） |
+| 风向 | Wind Direction Toward | `windDeg` | 密度结构移动的去向；0°=`+X`、90°=`+Z`，从 `+Y` 俯视顺时针增加，不是气象学“来向” |
+| 风速 | Wind Speed | `windSpeedMps` | 水平平流速度，单位 m/s；正常演示范围 0–80 m/s |
+| 累计平流位移 | Advection Offset | `WindAdvectionSample.offsetM` | 对速度按场景秒积分得到的米制世界运输位移，GPU pack 时只换算一次 |
+| 平流 / 世界运输 | Advection / World Transport | — | 足迹、密度、实体调试体、线框和 gizmo 沿世界 XZ 共同移动；不改写作者 bounds，也不移动垂直高度带 |
 | 生命周期 | Lifecycle | `BodyLife` / `lifecycle.ts` | 单云体的生成→生长→衰减→消亡包络 |
 | 生成/生长/衰减/消亡 | Birth/Grow/Decay/Death | `birth/grow/decay/death` | 生命周期四阶段时间点 |
 | 峰值 | Peak | `peak` | 成熟期密度/覆盖度倍率峰值 |
-| 场景 | Scenario | `Scenario` / `scenario.ts` | 数据驱动的时间轴脚本 |
+| 场景 | Scenario | `Scenario` / `scenario.ts` | 数据驱动的时间轴脚本；v3 显式声明 `distanceUnit="m"` 与 `windUnit="m/s"` |
 | 时间轴 | Timeline | `timeline` | 场景的时间控制（播放/拖动） |
 | 播放头 | Playhead | `playhead` | 场景当前播放时刻 |
 | 场景时间 | Scene Time | `sceneTime` | 驱动动画的时钟（区别于噪声时间轴） |
@@ -56,7 +57,7 @@
 |---|---|---|---|
 | 盒体 | Box | `BOX_MIN` / `cloudHeight` / `boxHalfExtent` | CPU 以米定义场景边界，GPU 使用转换后的渲染包围盒 |
 | 场景地面基准 | Scene-ground Datum | Y=0 | 本项目的相对高度零点；不是平均海平面绝对海拔 |
-| 物理场景空间 | Physical Scene Space | CPU body / scenario v2 | 米制数据空间，存储云体 placement 与场景边界 |
+| 物理场景空间 | Physical Scene Space | CPU body / scenario v3 | 米制数据空间，存储云体 placement、累计平流位移与场景边界 |
 | 渲染世界空间 | Render World Space | GPU / shader / camera | 紧凑 world units；由米制数据按轴向比例转换 |
 | 竖直/水平换算 | Meters per World Unit | `verticalMetersPerWorldUnit` / `horizontalMetersPerWorldUnit` | 一 render world unit 对应的米数，默认均为 1000 |
 | 天气图 | Weather Map | `weather.ts` / `weatherSize` | 每云体的 2D 足迹/形状纹理 |

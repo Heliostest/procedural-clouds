@@ -2,7 +2,8 @@ import type { CameraFrame } from './camera';
 import type { BodyStore } from './body';
 import { bodyCenterWorld, GIZMO_AXIS_LEN, GIZMO_RING_RADIUS } from './body';
 import type { CloudParams } from './params';
-import { bodyToRenderSpace } from './space';
+import { bodyToTransportedRenderSpace } from './space';
+import type { WindOffsetM } from './wind';
 
 const AXIS: [number, number, number][] = [
   [1, 0, 0],
@@ -16,6 +17,7 @@ interface GizmoDeps {
   params: CloudParams;
   store: BodyStore;
   getCam(): CameraFrame | null;
+  getWindOffsetM(bodyId: string): WindOffsetM;
   onChange(): void;
 }
 
@@ -80,7 +82,7 @@ export function createGizmoController(deps: GizmoDeps): void {
     const cam = deps.getCam();
     const b = selectedBody();
     if (!cam || !b) return;
-    const worldBody = bodyToRenderSpace(b, params);
+    const worldBody = bodyToTransportedRenderSpace(b, deps.getWindOffsetM(b.id), params);
     const center = bodyCenterWorld(worldBody, params.cloudHeight / params.verticalMetersPerWorldUnit);
     const cS = project(cam.viewProj, center);
     if (!cS) return;

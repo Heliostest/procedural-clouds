@@ -12,6 +12,7 @@ import { t, onLangChange } from './i18n';
 import { enforcePlacement, placementWarning } from './genusProfile';
 import { metersToWorldXZ, metersToWorldY } from './space';
 import { verifyPhysicalContracts } from './physicalVerification';
+import { createWindAdvectionController, WIND_DEMO_MAX_MPS } from './wind';
 
 const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
 
   const params = createDefaultParams();
   const store = createBodyStore(createDefaultBodies(), () => params.cloudHeight);
+  const manualWind = createWindAdvectionController();
   const timeline = { scrub: false, time: 0, paused: false };
   const scenarioState = { enabled: false, playing: true, speed: 1, loop: false };
   let currentScenario = DEMO_SCENARIO;
@@ -58,6 +60,7 @@ async function main(): Promise<void> {
 
   applyPlacementPolicy();
   renderer.setBodies(store.list());
+  renderer.setWindSamples(manualWind.samples(store.list()));
 
   window.addEventListener('resize', renderer.resizeCanvas);
   renderer.resizeCanvas();
@@ -91,9 +94,15 @@ async function main(): Promise<void> {
     },
     onTrigger() {
       manualClock = 0;
+      manualWind.reset();
+      renderer.setWindSamples(manualWind.samples(store.list()));
       timeline.scrub = false;
       timeline.time = 0;
       gui.refreshTimeline();
+    },
+    onResetWindAdvection() {
+      manualWind.reset();
+      renderer.setWindSamples(manualWind.samples(store.list()));
     },
     onScenarioDemo() {
       currentScenario = DEMO_SCENARIO;
@@ -127,6 +136,7 @@ async function main(): Promise<void> {
     params,
     store,
     getCam: () => lastCam,
+    getWindOffsetM: (bodyId) => manualWind.sample(bodyId).offsetM,
     onChange: () => renderer.setBodies(store.list()),
   });
 
@@ -153,7 +163,8 @@ async function main(): Promise<void> {
     } else {
       lines.push(`${t('dbgBodies')}: ${store.list().length}  ${t('dbgSelected')}:${params.selectedBody ?? '-'}`);
       store.list().forEach((b) => {
-        lines.push(`  ${b.id} ${b.shape}/${b.type} h=${b.base.toFixed(2)} cov=${b.coverage.toFixed(2)} life=${b.life.enabled ? 'on' : 'off'}`);
+        const highWind = b.windSpeedMps > WIND_DEMO_MAX_MPS ? ' ⚠' : '';
+        lines.push(`  ${b.id} ${b.shape}/${b.type} h=${b.base.toFixed(0)}m wind=${b.windSpeedMps.toFixed(1)}m/s${highWind} cov=${b.coverage.toFixed(2)} life=${b.life.enabled ? 'on' : 'off'}`);
       });
     }
     if (scenarioError) lines.push(`${t('dbgError')}: ${scenarioError}`);
@@ -216,17 +227,23 @@ async function main(): Promise<void> {
         applyPlacementPolicy(s.bodies);
         renderer.setBodies(s.bodies);
         renderer.setBodyMods(s.bodies.map(() => IDENTITY_MOD));
+        renderer.setWindSamples(s.windSamples);
         lastPlayhead = playhead;
       }
     } else {
       if (lastPlayhead >= 0) {
         renderer.setBodies(store.list());
+        renderer.setWindSamples(manualWind.samples(store.list()));
         lastPlayhead = -1;
       }
-      if (!timeline.scrub && !timeline.paused) manualClock += deltaTime;
+      if (!timeline.scrub && !timeline.paused) {
+        manualClock += deltaTime;
+        manualWind.advance(store.list(), deltaTime);
+      }
       const sceneTime = timeline.scrub ? timeline.time : manualClock;
       const mods = store.list().map((b) => evalBodyMod(b, sceneTime));
       renderer.setBodyMods(mods);
+      renderer.setWindSamples(manualWind.samples(store.list()));
     }
 
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);

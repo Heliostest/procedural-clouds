@@ -27,7 +27,9 @@ The UI panel exposes these parameters:
 - `Scale`: Noise scale (now up to 15)
 - `Altitude`: Base altitude of the cloud layer
 - `Detail`: Higher-frequency noise contribution
-- `Wind Speed`: Time scale for cloud motion
+- `Wind Speed (m/s)`: Horizontal density-advection speed in metres per second
+- `Wind Dir °`: Direction the density moves toward (`0° = +X`, `90° = +Z`)
+- `Reset Wind Phase`: Clears accumulated manual advection without moving the body control bounds
 - `Skip Light March`: Toggles light marching in the shader
 - `Ray Steps`: Number of ray-march steps per pixel
 - `Light Steps`: Number of light-march steps
@@ -41,6 +43,10 @@ The UI panel exposes these parameters:
 Camera controls:
 - Drag to orbit
 - Scroll to zoom
+
+Cloud-body bounds define the saved authoring placement. At runtime, integrated wind displacement transports the complete cloud footprint and density through world XZ; wireframes and gizmos follow the transported position while the saved bounds remain unchanged.
+
+Scenario exports use `schemaVersion: 3`, `distanceUnit: "m"`, and `windUnit: "m/s"`. The loader still accepts v2 and unversioned scenarios; their legacy wind speeds are interpreted as world-units per second and converted with `horizontalMetersPerWorldUnit` so existing motion is preserved.
 
 ## How It Works
 1. **Compute pass** (`shaders/noise.wgsl` + `shaders/cloud.wgsl`):

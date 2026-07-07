@@ -12,6 +12,7 @@ import {
 } from './params';
 import type { BodyStore, CloudBody, BodyShape } from './body';
 import { t, tip, getLang, setLang, cloudTypeName, shapeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+import { WIND_DEMO_MAX_MPS } from './wind';
 
 const ALL_SHAPES: BodyShape[] = [
   'rect', 'circle', 'sphere', 'cube', 'octahedron', 'tetrahedron', 'dodecahedron', 'icosahedron', 'torus',
@@ -95,6 +96,7 @@ export interface GuiHooks {
   onCacheWorkgroup(x: number, y: number, z: number): void;
   onPresetsChanged(): void;
   onTrigger(): void;
+  onResetWindAdvection(): void;
   onScenarioDemo(): void;
   onScenarioLoad(text: string): void;
   onScenarioExport(): void;
@@ -301,7 +303,26 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         tipKey(f.add(b, 'coverage', 0.0, 1.0, 0.01).name(t('coverage')).onChange(hooks.onBodiesChanged), 'coverage');
         tipKey(f.add(b, 'densityScale', 0.0, 2.0, 0.01).name(t('density')).onChange(hooks.onBodiesChanged), 'density');
         tipKey(f.add(b, 'windDeg', 0, 360, 1).name(t('windDir')).onChange(hooks.onBodiesChanged), 'windDir');
-        tipKey(f.add(b, 'windSpeed', 0.0, 2.0, 0.01).name(t('windSpeed')).onChange(hooks.onBodiesChanged), 'windSpeed');
+        let lastValidWindSpeed = b.windSpeedMps;
+        const windProxy = { windSpeedMps: b.windSpeedMps };
+        const windSpeedCtrl = tipKey(f.add(windProxy, 'windSpeedMps').name(t('windSpeed')).onChange(() => {
+          const next = Number(windProxy.windSpeedMps);
+          if (!Number.isFinite(next) || next < 0) {
+            windProxy.windSpeedMps = lastValidWindSpeed;
+            windSpeedCtrl.updateDisplay();
+            return;
+          }
+          lastValidWindSpeed = next;
+          b.windSpeedMps = next;
+          const high = next > WIND_DEMO_MAX_MPS;
+          windSpeedCtrl.domElement.style.outline = high ? '1px solid #d89b2b' : '';
+          windSpeedCtrl.domElement.title = high ? `${tip('windSpeed')} ${t('windHighWarning')}` : tip('windSpeed');
+          hooks.onBodiesChanged();
+        }), 'windSpeed');
+        if (b.windSpeedMps > WIND_DEMO_MAX_MPS) {
+          windSpeedCtrl.domElement.style.outline = '1px solid #d89b2b';
+          windSpeedCtrl.domElement.title = `${tip('windSpeed')} ${t('windHighWarning')}`;
+        }
         tipKey(f.add(b, 'morphRate', 0.0, 1.0, 0.01).name(t('morphRate')).onChange(hooks.onBodiesChanged), 'morphRate');
 
         const lf = f.addFolder(t('lifecycle'));
@@ -321,6 +342,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     const globalFolder = gui.addFolder(t('global'));
     tipKey(globalFolder.add(timeline, 'paused').name(t('pauseAnim')), 'pauseAnim');
     tipKey(globalFolder.add({ resetTime: hooks.onTrigger }, 'resetTime').name(t('resetTime')), 'resetTime');
+    tipKey(globalFolder.add({ resetWindAdvection: hooks.onResetWindAdvection }, 'resetWindAdvection').name(t('resetWindAdvection')), 'resetWindAdvection');
     tipKey(globalFolder.add(params, 'showBodyBounds').name(t('showWireframe')), 'showWireframe');
     tipKey(globalFolder.add(params, 'showAxes').name(t('showAxes')), 'showAxes');
     tipKey(globalFolder.add(params, 'boxHalfExtent', 1000, 100000, 500).name(t('boxHalfExtent')), 'boxHalfExtent');

@@ -33,7 +33,7 @@
 
 **已落地契约（`physical-credibility` P0）**：
 
-- CPU 云体和 scenario v2 使用米制 placement，Y=0 是 scene-ground datum，不声称为 MSL 绝对海拔；
+- CPU 云体和 scenario v3 使用米制 placement，Y=0 是 scene-ground datum，不声称为 MSL 绝对海拔；
 - `temperate-demo-v1` profile set 保存推荐云底范围和项目默认 placement；新建或未锁定换属时自动套用；
 - `altBase/altTop` 仅控制云体内部相对密度带，不再重复编码高云/中云/低云位置；
 - WMO 温带低/中/高层范围只作为推荐区间。WMO 明确指出层级互相重叠并随纬度变化，因此这些值不是所有地区的硬气象定律；

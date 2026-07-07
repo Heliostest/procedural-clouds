@@ -61,7 +61,7 @@ struct Globals {
 
 struct BodyGPU {
   geom : vec4f, // x=baseY, y=topY (world), z=typeIdx, w=enabled
-  wind : vec4f, // x=dirX, y=dirY, z=speed, w=morphRate
+  wind : vec4f, // x=advectionOffsetWorldX, y=advectionOffsetWorldZ, z=morphTime, w=reserved
   intensity : vec4f, // x=coverage, y=densityScale, z=morph, w=feather
   footprint : vec4f, // x=centerX, y=centerZ, z=radius, w=shapeId
   rot : vec4f, // x=rotX, y=rotY, z=rotZ (radians), w=unused
@@ -368,7 +368,8 @@ fn bodyRotatedPos(pos : vec3f, b : BodyGPU) -> vec3f {
 }
 
 fn evalBodySolid(posIn : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
-  let pos = bodyRotatedPos(posIn, b);
+  let transportedPos = vec3f(posIn.x - b.wind.x, posIn.y, posIn.z - b.wind.y);
+  let pos = bodyRotatedPos(transportedPos, b);
   let bmin = boxMin();
   let bmaxY = getBoxMax().y;
   let cx = b.footprint.x;
@@ -394,7 +395,7 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
     return evalBodySolid(pos, b, shapeId);
   }
 
-  let mt = params.g.sceneTime * b.wind.w;
+  let mt = b.wind.z;
   let timeNoise     = mt;
   let timeVoronoi1  = mt;
   let timeVoronoi2  = mt;
@@ -403,13 +404,13 @@ fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
   let factorDetail  = 1.0;
   let factorShaper  = 1.0;
 
-  // Per-body rotation: sample the unrotated body about its center.
-  let rp = bodyRotatedPos(pos, b);
+  // Move the complete body through world XZ, then evaluate it in authoring space.
+  let transportedPos = vec3f(pos.x - b.wind.x, pos.y, pos.z - b.wind.y);
+  let rp = bodyRotatedPos(transportedPos, b);
   let oRaw = vec3f(rp.x, rp.z, rp.y);
 
-  // Per-body horizontal advection of the (infinite) procedural sampling domain.
-  let advect = vec3f(b.wind.x, b.wind.y, 0.0) * (b.wind.z * params.g.sceneTime);
-  let objPos = oRaw - advect;
+  // Footprint and procedural density now share the same transported position.
+  let objPos = oRaw;
 
   let shape = presetShape(i32(round(b.geom.z)));
   let morphology = presetMorphology(i32(round(b.geom.z)));
@@ -667,9 +668,33 @@ fn dualHG(cosTheta: f32) -> f32 {
     return mix(hgPhase(cosTheta, params.g.hgBackward), csPhase(cosTheta, params.g.hgForward), clamp01(params.g.hgBlend));
 }
 
+fn dominantWindPhase(pos : vec3f) -> vec3f {
+  let bmin = boxMin();
+  let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
+  var bestScore = 0.0;
+  var phase = vec3f(0.0);
+  for (var i = 0; i < MAX_BODIES; i++) {
+    if (f32(i) >= params.g.activeBodyCount) { break; }
+    let b = params.bodies[i];
+    if (pos.y < b.geom.x || pos.y > b.geom.y) { continue; }
+    let transportedXZ = pos.xz - b.wind.xy;
+    let uv = (transportedXZ - vec2f(bmin.x, bmin.z)) / spanXZ;
+    if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { continue; }
+    let alpha = textureSampleLevel(weatherTex, weatherSampler, uv, i, 0.0).r;
+    let score = alpha * clamp01(b.intensity.x) * max(b.intensity.y, 0.0);
+    if (score > bestScore) {
+      bestScore = score;
+      phase = vec3f(b.wind.x, b.wind.y, b.wind.z);
+    }
+  }
+  return phase;
+}
+
 fn detailNoise(pos : vec3f) -> f32 {
   let f = max(params.g.detailFreq, 0.01);
-  return perlin_noise_4d(vec4f(pos * f, params.g.sceneTime * 0.1));
+  let phase = dominantWindPhase(pos);
+  let advectedPos = vec3f(pos.x - phase.x, pos.y, pos.z - phase.y);
+  return perlin_noise_4d(vec4f(advectedPos * f, phase.z * 0.1));
 }
 
 fn applyEdgeShaping(d : f32, idx : f32, idx2 : f32, w2 : f32, pos : vec3f) -> f32 {
@@ -777,7 +802,7 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
   }
   let s = sampleDensityTyped(pos);
   var base = s.x;
-  if (mode == 1 && base > 0.01) {
+  if (mode == 1 && base > 0.01 && params.g.detailStrength > 0.0001) {
     base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
   }
   return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
