@@ -322,8 +322,6 @@ struct DensityType {
 };
 
 fn cloudDensityTyped(pos : vec3f) -> DensityType {
-  // Blender "Object" coordinates for a cloud body (Z-up). World Y is Blender Z.
-  let objPosRaw = vec3f(pos.x, pos.z, pos.y);
   var total = 0.0;
   var bestD = 0.0;
   var bestIdx = 0.0;
@@ -331,7 +329,7 @@ fn cloudDensityTyped(pos : vec3f) -> DensityType {
   var secondIdx = 0.0;
   for (var i = 0; i < MAX_BODIES; i++) {
     if (params.bodies[i].geom.w < 0.5) { continue; }
-    let dd = evalBody(pos, objPosRaw, i);
+    let dd = evalBody(pos, i);
     total += dd;
     let gi = round(params.bodies[i].geom.z);
     if (dd > bestD) {
@@ -399,141 +397,17 @@ fn evalBodySolid(posIn : vec3f, b : BodyGPU, shapeId : i32) -> f32 {
   return clamp01((1.0 - s) / edge) * level;
 }
 
-fn evalBody(pos : vec3f, objPosRaw : vec3f, i : i32) -> f32 {
+fn evalBody(pos : vec3f, i : i32) -> f32 {
   let b = params.bodies[i];
 
   let shapeId = i32(round(b.footprint.w));
   if (shapeId >= 2) {
     return evalBodySolid(pos, b, shapeId);
   }
-
-  let mt = b.wind.z;
-  let timeNoise     = mt;
-  let timeVoronoi1  = mt;
-  let timeVoronoi2  = mt;
-
-  let lowAltDens    = 0.2;
-  let factorDetail  = 1.0;
-  let factorShaper  = 1.0;
-
-  // Move the complete body through world XZ, then evaluate it in authoring space.
-  let transportedPos = vec3f(pos.x - b.wind.x, pos.y, pos.z - b.wind.y);
-  let rp = bodyRotatedPos(transportedPos, b);
-  let oRaw = vec3f(rp.x, rp.z, rp.y);
-
-  // Footprint and procedural density now share the same transported position.
-  let objPos = oRaw;
-
-  let shape = presetShape(i32(round(b.geom.z)));
-  let morphology = presetMorphology(i32(round(b.geom.z)));
-  let bmin = boxMin();
-  let bmaxY = getBoxMax().y;
-  let altBase = clamp(b.geom.x, bmin.y, bmaxY - 0.02);
-  let altTop = clamp(max(b.geom.y, altBase + 0.02), altBase + 0.02, bmaxY);
-  let vLocal = (rp.y - altBase) / max(altTop - altBase, 0.001);
-  let profileBase = clamp(shape.altBase, 0.0, 0.99);
-  let profileTop = clamp(max(shape.altTop, profileBase + 0.01), profileBase + 0.01, 1.0);
-  let profileLocal = (vLocal - profileBase) / max(profileTop - profileBase, 0.001);
-
-  // Genus morphology widens only the upper footprint. Edge-style controls are
-  // deliberately absent here so disabling edge rendering cannot remove anvils.
-  let anvilBand = smoothstep(0.68, 0.90, vLocal) * (1.0 - smoothstep(0.98, 1.02, vLocal));
-  let anvilScale = 1.0 + 0.28 * clamp01(morphology.anvilStrength) * anvilBand;
-  let footprintCenter = b.footprint.xy;
-  let footprintPos = footprintCenter + (oRaw.xy - footprintCenter) / anvilScale;
-
-  // Normalized horizontal silhouette from this body's shape layer.
-  let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
-  let wUv = (footprintPos - vec2f(bmin.x, bmin.z)) / spanXZ;
-  let alpha = textureSampleLevel(weatherTex, weatherSampler, wUv, i, 0.0).r;
-  if (alpha < 0.005) { return 0.0; }
-  let wCurve = max(params.g.edgeCurveWidth, 0.01);
-  let cov = pow(smoothstep(0.5 - wCurve, 0.5, alpha), max(params.g.edgeCurveShaper, 0.01));
-  let localCoverage = clamp01(cov * b.intensity.x);
-  if (localCoverage < 0.01) { return 0.0; }
-  let wDensityScale = b.intensity.y;
-  if (wDensityScale < 0.001) { return 0.0; }
-  let wMorph = b.intensity.z;
-  let edgeSoft = smoothstep(0.35, 0.65, alpha);
-  let densityParam  = shape.density;
-  let altitude      = shape.altitude;
-  let factorMacro   = localCoverage;
-  let scaleAlt      = shape.scale;
-  let scaleNoise    = shape.scale;
-  let scaleVoronoi1 = shape.scale;
-  let scaleVoronoi2 = shape.scale;
-  let detail        = shape.detail;
-  let coverageThreshold = shape.coverageThreshold;
-  let edgeSharpness     = shape.edgeSharpness * edgeSoft;
-  let baseRoundness     = morphology.baseRoundness;
-  let detailBoost       = max(wMorph, 0.0);
-  let erosion           = max(-wMorph, 0.0);
-  let weatherMorph      = params.g.weatherMorph;
-  let worleyBlend       = clamp01(shape.worleyBlend + weatherMorph * erosion);
-  let detailStrength    = shape.detailStrength * (1.0 + weatherMorph * detailBoost);
-  // Per-body vertical band: clouds float within [base, altTop].
-  let Z = 1.0 - clamp(profileLocal, 0.0, 1.0);
-
-  // --- STAGE 1: Altitude Mask ---
-  // Map Range.010: Z from [0, Altitude/5] -> [1 - LowAlt, 1]
-  let altFromMax = altitude / 5.0;
-  let altToMin = 1.0 - lowAltDens;
-  let altMaskRamp = mapRange(Z, 0.0, altFromMax, altToMin, 1.0);
-  // Noise Texture: 4D, Scale 2.0, Detail 0.0 (FBM normalized)
-  let noiseCoord = objPos / scaleNoise;
-  let stage1Noise = node_noise_texture_4d_value(
-    noiseCoord, timeNoise, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-  // Math.008: Multiply (clamped)
-  let altitudeMask = clamp01(altMaskRamp * stage1Noise);
-
-  // --- STAGE 2: Macro Voronoi ---
-  let v1Coord = objPos / scaleVoronoi1;
-  let v1dist = node_tex_voronoi_f1_4d_distance(v1Coord, timeVoronoi1, 5.0, detail, 0.5, 3.0, 1.0, 0.5, 1.0, 0.0, 1.0);
-  let v1mapped = mapRange(v1dist, 0.0, 0.75, factorMacro * -0.4, factorMacro);
-  let v1scaled = clamp01(v1mapped * 0.5); // Math.012
-  let stage2 = sharpen(clamp01(altitudeMask + v1scaled), edgeSharpness); // Math.003
-
-  // --- STAGE 3: Medium Voronoi Detail ---
-  let v2Coord = objPos / scaleVoronoi2;
-  let v2dist = node_tex_voronoi_f1_4d_distance(v2Coord, timeVoronoi2, 2.0, detail * 5.0, 0.75, 2.5, 1.0, 0.5, 1.0, 0.0, 1.0);
-  let v2mapped = mapRange(v2dist, 0.0, 1.0, factorDetail * -0.25, factorDetail);
-  let stage3v = clamp01(stage2 + v2mapped * detailStrength); // Math.004 (cellular path)
-
-  // Puffy (Perlin FBM) path — blended via worleyBlend
-  let fbmVal = noise_fbm(vec4f(objPos / scaleVoronoi1, timeVoronoi1), 4.0, 0.5, 2.0, true);
-  let puffAdd = clamp01((fbmVal * 0.5 + 0.5) * factorMacro);
-  let stage3p = clamp01(altitudeMask + puffAdd);
-
-  let stage3 = sharpen(mix(stage3p, stage3v, clamp01(worleyBlend)), edgeSharpness);
-
-  // --- STAGE 4: Upper Altitude Cutoff ---
-  let cutoffFromMin = altitude * scaleAlt;
-  let cutoff = mapRange(Z, cutoffFromMin, 0.0, 0.0, 1.0); // Map Range.008 (Blender)
-  let shaped = clamp01(stage3 - cutoff); // Math.020
-
-  // Vertical limits folded into the same density-vs-threshold competition that
-  // forms horizontal edges: a height envelope raises the threshold toward the
-  // top/bottom, so those surfaces fall on the 3D-noise iso-surface and stay
-  // irregular instead of being clipped to flat planes.
-  let vT = abs(profileLocal - 0.5) * 2.0;
-  let vEnvelope = pow(vT, max(params.g.verticalEdgeShape, 0.01)) * params.g.verticalEdgeRange;
-  let legacyShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold - vEnvelope); // Math.005
-  // Stage 10 profile: a narrow top transition removes deliberate dome
-  // rounding, while baseRoundness chooses a flat-to-rounded lower curve.
-  let topMask = 1.0 - smoothstep(0.975, 1.015, profileLocal);
-  let bottomWidth = mix(0.035, 0.22, clamp01(baseRoundness));
-  let bottomMask = smoothstep(-0.01, bottomWidth, profileLocal);
-  let hardShaped = clamp01(shaped - (1.0 - factorShaper) - coverageThreshold) * topMask * bottomMask;
-  let topCutoffSharpness = clamp01(morphology.topCutoffSharpness);
-  let finalShaped = mix(legacyShaped, hardShaped, topCutoffSharpness);
-
-  // --- STAGE 5: Final Multipliers ---
-  let falloffRaw = mapRange(Z, 0.0, altitude, 0.0, 1.0); // Map Range.009
-  let legacyFalloff = pow(clamp01(falloffRaw), mix(1.0, 2.5, clamp01(baseRoundness)));
-  let falloff = mix(legacyFalloff, 1.0, topCutoffSharpness);
-  let densityScale = densityParam * 5.0; // Tune for WebGPU raymarching
-  let edgeFade = smoothstep(0.0, 0.25, localCoverage);
-  return finalShaped * falloff * densityScale * wDensityScale * edgeFade; // Math.016
+  let ctx = prepareGenusEvalContext(pos, i);
+  let compatibilityDensity = evalCompatibilityGenus(ctx);
+  let genusIndex = i32(round(b.geom.z));
+  return max(evalGenusDensity(genusIndex, compatibilityDensity), 0.0);
 }
 
 // ============================================================

@@ -1,6 +1,18 @@
 import noiseSource from '../shaders/noise.wgsl?raw';
 import cloudSource from '../shaders/cloud.wgsl?raw';
 import groundShadowResolveSource from '../shaders/ground-shadow-resolve.wgsl?raw';
+import genusCommonSource from '../shaders/genus/common.wgsl?raw';
+import cumulusSource from '../shaders/genus/cumulus.wgsl?raw';
+import stratusSource from '../shaders/genus/stratus.wgsl?raw';
+import stratocumulusSource from '../shaders/genus/stratocumulus.wgsl?raw';
+import cumulonimbusSource from '../shaders/genus/cumulonimbus.wgsl?raw';
+import altocumulusSource from '../shaders/genus/altocumulus.wgsl?raw';
+import altostratusSource from '../shaders/genus/altostratus.wgsl?raw';
+import nimbostratusSource from '../shaders/genus/nimbostratus.wgsl?raw';
+import cirrusSource from '../shaders/genus/cirrus.wgsl?raw';
+import cirrostratusSource from '../shaders/genus/cirrostratus.wgsl?raw';
+import cirrocumulusSource from '../shaders/genus/cirrocumulus.wgsl?raw';
+import genusDispatchSource from '../shaders/genus/dispatch.wgsl?raw';
 import {
   packParams,
   packBodies,
@@ -19,7 +31,22 @@ import type { CameraFrame } from './camera';
 import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, bodyToTransportedRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 import type { WindAdvectionSample } from './wind';
 
-const shaderSource = noiseSource + cloudSource;
+const shaderSource = [
+  noiseSource,
+  cloudSource,
+  genusCommonSource,
+  cumulusSource,
+  stratusSource,
+  stratocumulusSource,
+  cumulonimbusSource,
+  altocumulusSource,
+  altostratusSource,
+  nimbostratusSource,
+  cirrusSource,
+  cirrostratusSource,
+  cirrocumulusSource,
+  genusDispatchSource,
+].join('\n');
 
 const OFFSCREEN_FORMAT: GPUTextureFormat = 'rgba16float';
 

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:genus-dispatch": "node scripts/check-genus-dispatch.mjs",
     "test:ground-shadow-hash": "node scripts/check-ground-shadow-hash.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
