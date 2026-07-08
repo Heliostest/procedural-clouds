@@ -31,7 +31,7 @@ dispatcher 仍只负责路由：cirrus/cumulonimbus case 调用扩展签名，�
 
 ### D2: 卷云使用局部轴向的各向异性纤维场
 
-卷云纤维以旋转后的云体局部坐标为基础：局部 X 作为主延伸轴，局部 Z/Y 作为较高频的横向截面。低频 curl/domain warp 只弯曲采样坐标，高频 ridge/FBM 形成多条细丝；最终纤维 mask 与兼容密度及原足迹/垂直包络组合，不能在云体和 weather footprint 外生成密度。
+卷云纤维以旋转后的云体局部坐标为基础：局部 X 作为主延伸轴，局部 Z/Y 作为较高频的横向截面。低频 curl/domain warp 只弯曲采样坐标，多频解析 ridge carrier 形成多条细丝；最终纤维 mask 与兼容密度及原足迹/垂直包络组合，不能在云体和 weather footprint 外生成密度。解析载波避免为每次密度求值再次内联 Blender FBM 循环。
 
 总体方向由既有 body rotation 决定。物理风 offset 继续在公共准备阶段平移整个形态；不得从累计 offset 反推风向，因为 t=0、重置和平静风时该方向不稳定。若未来需要随高度风切变拉丝，应由独立 flow-field proposal 提供稳定方向场。
 

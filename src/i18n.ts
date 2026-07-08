@@ -266,6 +266,34 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
       zh: '云属形态参数：从旧圆化顶部过渡到窄范围顶部截断。关闭边缘锐化后仍然生效。',
     },
   },
+  cirrusFiberStrength: {
+    name: { en: 'Cirrus Fiber Strength', zh: '卷云纤维强度' },
+    desc: {
+      en: 'Reshapes cirrus density into elongated body-local fibers. Zero returns the compatibility density without extra noise.',
+      zh: '把卷云密度重塑为沿云体局部轴延伸的纤维。为 0 时直接返回兼容密度，不执行新增噪声。',
+    },
+  },
+  cirrusFiberCurl: {
+    name: { en: 'Cirrus Fiber Curl', zh: '卷云纤维弯曲' },
+    desc: {
+      en: 'Controls bounded curl warping of cirrus fibers; body rotation controls their overall direction.',
+      zh: '控制卷云纤维的有界 curl 扭曲；总体方向由云体旋转控制。',
+    },
+  },
+  convectiveTowerStrength: {
+    name: { en: 'Convective Tower Strength', zh: '对流塔强度' },
+    desc: {
+      en: 'Adds height-gated tower and cauliflower density to cumulonimbus while preserving its base and anvil controls.',
+      zh: '为积雨云增加高度门控的对流塔与花椰菜密度，同时保留云底和砧顶控制。',
+    },
+  },
+  convectiveCellScale: {
+    name: { en: 'Convective Cell Scale', zh: '对流胞元尺度' },
+    desc: {
+      en: 'Controls the typical lobe size of cumulonimbus convective cells.',
+      zh: '控制积雨云对流胞元和花椰菜分瓣的典型尺度。',
+    },
+  },
   worleyBlend: {
     name: { en: 'Worley / Perlin Blend', zh: 'Worley/Perlin 混合' },
     desc: {

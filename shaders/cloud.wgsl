@@ -89,6 +89,7 @@ struct PresetShape {
   p3 : vec4f,
   p4 : vec4f,
   p5 : vec4f,
+  p6 : vec4f,
 };
 
 const PRESET_COUNT = 10;
@@ -100,6 +101,11 @@ const PRESET_P5_EDGE_HARDNESS = 0u;
 const PRESET_P5_ANVIL_STRENGTH = 1u;
 const PRESET_P5_TOP_CUTOFF_SHARPNESS = 2u;
 const PRESET_P5_EDGE_EROSION_STRENGTH = 3u;
+// Must match PRESET_P6_OFFSETS in src/params.ts.
+const PRESET_P6_CIRRUS_FIBER_STRENGTH = 0u;
+const PRESET_P6_CIRRUS_FIBER_CURL = 1u;
+const PRESET_P6_CONVECTIVE_TOWER_STRENGTH = 2u;
+const PRESET_P6_CONVECTIVE_CELL_SCALE = 3u;
 
 override wg_x : u32 = 8u;
 override wg_y : u32 = 8u;
@@ -158,6 +164,10 @@ struct Morphology {
   baseRoundness     : f32,
   anvilStrength     : f32,
   topCutoffSharpness : f32,
+  cirrusFiberStrength : f32,
+  cirrusFiberCurl : f32,
+  convectiveTowerStrength : f32,
+  convectiveCellScale : f32,
 };
 
 fn presetMorphology(i : i32) -> Morphology {
@@ -167,6 +177,10 @@ fn presetMorphology(i : i32) -> Morphology {
     p.p2.x,
     p.p5[PRESET_P5_ANVIL_STRENGTH],
     p.p5[PRESET_P5_TOP_CUTOFF_SHARPNESS],
+    p.p6[PRESET_P6_CIRRUS_FIBER_STRENGTH],
+    p.p6[PRESET_P6_CIRRUS_FIBER_CURL],
+    p.p6[PRESET_P6_CONVECTIVE_TOWER_STRENGTH],
+    p.p6[PRESET_P6_CONVECTIVE_CELL_SCALE],
   );
 }
 
@@ -407,7 +421,7 @@ fn evalBody(pos : vec3f, i : i32) -> f32 {
   let ctx = prepareGenusEvalContext(pos, i);
   let compatibilityDensity = evalCompatibilityGenus(ctx);
   let genusIndex = i32(round(b.geom.z));
-  return max(evalGenusDensity(genusIndex, compatibilityDensity), 0.0);
+  return max(evalGenusDensity(genusIndex, compatibilityDensity, pos, i), 0.0);
 }
 
 // ============================================================

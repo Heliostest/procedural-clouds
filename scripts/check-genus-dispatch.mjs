@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = (path) => readFileSync(join(root, path), 'utf8');
 const params = read('src/params.ts');
+const cloud = read('shaders/cloud.wgsl');
+const common = read('shaders/genus/common.wgsl');
 const dispatcher = read('shaders/genus/dispatch.wgsl');
 const renderer = read('src/renderer.ts');
 
@@ -17,6 +19,10 @@ if (genera.length !== 10) {
 }
 
 const pascal = (value) => value[0].toUpperCase() + value.slice(1);
+const specializedCalls = {
+  cumulonimbus: 'evalCumulonimbus(compatibilityDensity, pos, bodyIndex)',
+  cirrus: 'evalCirrus(compatibilityDensity, pos, bodyIndex)',
+};
 const caseMatches = [...dispatcher.matchAll(/case GENUS_([A-Z]+):/g)];
 if (caseMatches.length !== genera.length) {
   throw new Error(`genus dispatch check: expected ${genera.length} cases, found ${caseMatches.length}`);
@@ -33,13 +39,55 @@ genera.forEach((genus, index) => {
   if (!dispatcher.includes(`const ${constantName} = ${index};`)) {
     throw new Error(`genus dispatch check: ${constantName} must map to preset index ${index}`);
   }
-  if (!dispatcher.includes(`case ${constantName}: { return ${functionName}(compatibilityDensity); }`)) {
+  const call = specializedCalls[genus] ?? `${functionName}(compatibilityDensity)`;
+  if (!dispatcher.includes(`case ${constantName}: { return ${call}; }`)) {
     throw new Error(`genus dispatch check: ${genus} case must call ${functionName}`);
   }
   if (!renderer.includes(`../shaders/genus/${genus}.wgsl?raw`)) {
     throw new Error(`genus dispatch check: renderer assembly is missing ${genus}.wgsl`);
   }
 });
+
+if (!dispatcher.includes('fn evalGenusDensity(genusIndex : i32, compatibilityDensity : f32, pos : vec3f, bodyIndex : i32)')) {
+  throw new Error('genus dispatch check: dispatcher must expose only minimal specialized inputs');
+}
+
+for (const genus of Object.keys(specializedCalls)) {
+  const source = read(`shaders/genus/${genus}.wgsl`);
+  const earlyReturn = source.indexOf('if (strength <= 0.0001');
+  const contextPreparation = source.indexOf('prepareGenusEvalContext');
+  if (earlyReturn < 0 || contextPreparation < 0 || earlyReturn > contextPreparation) {
+    throw new Error(`genus dispatch check: ${genus} must zero-strength return before context/noise work`);
+  }
+}
+
+const p6Fields = [
+  ['cirrusFiberStrength', 24, 'PRESET_P6_CIRRUS_FIBER_STRENGTH'],
+  ['cirrusFiberCurl', 25, 'PRESET_P6_CIRRUS_FIBER_CURL'],
+  ['convectiveTowerStrength', 26, 'PRESET_P6_CONVECTIVE_TOWER_STRENGTH'],
+  ['convectiveCellScale', 27, 'PRESET_P6_CONVECTIVE_CELL_SCALE'],
+];
+if (!params.includes('export const PRESET_VEC4_COUNT = 7;') || !cloud.includes('p6 : vec4f,')) {
+  throw new Error('genus dispatch check: preset storage must contain seven vec4 values');
+}
+for (const [field, offset, wgslConstant] of p6Fields) {
+  if (!params.includes(`${field}: ${offset},`)) {
+    throw new Error(`genus dispatch check: ${field} must use preset float offset ${offset}`);
+  }
+  if (!cloud.includes(wgslConstant) || !cloud.includes(`p.p6[${wgslConstant}]`)) {
+    throw new Error(`genus dispatch check: WGSL p6 accessor missing for ${field}`);
+  }
+  const presetFieldCount = [...presetBlock.matchAll(new RegExp(`${field}:`, 'g'))].length;
+  if (presetFieldCount !== genera.length) {
+    throw new Error(`genus dispatch check: ${field} must be explicit in all ${genera.length} presets`);
+  }
+}
+
+for (const forbidden of ['cirrusFiberStrength', 'cirrusFiberCurl', 'convectiveTowerStrength', 'convectiveCellScale']) {
+  if (common.includes(forbidden)) {
+    throw new Error(`genus dispatch check: ${forbidden} must stay out of compatibility code`);
+  }
+}
 
 if (!dispatcher.includes('default: { return evalCumulus(compatibilityDensity); }')) {
   throw new Error('genus dispatch check: invalid indices must fall back to cumulus');

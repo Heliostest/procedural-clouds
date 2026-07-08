@@ -43,4 +43,4 @@
 - **观感**：cirrus 与 cumulonimbus 默认形态有意改变；其余八属和两项目标属在新增强度为 0 时 MUST 保持现状。
 - **回退**：四个新增 morphology 强度/尺度恢复为 0，并将两个 evaluator 返回兼容密度，即可恢复原观感。
 
-- Approval status: proposal only; implementation MUST NOT begin until the user approves this change.
+- Approval status: approved by the user on 2026-07-08; implementation may proceed under this change.

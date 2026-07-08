@@ -395,11 +395,12 @@
 
 > 必要性：锦上添花 ｜ 收益：低–中，单项独立 ｜ 成本：每项低 ｜ 模型：中
 
-已建立扩展边界：十个标准云属分别拥有一个命名 WGSL 密度求值函数，由单一 dispatcher 按 `CLOUD_PRESETS` 顺序路由；公共坐标准备、Perlin/Voronoi/Curl 噪声与兼容密度链保留在 `shaders/genus/common.wgsl`。当前十个入口仍机械复用兼容密度，后续形态变更应只扩展对应云属函数，不能把云属分支重新塞回公共链或 dispatcher。
+已建立扩展边界：十个标准云属分别拥有一个命名 WGSL 密度求值函数，由单一 dispatcher 按 `CLOUD_PRESETS` 顺序路由；公共坐标准备、Perlin/Voronoi/Curl 噪声与兼容密度链保留在 `shaders/genus/common.wgsl`。cirrus 与 cumulonimbus 已分别在自身 evaluator 中扩展纤维和对流塔，其余入口仍复用兼容密度；后续形态变更只能扩展对应云属函数，不能把云属分支重新塞回公共链或 dispatcher。
 
 降水、幡状雨带不属于云体凝结密度，后续应建立独立 precipitation field；台风螺旋雨带、涡旋拉伸与垂直风切变属于场景流场，应在云属求值前组合，并保持现有物理平流契约不变。这两类能力均需独立 OpenSpec 提案。
 
-- [ ] 卷云方向性 domain warping：cirrus 系预设增 `directional/curlStrength`，高空带（altBase>0.6）采样坐标沿风向域扭曲成弯钩细丝，仅 cirrus 类启用。
+- [x] 卷云方向性纤维：`evalCirrus()` 使用云体局部主轴和低成本 curl/domain warp 形成弯钩细丝；`cirrusFiberStrength=0` 精确回退兼容密度，总体方向由 body rotation 控制。
+- [x] 积雨云对流塔/花椰菜：`evalCumulonimbus()` 使用高度门控的解析胞元场重塑中上层密度，并与既有平底、顶部截断和砧顶独立组合。
 - [ ] altostratus `sunDiscVisible`：薄云档透出朦胧日盘。
 - [ ] cirrostratus `haloEffect`：22° 日晕亮环。
 - [ ] cumulonimbus `internalLightning`：随机内部暖色闪光脉冲。

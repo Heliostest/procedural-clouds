@@ -125,6 +125,10 @@ const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
   sssStrength: [0, 1, 0.01],
   anvilStrength: [0, 1, 0.01],
   topCutoffSharpness: [0, 1, 0.01],
+  cirrusFiberStrength: [0, 1, 0.01],
+  cirrusFiberCurl: [0, 1, 0.01],
+  convectiveTowerStrength: [0, 1, 0.01],
+  convectiveCellScale: [0, 1, 0.01],
   edgeHardness: [0, 1, 0.01],
   edgeErosionStrength: [0, 1, 0.01],
 };
