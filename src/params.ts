@@ -294,26 +294,13 @@ export interface CloudParams {
   measureLightShare: () => void;
 }
 
-export const SHAPE_ID: Record<string, number> = {
-  rect: 0,
-  circle: 1,
-  sphere: 2,
-  cube: 3,
-  octahedron: 4,
-  tetrahedron: 5,
-  dodecahedron: 6,
-  icosahedron: 7,
-  torus: 8,
-};
+export const SHAPE_ID_RECT = 0;
 
 function footprintData(b: CloudBody): [number, number, number] {
-  if (b.shape === 'rect') {
-    const cx = (b.bounds[0] + b.bounds[2]) / 2;
-    const cz = (b.bounds[1] + b.bounds[3]) / 2;
-    const r = Math.max((b.bounds[2] - b.bounds[0]) / 2, (b.bounds[3] - b.bounds[1]) / 2);
-    return [cx, cz, r];
-  }
-  return [b.bounds[0], b.bounds[1], b.bounds[2]];
+  const cx = (b.bounds[0] + b.bounds[2]) / 2;
+  const cz = (b.bounds[1] + b.bounds[3]) / 2;
+  const r = Math.max((b.bounds[2] - b.bounds[0]) / 2, (b.bounds[3] - b.bounds[1]) / 2);
+  return [cx, cz, r];
 }
 
 export type PackValue = number | boolean | number[];
@@ -368,7 +355,7 @@ export function packBodies(
       dst[o + 12] = metersToWorldXZ(fp[0], scale);
       dst[o + 13] = metersToWorldXZ(fp[1], scale);
       dst[o + 14] = metersToWorldXZ(fp[2], scale);
-      dst[o + 15] = SHAPE_ID[b.shape] ?? 0;
+      dst[o + 15] = SHAPE_ID_RECT;
       dst[o + 16] = b.rot ? b.rot[0] : 0;
       dst[o + 17] = b.rot ? b.rot[1] : 0;
       dst[o + 18] = b.rot ? b.rot[2] : 0;

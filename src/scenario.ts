@@ -1,4 +1,4 @@
-import { defaultLife, type BodyShape, type CloudBody } from './body';
+import { defaultLife, legacyBoundsToRect, type BodyShape, type CloudBody } from './body';
 import { DEFAULT_SCENE_SCALE, normalizedSceneScale, worldToMetersXZ, worldToMetersY, type SceneScale } from './space';
 import {
   normalizeWindDirection,
@@ -89,11 +89,8 @@ function easeIntegral(ease: Ease, t: number): number {
 
 type NumKey = 'coverage' | 'densityScale' | 'base' | 'thickness';
 
-function legacyBoundsToMeters(shape: BodyShape, bounds: number[], scale: SceneScale): number[] {
-  const next = bounds.slice();
-  const count = shape === 'rect' ? 4 : 3;
-  for (let i = 0; i < count; i++) next[i] = worldToMetersXZ(next[i] ?? 0, scale);
-  return next;
+function legacyBoundsToMeters(shape: string, bounds: number[], scale: SceneScale): number[] {
+  return legacyBoundsToRect(shape, bounds).map((v) => worldToMetersXZ(v, scale));
 }
 
 function parseWindDirection(value: unknown, label: string, fallback: number): number {
@@ -139,14 +136,14 @@ export function parseScenario(json: string | object, requestedScale: SceneScale 
   for (const id of Object.keys(rawBodies)) {
     const sb = rawBodies[id];
     if (!sb || typeof sb !== 'object') throw new Error(`scenario: invalid body '${id}'`);
-    const shape = (sb.shape as BodyShape) ?? 'rect';
+    const legacyShape = String(sb.shape ?? 'rect');
     const rawBounds = Array.isArray(sb.bounds) ? sb.bounds.map((value, index) => finiteNumber(value, `body '${id}' bounds[${index}]`)) : [0, 0, 0, 0];
     const rawFeather = optionalFiniteNumber(sb.feather, `body '${id}' feather`) ?? 1.5;
     const rawBase = optionalFiniteNumber(sb.base, `body '${id}' base`) ?? 0;
     const rawThickness = optionalFiniteNumber(sb.thickness, `body '${id}' thickness`) ?? 3.2;
     bodies[id] = {
-      shape,
-      bounds: legacyDistance ? legacyBoundsToMeters(shape, rawBounds, scale) : rawBounds.slice(),
+      shape: 'rect',
+      bounds: legacyDistance ? legacyBoundsToMeters(legacyShape, rawBounds, scale) : legacyBoundsToRect(legacyShape, rawBounds),
       feather: legacyDistance ? worldToMetersXZ(rawFeather, scale) : rawFeather,
       base: legacyDistance ? worldToMetersY(rawBase, scale) : rawBase,
       thickness: legacyDistance ? worldToMetersY(rawThickness, scale) : rawThickness,
@@ -361,7 +358,7 @@ export const DEMO_SCENARIO: Scenario = {
   wind: { dirDeg: 90, speed: 10 },
   bodies: {
     A: { shape: 'rect', bounds: [-3500, -1500, 500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus' },
-    H: { shape: 'circle', bounds: [1500, 1500, 2000, 0], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus' },
+    H: { shape: 'rect', bounds: [-500, -500, 3500, 3500], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus' },
   },
   events: [
     { t: 0, bodyId: 'A', coverage: 0.0, densityScale: 0.0 },

@@ -1,4 +1,4 @@
-import type { BodyShape, CloudBody } from './body';
+import type { CloudBody } from './body';
 
 export const CLOUD_GENERA = [
   'cumulus',
@@ -58,20 +58,17 @@ export function assertCompleteGenusProfiles(presetKeys: readonly string[]): void
   }
 }
 
-function centeredBounds(shape: BodyShape, bounds: number[], halfExtentM: number): number[] {
-  if (shape === 'rect') {
-    const cx = bounds.length >= 4 ? (bounds[0] + bounds[2]) / 2 : 0;
-    const cz = bounds.length >= 4 ? (bounds[1] + bounds[3]) / 2 : 0;
-    return [cx - halfExtentM, cz - halfExtentM, cx + halfExtentM, cz + halfExtentM];
-  }
-  return [bounds[0] ?? 0, bounds[1] ?? 0, halfExtentM, 0];
+function centeredBounds(bounds: number[], halfExtentM: number): number[] {
+  const cx = bounds.length >= 4 ? (bounds[0] + bounds[2]) / 2 : 0;
+  const cz = bounds.length >= 4 ? (bounds[1] + bounds[3]) / 2 : 0;
+  return [cx - halfExtentM, cz - halfExtentM, cx + halfExtentM, cz + halfExtentM];
 }
 
 export function applyGenusDefaults(body: CloudBody, cloudHeightM: number): void {
   const profile = genusProfile(body.type);
   body.base = Math.min(profile.defaultBaseM, Math.max(0, cloudHeightM - 1));
   body.thickness = Math.max(1, Math.min(profile.defaultThicknessM, cloudHeightM - body.base));
-  body.bounds = centeredBounds(body.shape, body.bounds, profile.defaultHorizontalHalfExtentM);
+  body.bounds = centeredBounds(body.bounds, profile.defaultHorizontalHalfExtentM);
   body.placementLocked = false;
 }
 

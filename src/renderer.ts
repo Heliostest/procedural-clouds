@@ -298,28 +298,14 @@ function buildLineVerts(bodies: CloudBody[], boxHeight: number, selectedId: stri
       : [baseCol[0] * 0.5, baseCol[1] * 0.5, baseCol[2] * 0.5];
     const y0 = b.base;
     const y1 = Math.min(boxHeight, b.base + b.thickness);
-    if (b.shape === 'rect') {
-      const [minX, minZ, maxX, maxZ] = b.bounds;
-      const corners: [number, number][] = [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
-      for (let k = 0; k < 4; k++) {
-        const [cx, cz] = corners[k];
-        const [nx, nz] = corners[(k + 1) % 4];
-        seg(cx, y0, cz, nx, y0, nz, col);
-        seg(cx, y1, cz, nx, y1, nz, col);
-        seg(cx, y0, cz, cx, y1, cz, col);
-      }
-    } else {
-      const [cx, cz, rad] = b.bounds;
-      const N = 40;
-      for (let k = 0; k < N; k++) {
-        const a0 = (k / N) * Math.PI * 2;
-        const a1 = ((k + 1) / N) * Math.PI * 2;
-        const x0 = cx + Math.cos(a0) * rad, z0 = cz + Math.sin(a0) * rad;
-        const x1 = cx + Math.cos(a1) * rad, z1 = cz + Math.sin(a1) * rad;
-        seg(x0, y0, z0, x1, y0, z1, col);
-        seg(x0, y1, z0, x1, y1, z1, col);
-        if (k % 10 === 0) seg(x0, y0, z0, x0, y1, z0, col);
-      }
+    const [minX, minZ, maxX, maxZ] = b.bounds;
+    const corners: [number, number][] = [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
+    for (let k = 0; k < 4; k++) {
+      const [cx, cz] = corners[k];
+      const [nx, nz] = corners[(k + 1) % 4];
+      seg(cx, y0, cz, nx, y0, nz, col);
+      seg(cx, y1, cz, nx, y1, nz, col);
+      seg(cx, y0, cz, cx, y1, cz, col);
     }
   });
   return new Float32Array(out);

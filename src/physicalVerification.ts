@@ -43,7 +43,7 @@ export function verifyPhysicalContracts(): void {
   const migrated = parseScenario(legacy, DEFAULT_SCENE_SCALE);
   assertClose(migrated.bodies.A.base, 3200, 'legacy body base migration');
   assertClose(migrated.bodies.A.thickness, 1600, 'legacy body thickness migration');
-  assertClose(migrated.bodies.A.bounds[0], 1500, 'legacy X migration');
+  assertClose((migrated.bodies.A.bounds[0] + migrated.bodies.A.bounds[2]) / 2, 1500, 'legacy X migration');
   assertClose(migrated.events[0].base ?? 0, 3400, 'legacy event base migration');
   assertClose(migrated.wind?.speed ?? 0, 150, 'legacy wind speed migration');
 
@@ -59,7 +59,7 @@ export function verifyPhysicalContracts(): void {
 
   const body: CloudBody = {
     id: 'A',
-    shape: 'circle',
+    shape: 'rect',
     bounds: migrated.bodies.A.bounds,
     feather: migrated.bodies.A.feather,
     base: migrated.bodies.A.base,
@@ -79,10 +79,10 @@ export function verifyPhysicalContracts(): void {
   const windSamples = windController.samples([body]);
   assertClose(windSamples[0].offsetM[0], 100, '10 mps for 10 seconds');
   assertClose(windSamples[0].offsetM[1], 0, 'zero cross-wind displacement');
-  const authorCenterX = body.bounds[0];
+  const authorMinX = body.bounds[0];
   const transportedBody = bodyToTransportedRenderSpace(body, windSamples[0].offsetM, DEFAULT_SCENE_SCALE);
-  assertClose(transportedBody.bounds[0], authorCenterX / 1000 + 0.1, 'transported render-space body center');
-  assertClose(body.bounds[0], authorCenterX, 'wind transport preserves author bounds');
+  assertClose((transportedBody.bounds[0] + transportedBody.bounds[2]) / 2, 1.6, 'transported render-space body center');
+  assertClose(body.bounds[0], authorMinX, 'wind transport preserves author bounds');
 
   for (const rate of SIMULATION_RATES) {
     const rateWind = createWindAdvectionController();
@@ -118,7 +118,7 @@ export function verifyPhysicalContracts(): void {
     duration: 10,
     wind: { dirDeg: 350, speed: 10 },
     bodies: {
-      A: { shape: 'circle', bounds: [0, 0, 1000, 0], feather: 100, base: 1000, thickness: 1000, type: 'cumulus' },
+      A: { shape: 'rect', bounds: [-1000, -1000, 1000, 1000], feather: 100, base: 1000, thickness: 1000, type: 'cumulus' },
     },
     events: [
       { t: 0, bodyId: 'A', coverage: 1, windDeg: 350, windSpeed: 10 },

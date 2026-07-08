@@ -15,7 +15,6 @@ const DICT: Dict = {
   centerZ: { en: 'Center Z', zh: '中心 Z' },
   halfW: { en: 'Half W', zh: '半宽' },
   halfD: { en: 'Half D', zh: '半深' },
-  radius: { en: 'Radius', zh: '半径' },
   feather: { en: 'Feather', zh: '羽化' },
   height: { en: 'Height', zh: '高度' },
   thickness: { en: 'Thickness', zh: '厚度' },
@@ -35,7 +34,6 @@ const DICT: Dict = {
   peak: { en: 'Peak', zh: '峰值' },
   remove: { en: '✕ Remove', zh: '✕ 删除' },
   addRect: { en: '+ Add Rect', zh: '+ 添加矩形' },
-  addCircle: { en: '+ Add Circle', zh: '+ 添加圆形' },
 
   global: { en: 'Global', zh: '全局' },
   simulationRate: { en: 'Simulation Speed', zh: '仿真速度' },
@@ -132,7 +130,6 @@ const DICT: Dict = {
   cacheWgX: { en: 'Cache WG X', zh: '缓存工作组 X' },
   cacheWgY: { en: 'Cache WG Y', zh: '缓存工作组 Y' },
   cacheWgZ: { en: 'Cache WG Z', zh: '缓存工作组 Z' },
-  shape: { en: 'Shape', zh: '形状' },
   tonemap: { en: 'Tonemap', zh: '色调映射' },
   exposure: { en: 'Exposure', zh: '曝光' },
   bloomEnabled: { en: 'Bloom', zh: 'Bloom' },
@@ -400,7 +397,6 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   centerZ: { en: 'Horizontal center of the footprint along Z (world units).', zh: '云体平面足迹在 Z 方向的中心（世界单位）。' },
   halfW: { en: 'Half-width of the rectangular footprint along X.', zh: '矩形足迹沿 X 方向的半宽。' },
   halfD: { en: 'Half-depth of the rectangular footprint along Z.', zh: '矩形足迹沿 Z 方向的半深。' },
-  radius: { en: 'Radius of the circular footprint.', zh: '圆形足迹的半径。' },
   feather: { en: 'Softens the horizontal edge of the footprint. Larger = more gradual, wispy borders.', zh: '柔化足迹的水平边界。越大边界越渐变、越飘渺。' },
   height: { en: 'Height in meters above the scene-ground datum.', zh: '相对场景地面基准的高度（米）。' },
   thickness: { en: 'Vertical thickness in meters, added on top of Height.', zh: '叠加在高度之上的竖直厚度（米）。' },
@@ -416,7 +412,6 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   death: { en: 'Scene time (s) at which the cloud fully disappears.', zh: '云完全消失的场景时间（秒）。' },
   peak: { en: 'Peak density/coverage multiplier reached between grow and decay.', zh: '在生长与衰减之间达到的密度/覆盖度峰值倍率。' },
   addRect: { en: 'Add a new rectangular cloud body.', zh: '新增一个矩形云体。' },
-  addCircle: { en: 'Add a new circular cloud body.', zh: '新增一个圆形云体。' },
   showWireframe: { en: 'Show the wireframe bounds of each cloud body for editing.', zh: '显示每个云体的线框边界，便于编辑。' },
   showAxes: { en: 'RGB render-world axes; tick labels are physical meters.', zh: 'RGB 渲染世界坐标轴；刻度标签显示物理米制距离。' },
   boxHeight: { en: 'Scene ceiling height in meters above scene ground.', zh: '相对场景地面的层顶高度（米）。' },
@@ -492,7 +487,6 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   cacheWgX: { en: 'Density-cache compute workgroup X (rebuilds pipeline). Default 8.', zh: '密度缓存 compute 工作组 X（重建管线）。默认 8。' },
   cacheWgY: { en: 'Density-cache compute workgroup Y. Default 8.', zh: '密度缓存 compute 工作组 Y。默认 8。' },
   cacheWgZ: { en: 'Density-cache compute workgroup Z. Default 4.', zh: '密度缓存 compute 工作组 Z。默认 4。' },
-  shape: { en: 'Body form. Rect/Circle = procedural footprint cloud. Solids (sphere, cube, platonic…) = uniform analytic density (no noise/weather/cache) for debugging the renderer. All other sliders apply identically.', zh: '云体形态。矩形/圆形=程序化轮廓云。实体（球、立方、正多面体…）=均匀解析密度（无噪声/天气/缓存），用于调试渲染。其余滑杆作用完全一致。' },
   debugView: { en: 'Switch to a debug visualization mode.', zh: '切换到调试可视化模式。' },
   debugCloudDepth: { en: 'Transmittance-weighted mean hit distance along the view ray (near white, far black, sky black).', zh: '沿视线按透射权重加权的平均命中距离（近白远黑，天空黑）。' },
   measureLight: { en: 'Run a 2×40-frame A/B test to estimate light-march cost share of the cloud pass.', zh: '运行 2×40 帧 A/B 测试，估算光照步进在云通道中的开销占比。' },
@@ -522,22 +516,6 @@ const CLOUD_TYPES: Record<string, { en: string; zh: string }> = {
 
 export function cloudTypeName(key: string): string {
   return CLOUD_TYPES[key]?.[lang] ?? key;
-}
-
-const SHAPE_NAMES: Record<string, { en: string; zh: string }> = {
-  rect: { en: 'Rect', zh: '矩形' },
-  circle: { en: 'Circle', zh: '圆形' },
-  sphere: { en: 'Sphere', zh: '球体' },
-  cube: { en: 'Cube', zh: '立方体' },
-  octahedron: { en: 'Octahedron', zh: '八面体' },
-  tetrahedron: { en: 'Tetrahedron', zh: '四面体' },
-  dodecahedron: { en: 'Dodecahedron', zh: '十二面体' },
-  icosahedron: { en: 'Icosahedron', zh: '二十面体' },
-  torus: { en: 'Torus', zh: '圆环' },
-};
-
-export function shapeName(key: string): string {
-  return SHAPE_NAMES[key]?.[lang] ?? key;
 }
 
 let lang: Lang = ((): Lang => {

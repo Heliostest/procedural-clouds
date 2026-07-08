@@ -170,27 +170,22 @@ export function createGizmoController(deps: GizmoDeps): void {
         b.base = Math.max(0, Math.min(params.cloudHeight - 1, drag.startBase + dm));
       } else {
         const sb = drag.startBounds;
-        if (b.shape === 'rect') {
-          if (drag.axis === 0) { b.bounds = [sb[0] + dm, sb[1], sb[2] + dm, sb[3]]; }
-          else { b.bounds = [sb[0], sb[1] + dm, sb[2], sb[3] + dm]; }
-        } else {
-          if (drag.axis === 0) { b.bounds = [sb[0] + dm, sb[1], sb[2], sb[3]]; }
-          else { b.bounds = [sb[0], sb[1] + dm, sb[2], sb[3]]; }
-        }
+        if (drag.axis === 0) { b.bounds = [sb[0] + dm, sb[1], sb[2] + dm, sb[3]]; }
+        else { b.bounds = [sb[0], sb[1] + dm, sb[2], sb[3] + dm]; }
       }
     } else if (drag.mode === 'scale') {
       const dpix = (px - drag.startX) * drag.screenDirX + (py - drag.startY) * drag.screenDirY;
       const sb = drag.startBounds;
       let ref = drag.startThickness / params.verticalMetersPerWorldUnit;
-      if (drag.axis === 0) ref = (b.shape === 'rect' ? (sb[2] - sb[0]) / 2 : sb[2]) / params.horizontalMetersPerWorldUnit;
-      else if (drag.axis === 2) ref = (b.shape === 'rect' ? (sb[3] - sb[1]) / 2 : sb[2]) / params.horizontalMetersPerWorldUnit;
+      if (drag.axis === 0) ref = ((sb[2] - sb[0]) / 2) / params.horizontalMetersPerWorldUnit;
+      else if (drag.axis === 2) ref = ((sb[3] - sb[1]) / 2) / params.horizontalMetersPerWorldUnit;
       const factor = Math.max(0.05, 1 + dpix / (drag.pxPerWorld * Math.max(ref, 0.05)));
       if (drag.axis === 1) {
         const cy = drag.startBase + drag.startThickness / 2;
         const newTh = Math.max(1, drag.startThickness * factor);
         b.base = Math.max(0, cy - newTh / 2);
         b.thickness = Math.min(params.cloudHeight - b.base, newTh);
-      } else if (b.shape === 'rect') {
+      } else {
         const cx = (sb[0] + sb[2]) / 2;
         const cz = (sb[1] + sb[3]) / 2;
         let hw = (sb[2] - sb[0]) / 2;
@@ -198,9 +193,6 @@ export function createGizmoController(deps: GizmoDeps): void {
         if (drag.axis === 0) hw = Math.max(50, hw * factor);
         else hd = Math.max(50, hd * factor);
         b.bounds = [cx - hw, cz - hd, cx + hw, cz + hd];
-      } else {
-        const r = Math.max(50, sb[2] * factor);
-        b.bounds = [sb[0], sb[1], r, sb[3]];
       }
     } else {
       const ang = Math.atan2(py - drag.centerSY, px - drag.centerSX);

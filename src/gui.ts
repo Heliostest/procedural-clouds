@@ -10,14 +10,10 @@ import {
   type CloudParams,
   type ShapeKey,
 } from './params';
-import type { BodyStore, CloudBody, BodyShape } from './body';
-import { t, tip, getLang, setLang, cloudTypeName, shapeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+import type { BodyStore, CloudBody } from './body';
+import { t, tip, getLang, setLang, cloudTypeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
 import { WIND_DEMO_MAX_MPS } from './wind';
 import { SIMULATION_RATES, type SimulationState } from './simulationTime';
-
-const ALL_SHAPES: BodyShape[] = [
-  'rect', 'circle', 'sphere', 'cube', 'octahedron', 'tetrahedron', 'dodecahedron', 'icosahedron', 'torus',
-];
 
 type Ctrl = { domElement: HTMLElement };
 function tipKey<C extends Ctrl>(c: C, key: string): C {
@@ -207,22 +203,6 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         f.$title.appendChild(titleText);
         const actions = document.createElement('span');
         actions.style.cssText = 'float:right;display:inline-flex;align-items:center;gap:2px;margin-right:2px';
-        const shapeSel = document.createElement('select');
-        shapeSel.title = t('shape');
-        for (const k of ALL_SHAPES) {
-          const opt = document.createElement('option');
-          opt.value = k;
-          opt.textContent = shapeName(k);
-          if (k === b.shape) opt.selected = true;
-          shapeSel.appendChild(opt);
-        }
-        shapeSel.style.cssText = 'font:11px sans-serif;background:#2a2a2a;color:#ddd;border:1px solid #555;border-radius:3px;padding:0 2px';
-        shapeSel.addEventListener('click', (e) => e.stopPropagation());
-        shapeSel.addEventListener('change', () => {
-          store.setShape(b.id, shapeSel.value as BodyShape);
-          rebuildBodies();
-          hooks.onBodiesChanged();
-        });
         const typeSel = document.createElement('select');
         typeSel.title = t('type');
         for (const k of presetKeys) {
@@ -273,35 +253,24 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         gizmoSyncs.push(syncGizmoBtns);
         syncGizmoBtns();
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) { params.selectedBody = null; params.gizmoMode = null; } rebuildBodies(); hooks.onBodiesChanged(); });
-        actions.append(shapeSel, typeSel, moveBtn, rotBtn, scaleBtn, delBtn);
+        actions.append(typeSel, moveBtn, rotBtn, scaleBtn, delBtn);
         f.$title.appendChild(actions);
 
         const lim = params.boxHalfExtent;
-        if (b.shape === 'rect') {
-          const proxy = {
-            cx: (b.bounds[0] + b.bounds[2]) / 2,
-            cz: (b.bounds[1] + b.bounds[3]) / 2,
-            hw: (b.bounds[2] - b.bounds[0]) / 2,
-            hd: (b.bounds[3] - b.bounds[1]) / 2,
-          };
-          const apply = () => {
-            store.update(b.id, { bounds: [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd] });
-            hooks.onBodiesChanged();
-          };
-          tipKey(f.add(proxy, 'cx', -lim, lim, 100).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -lim, lim, 100).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'hw', 100, lim, 100).name(t('halfW')).onChange(apply), 'halfW');
-          tipKey(f.add(proxy, 'hd', 100, lim, 100).name(t('halfD')).onChange(apply), 'halfD');
-        } else {
-          const proxy = { cx: b.bounds[0], cz: b.bounds[1], r: b.bounds[2] };
-          const apply = () => {
-            store.update(b.id, { bounds: [proxy.cx, proxy.cz, proxy.r, 0] });
-            hooks.onBodiesChanged();
-          };
-          tipKey(f.add(proxy, 'cx', -lim, lim, 100).name(t('centerX')).onChange(apply), 'centerX');
-          tipKey(f.add(proxy, 'cz', -lim, lim, 100).name(t('centerZ')).onChange(apply), 'centerZ');
-          tipKey(f.add(proxy, 'r', 100, lim, 100).name(t('radius')).onChange(apply), 'radius');
-        }
+        const proxy = {
+          cx: (b.bounds[0] + b.bounds[2]) / 2,
+          cz: (b.bounds[1] + b.bounds[3]) / 2,
+          hw: (b.bounds[2] - b.bounds[0]) / 2,
+          hd: (b.bounds[3] - b.bounds[1]) / 2,
+        };
+        const apply = () => {
+          store.update(b.id, { bounds: [proxy.cx - proxy.hw, proxy.cz - proxy.hd, proxy.cx + proxy.hw, proxy.cz + proxy.hd] });
+          hooks.onBodiesChanged();
+        };
+        tipKey(f.add(proxy, 'cx', -lim, lim, 100).name(t('centerX')).onChange(apply), 'centerX');
+        tipKey(f.add(proxy, 'cz', -lim, lim, 100).name(t('centerZ')).onChange(apply), 'centerZ');
+        tipKey(f.add(proxy, 'hw', 100, lim, 100).name(t('halfW')).onChange(apply), 'halfW');
+        tipKey(f.add(proxy, 'hd', 100, lim, 100).name(t('halfD')).onChange(apply), 'halfD');
         tipKey(f.add(b, 'feather', 0, Math.min(5000, lim), 50).name(t('feather')).onChange(() => { b.placementLocked = true; hooks.onBodiesChanged(); }), 'feather');
         const bh = params.cloudHeight;
         tipKey(f.add(b, 'base', 0, Math.max(1, bh - 1), 100).name(t('height')).onChange(() => { b.placementLocked = true; hooks.onBodiesChanged(); }), 'height');
@@ -344,8 +313,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       }
     }
 
-    tipKey(bodiesFolder.add({ addRect: () => { const b = store.add('rect'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addRect').name(t('addRect')), 'addRect');
-    tipKey(bodiesFolder.add({ addCircle: () => { const b = store.add('circle'); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addCircle').name(t('addCircle')), 'addCircle');
+    tipKey(bodiesFolder.add({ addRect: () => { const b = store.add(); params.selectedBody = b.id; rebuildBodies(); hooks.onBodiesChanged(); } }, 'addRect').name(t('addRect')), 'addRect');
     rebuildBodies();
 
     const globalFolder = gui.addFolder(t('global'));

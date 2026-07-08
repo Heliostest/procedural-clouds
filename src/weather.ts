@@ -14,24 +14,17 @@ export function createShapeData(weatherSize: number): Uint8Array {
 
 // Normalized SDF brush: 0.5 = boundary, 1 = inside >= feather, 0 = outside >= feather.
 function bodySDF(b: CloudBody, wx: number, wz: number, cornerRadius: number): number {
-  let d: number;
-  if (b.shape === 'rect') {
-    const cx = (b.bounds[0] + b.bounds[2]) / 2;
-    const cz = (b.bounds[1] + b.bounds[3]) / 2;
-    const hx = (b.bounds[2] - b.bounds[0]) / 2;
-    const hz = (b.bounds[3] - b.bounds[1]) / 2;
-    const r = Math.max(0, Math.min(cornerRadius, Math.min(hx, hz)));
-    const qx = Math.abs(wx - cx) - (hx - r);
-    const qz = Math.abs(wz - cz) - (hz - r);
-    const mx = Math.max(qx, 0);
-    const mz = Math.max(qz, 0);
-    const dOut = Math.sqrt(mx * mx + mz * mz) + Math.min(Math.max(qx, qz), 0) - r;
-    d = -dOut;
-  } else {
-    const dx = wx - b.bounds[0];
-    const dz = wz - b.bounds[1];
-    d = b.bounds[2] - Math.sqrt(dx * dx + dz * dz);
-  }
+  const cx = (b.bounds[0] + b.bounds[2]) / 2;
+  const cz = (b.bounds[1] + b.bounds[3]) / 2;
+  const hx = (b.bounds[2] - b.bounds[0]) / 2;
+  const hz = (b.bounds[3] - b.bounds[1]) / 2;
+  const r = Math.max(0, Math.min(cornerRadius, Math.min(hx, hz)));
+  const qx = Math.abs(wx - cx) - (hx - r);
+  const qz = Math.abs(wz - cz) - (hz - r);
+  const mx = Math.max(qx, 0);
+  const mz = Math.max(qz, 0);
+  const dOut = Math.sqrt(mx * mx + mz * mz) + Math.min(Math.max(qx, qz), 0) - r;
+  const d = -dOut;
   const feather = Math.max(1e-4, b.feather);
   return Math.max(0, Math.min(1, 0.5 + 0.5 * d / feather));
 }
@@ -50,7 +43,6 @@ export function paintBodyShapes(
   const n = Math.min(bodies.length, MAX_BODIES);
   for (let i = 0; i < n; i++) {
     const b = bodies[i];
-    if (b.shape !== 'rect' && b.shape !== 'circle') continue;
     const layerOff = i * layerBytes;
     for (let py = 0; py < weatherSize; py++) {
       const wz = boxMinXZ + ((py + 0.5) / weatherSize) * boxSpanXZ;

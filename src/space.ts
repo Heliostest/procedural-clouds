@@ -43,14 +43,7 @@ export function worldToMetersXZ(world: number, scale: SceneScale): number {
 }
 
 export function bodyToRenderSpace(body: CloudBody, scale: SceneScale): CloudBody {
-  const bounds = body.bounds.slice();
-  if (body.shape === 'rect') {
-    for (let i = 0; i < 4; i++) bounds[i] = metersToWorldXZ(bounds[i], scale);
-  } else {
-    bounds[0] = metersToWorldXZ(bounds[0], scale);
-    bounds[1] = metersToWorldXZ(bounds[1], scale);
-    bounds[2] = metersToWorldXZ(bounds[2], scale);
-  }
+  const bounds = body.bounds.map((v) => metersToWorldXZ(v, scale));
   return {
     ...body,
     bounds,
@@ -66,15 +59,6 @@ export function bodyToTransportedRenderSpace(body: CloudBody, offsetM: WindOffse
   const worldBody = bodyToRenderSpace(body, scale);
   const dx = metersToWorldXZ(offsetM[0], scale);
   const dz = metersToWorldXZ(offsetM[1], scale);
-  const bounds = worldBody.bounds.slice();
-  if (worldBody.shape === 'rect') {
-    bounds[0] += dx;
-    bounds[1] += dz;
-    bounds[2] += dx;
-    bounds[3] += dz;
-  } else {
-    bounds[0] += dx;
-    bounds[1] += dz;
-  }
+  const bounds = worldBody.bounds.map((v, i) => v + (i % 2 === 0 ? dx : dz));
   return { ...worldBody, bounds };
 }
