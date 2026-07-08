@@ -69,6 +69,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   groundShadowJitter: 50,
   groundShadowMapValid: 51,
   groundShadowMapGuard: 52,
+  groundShadowPhase: 53,
 };
 
 export const GROUND_SHADOW_MODE = {
@@ -411,13 +412,13 @@ export function createDefaultParams(): CloudParams {
     aerialInscatter: 1.0,
     aerialHeightFalloff: 0.15,
     shadowTintStrength: 0.6,
-    groundShadowMode: GROUND_SHADOW_MODE.transmittance,
-    groundShadowMaxSteps: 32,
-    groundShadowStepScale: 1.0,
-    groundShadowJitter: 1.0,
-    groundShadowMapResolution: 512,
-    groundShadowMapUpdateRate: 2,
-    groundShadowHistoryWeight: 0.8,
+    groundShadowMode: GROUND_SHADOW_MODE.adaptive,
+    groundShadowMaxSteps: 64,
+    groundShadowStepScale: 0.25,
+    groundShadowJitter: 0.13,
+    groundShadowMapResolution: 1024,
+    groundShadowMapUpdateRate: 4,
+    groundShadowHistoryWeight: 0.24,
     groundShadowFilterRadius: 1,
     taaEnabled: true,
     taaBlend: 0.95,

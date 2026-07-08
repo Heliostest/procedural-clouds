@@ -62,7 +62,7 @@ struct Globals {
   groundShadowJitter : f32,
   groundShadowMapValid : f32,
   groundShadowMapGuard : f32,
-  _pad7           : f32,
+  groundShadowPhase : f32,
   _pad8           : f32,
   _pad9           : f32,
 };
@@ -894,13 +894,33 @@ fn legacyGroundShadow(p : vec3f) -> GroundShadowResult {
   return GroundShadowResult(exp(-dens * params.g.shadowDarkness), f32(steps));
 }
 
-fn groundShadowHash(xz : vec2f, sampleIndex : i32) -> f32 {
-  let cell = floor(xz * 64.0);
-  let offset = vec2f(f32(sampleIndex) * 17.0, f32(sampleIndex) * 43.0);
-  return interleavedGradientNoise(cell + offset);
+fn groundShadowMixBits(value : u32) -> u32 {
+  var state = value;
+  state = state ^ (state >> 16u);
+  state = state * 0x7feb352du;
+  state = state ^ (state >> 15u);
+  state = state * 0x846ca68bu;
+  state = state ^ (state >> 16u);
+  return state;
 }
 
-fn integrateGroundShadow(p : vec3f, seed : f32) -> GroundShadowResult {
+fn groundShadowHash(cell : vec2u, sampleIndex : u32, phase : u32) -> f32 {
+  let seed = (cell.x * 0x9e3779b9u)
+    ^ (cell.y * 0x85ebca6bu)
+    ^ (sampleIndex * 0xc2b2ae35u);
+  let spatial = f32(groundShadowMixBits(seed) >> 8u) * (1.0 / 16777216.0);
+  return fract(spatial + f32(phase & 7u) * 0.61803398875);
+}
+
+fn groundShadowWorldCell(xz : vec2f) -> vec2u {
+  return bitcast<vec2u>(vec2i(floor(xz * 16.0)));
+}
+
+fn groundShadowPhase() -> u32 {
+  return u32(round(params.g.groundShadowPhase)) & 7u;
+}
+
+fn integrateGroundShadow(p : vec3f, shadowCell : vec2u, phase : u32) -> GroundShadowResult {
   let sd = sunDir();
   if (sd.y <= 0.01) { return GroundShadowResult(1.0, 0.0); }
   let h = intersectBox(p, sd);
@@ -921,7 +941,7 @@ fn integrateGroundShadow(p : vec3f, seed : f32) -> GroundShadowResult {
   var used = 0;
   for (var i = 0; i < GROUND_SHADOW_MAX_STEPS; i++) {
     if (i >= steps) { break; }
-    let stable = groundShadowHash(p.xz + vec2f(seed), i);
+    let stable = groundShadowHash(shadowCell, u32(i), phase);
     let stratumOffset = mix(0.5, stable, jitterStrength);
     let sp = p + sd * (t0 + dt * (f32(i) + stratumOffset));
     dens += densityAt(sp) * dt;
@@ -948,11 +968,11 @@ fn cloudShadowAt(p : vec3f) -> GroundShadowResult {
       if (mapWeight >= 0.999) {
         return GroundShadowResult(cached.r, cached.g * params.g.groundShadowMaxSteps);
       }
-      let fallback = integrateGroundShadow(p, 0.0);
+      let fallback = integrateGroundShadow(p, groundShadowWorldCell(p.xz), 0u);
       return GroundShadowResult(mix(fallback.transmittance, cached.r, mapWeight), mix(fallback.samples, cached.g * params.g.groundShadowMaxSteps, mapWeight));
     }
   }
-  return integrateGroundShadow(p, 0.0);
+  return integrateGroundShadow(p, groundShadowWorldCell(p.xz), 0u);
 }
 
 fn groundColor(gp : vec3f, skyC : SkyColors) -> vec3f {
@@ -1228,7 +1248,7 @@ fn csGroundShadow(@builtin(global_invocation_id) gid : vec3u) {
   let extent = params.g.boxHalfExtent;
   let xz = (uv - 0.5) * (2.0 * extent);
   let p = vec3f(xz.x, GROUND_Y + groundHeight(xz), xz.y);
-  let result = integrateGroundShadow(p, 19.0);
+  let result = integrateGroundShadow(p, gid.xy, groundShadowPhase());
   let normalizedSamples = result.samples / max(params.g.groundShadowMaxSteps, 1.0);
   textureStore(groundShadowStore, vec2i(gid.xy), vec4f(result.transmittance, normalizedSamples, 0.0, 1.0));
 }

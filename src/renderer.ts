@@ -824,6 +824,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let groundShadowSampleBindGroup: GPUBindGroup;
   let groundShadowHistoryIndex = 0;
   let groundShadowHistoryValid = false;
+  let groundShadowPhaseIndex = 0;
   let lastGroundShadowSignature = '';
   let lastGroundShadowWindOffsets: Array<[number, number]> = [];
   let groundShadowResetReason = 'initial';
@@ -866,6 +867,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     });
     groundShadowHistoryIndex = 0;
     groundShadowHistoryValid = false;
+    groundShadowPhaseIndex = 0;
     lastGroundShadowWindOffsets = [];
     groundShadowResetReason = 'resolution';
     rebuildGroundShadowSampleBindGroup();
@@ -1060,7 +1062,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean): Float32Array {
+  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean, groundShadowPhase: number): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -1114,6 +1116,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       groundShadowJitter: params.groundShadowJitter,
       groundShadowMapValid,
       groundShadowMapGuard: Math.max(2 / Math.max(1, groundShadowResolution), 0.002),
+      groundShadowPhase,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
@@ -1289,6 +1292,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     else if (transmittanceMode && shadowWindExceeded) shadowResetThisFrame = 'wind';
     if (shadowResetThisFrame) {
       groundShadowHistoryValid = false;
+      groundShadowPhaseIndex = 0;
       groundShadowResetReason = shadowResetThisFrame;
     }
     const scheduledShadowUpdate = frameIndex % Math.max(1, Math.round(params.groundShadowMapUpdateRate)) === 0;
@@ -1306,7 +1310,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       : 0;
     const effectiveShadowHistoryWeight = params.groundShadowHistoryWeight * motionHistoryScale;
     if (transmittanceMode) lastGroundShadowSignature = shadowSignature;
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
 
     const commandEncoder = device.createCommandEncoder();
     let cacheRan = false;
@@ -1398,6 +1402,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
       groundShadowHistoryIndex = outputIndex;
       groundShadowHistoryValid = true;
+      groundShadowPhaseIndex = (groundShadowPhaseIndex + 1) % 8;
       snapshotGroundShadowWindOffsets();
       rebuildGroundShadowSampleBindGroup();
     }
