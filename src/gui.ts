@@ -168,7 +168,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
 
   function build(): void {
     if (gui) gui.destroy();
-    gui = new GUI({ title: t('title') });
+    gui = new GUI({ title: t('title'), closeFolders: true });
 
     const langSel = document.createElement('select');
     langSel.title = tip('language');
@@ -186,8 +186,12 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
 
     const bodiesFolder = gui.addFolder(t('cloudBodies'));
     let subFolders: GUI[] = [];
+    const gizmoSyncs: Array<() => void> = [];
 
     function rebuildBodies(): void {
+      const openIds = new Set(subFolders.filter((f) => !f._closed).map((f) => f._title));
+      const prevIds = new Set(subFolders.map((f) => f._title));
+      gizmoSyncs.length = 0;
       for (const f of subFolders) f.destroy();
       subFolders = [];
       for (const b of store.list()) {
@@ -257,12 +261,12 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
             params.selectedBody = b.id;
             params.gizmoMode = mode;
           }
-          for (const s of subFolders) s.$title.dispatchEvent(new Event('gizmosync'));
+          gizmoSyncs.forEach((sync) => sync());
         };
         moveBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('move'); });
         rotBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('rotate'); });
         scaleBtn.addEventListener('click', (e) => { e.stopPropagation(); setGizmo('scale'); });
-        f.$title.addEventListener('gizmosync', syncGizmoBtns);
+        gizmoSyncs.push(syncGizmoBtns);
         syncGizmoBtns();
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); store.remove(b.id); if (params.selectedBody === b.id) { params.selectedBody = null; params.gizmoMode = null; } rebuildBodies(); hooks.onBodiesChanged(); });
         actions.append(shapeSel, typeSel, moveBtn, rotBtn, scaleBtn, delBtn);
@@ -331,6 +335,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
         tipKey(lf.add(b.life, 'decay', 0, 120, 0.5).name(t('decay')).onChange(hooks.onBodiesChanged), 'decay');
         tipKey(lf.add(b.life, 'death', 0, 120, 0.5).name(t('death')).onChange(hooks.onBodiesChanged), 'death');
         tipKey(lf.add(b.life, 'peak', 0.0, 2.0, 0.05).name(t('peak')).onChange(hooks.onBodiesChanged), 'peak');
+
+        if (openIds.has(b.id) || (!prevIds.has(b.id) && params.selectedBody === b.id)) f.open();
       }
     }
 
