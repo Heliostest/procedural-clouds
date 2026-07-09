@@ -43,7 +43,7 @@ main.ts          ← 入口，装配子系统、渲染循环
 ├── lifecycle.ts ← 单云体生命周期包络
 ├── scenario.ts  ← 场景 JSON 时间轴
 ├── renderer.ts  ← WebGPU 管线、raymarch、后处理
-├── camera.ts    ← 轨道相机
+├── camera.ts    ← 城建风格相机（可平移 look-at + 环绕）
 ├── gui.ts       ← lil-gui 面板
 ├── gizmo.ts     ← 3D 编辑 gizmo
 └── math/        ← 纯数学（叶子模块，不依赖子系统）

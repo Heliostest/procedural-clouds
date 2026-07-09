@@ -180,7 +180,7 @@ const DICT: Dict = {
   lightShare: { en: 'light share', zh: '光照占比' },
   post: { en: 'post', zh: '后处理' },
 
-  info: { en: 'Drag to orbit · Scroll to zoom · WebGPU Procedural Clouds', zh: '拖动旋转 · 滚轮缩放 · WebGPU 程序化云朵' },
+  info: { en: 'WASD pan · QE height · Drag orbit · Scroll zoom · Shift faster', zh: 'WASD 平移 · QE 升降 · 拖拽环绕 · 滚轮缩放 · Shift 加速' },
 };
 
 type FieldEntry = { name: { en: string; zh: string }; desc: { en: string; zh: string } };
@@ -359,6 +359,27 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
     desc: {
       en: 'Subsurface scattering strength: soft translucent glow through thin parts of the cloud when back-lit.',
       zh: '次表面散射强度：背光时光线穿过云的薄处产生的柔和通透光晕。',
+    },
+  },
+  sunDiscVisible: {
+    name: { en: 'Sun Disc', zh: '朦胧日盘' },
+    desc: {
+      en: 'Softens the sun disc behind thin altostratus so the watery sun remains visible through the veil.',
+      zh: '让薄高层云后的太阳呈朦胧日盘，透过率高时仍可见。',
+    },
+  },
+  haloEffect: {
+    name: { en: '22° Halo', zh: '22° 日晕' },
+    desc: {
+      en: 'Ice-crystal halo ring around the sun at about 22°, typical of cirrostratus.',
+      zh: '卷层云典型的约 22° 冰晶日晕亮环。',
+    },
+  },
+  internalLightning: {
+    name: { en: 'Internal Lightning', zh: '内部闪光' },
+    desc: {
+      en: 'Sparse warm internal flashes driven by simulation time, for cumulonimbus drama.',
+      zh: '由仿真时间驱动的稀疏暖色内部闪光，用于积雨云氛围。',
     },
   },
   edgeHardness: {

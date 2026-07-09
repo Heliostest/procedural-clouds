@@ -90,6 +90,7 @@ struct PresetShape {
   p4 : vec4f,
   p5 : vec4f,
   p6 : vec4f,
+  p7 : vec4f,
 };
 
 const PRESET_COUNT = 10;
@@ -106,6 +107,10 @@ const PRESET_P6_CIRRUS_FIBER_STRENGTH = 0u;
 const PRESET_P6_CIRRUS_FIBER_CURL = 1u;
 const PRESET_P6_CONVECTIVE_TOWER_STRENGTH = 2u;
 const PRESET_P6_CONVECTIVE_CELL_SCALE = 3u;
+// Must match PRESET_P7_OFFSETS in src/params.ts.
+const PRESET_P7_SUN_DISC_VISIBLE = 0u;
+const PRESET_P7_HALO_EFFECT = 1u;
+const PRESET_P7_INTERNAL_LIGHTNING = 2u;
 
 override wg_x : u32 = 8u;
 override wg_y : u32 = 8u;
@@ -152,12 +157,20 @@ struct Lighting {
   silver     : f32,
   baseDark   : f32,
   sss        : f32,
+  sunDisc    : f32,
+  halo       : f32,
+  lightning  : f32,
 };
 
 fn presetLighting(i : i32) -> Lighting {
   let idx = clamp(i, 0, PRESET_COUNT - 1);
   let p = presets[idx];
-  return Lighting(p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z);
+  return Lighting(
+    p.p3.y, p.p3.z, p.p3.w, p.p4.x, p.p4.y, p.p4.z,
+    p.p7[PRESET_P7_SUN_DISC_VISIBLE],
+    p.p7[PRESET_P7_HALO_EFFECT],
+    p.p7[PRESET_P7_INTERNAL_LIGHTNING],
+  );
 }
 
 struct Morphology {
@@ -224,6 +237,9 @@ fn mixLighting(a : Lighting, b : Lighting, t : f32) -> Lighting {
     mix(a.silver, b.silver, t),
     mix(a.baseDark, b.baseDark, t),
     mix(a.sss, b.sss, t),
+    mix(a.sunDisc, b.sunDisc, t),
+    mix(a.halo, b.halo, t),
+    mix(a.lightning, b.lightning, t),
   );
 }
 
@@ -924,27 +940,17 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   let skyC = todColors();
   let sky = mix(skyC.bg, skyC.top, clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
   let sunTheta = dot(rd, SUN_DIR);
-  let finalSky = sky + pow(max(sunTheta, 0.0), 64.0) * skyC.sun * 0.8;
+  let blend = clamp01(params.g.typeLightingBlend);
 
-  var background = finalSky;
-  if (rd.y < -0.0001) {
-    let tGround = (GROUND_Y - ro.y) / rd.y;
-    if (tGround > 0.0) {
-      let gp = ro + rd * tGround;
-      let gcol = groundColor(gp, skyC);
-      let gAerial = applyAerial(gcol, tGround, 0.0, 1.0, skyC, sunTheta);
-      let horizon = smoothstep(0.0, 0.06, -rd.y);
-      background = mix(finalSky, gAerial, horizon);
-    }
-  }
-
-  var outColor = background;
   var transmittance = 1.0;
   var color = vec3f(0.0);
   var iterCount = 0;
   var depthSum = 0.0;
   var depthW = 0.0;
   var cloudDepth = 1e4;
+  var accSunDisc = 0.0;
+  var accHalo = 0.0;
+  var accFxW = 0.0;
 
   if (hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
@@ -963,7 +969,6 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     depthSum = 0.0;
     depthW = 0.0;
     let phaseGlobal = mix(1.0, dualHG(sunTheta), 0.6);
-    let blend = clamp01(params.g.typeLightingBlend);
     let bmin = boxMin();
     let boxMax = getBoxMax();
     let adaptive = params.g.adaptiveMarch > 0.5;
@@ -1009,18 +1014,26 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
           let edgeThin = exp(-edgeDens * 3.0);
           litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * transmittance;
         }
+        let lightningAmt = mix(0.0, L.lightning, blend);
+        if (lightningAmt > 0.001) {
+          let flashSeed = dt.y * 17.13 + dt.z * 9.71;
+          let pulse = pow(max(sin(params.g.sceneTime * 2.3 + flashSeed), 0.0), 24.0);
+          litColor += vec3f(1.0, 0.85, 0.55) * pulse * lightningAmt * densW * 2.5;
+        }
 
         let w = transmittance * (1.0 - step_trans);
         color += w * litColor;
         depthSum += w * t;
         depthW += w;
+        accSunDisc += w * L.sunDisc;
+        accHalo += w * L.halo;
+        accFxW += w;
         transmittance *= step_trans;
         let cutoff = 0.01;
         if (transmittance < cutoff) { break; }
         empties = 0;
         t = t + baseStep;
       } else if (d > 0.002) {
-        // Near-cloud fringe: brake to fine steps so edges/thin wisps aren't skipped.
         if (mult > 1.0) {
           t = t - baseStep * (mult - 1.0);
           mult = 1.0;
@@ -1040,7 +1053,41 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
       let midY = (ro.y + rd.y * cloudDepth) * 0.5;
       color = applyAerial(color, cloudDepth, midY, 1.0 - transmittance, skyC, sunTheta);
     }
-    outColor = color + transmittance * background;
+  }
+
+  let sunDiscAmt = select(0.0, (accSunDisc / accFxW) * blend, accFxW > 1e-4);
+  let haloAmt = select(0.0, (accHalo / accFxW) * blend, accFxW > 1e-4);
+  let sunPower = mix(64.0, 16.0, clamp01(sunDiscAmt));
+  let sunGain = mix(0.8, 1.2, clamp01(sunDiscAmt));
+  var sunDisc = pow(max(sunTheta, 0.0), sunPower) * skyC.sun * sunGain;
+  if (sunDiscAmt > 0.001) {
+    sunDisc *= mix(1.0, smoothstep(0.0, 0.85, transmittance), clamp01(sunDiscAmt));
+  }
+  var halo = vec3f(0.0);
+  if (haloAmt > 0.001 && SUN_DIR.y > 0.0) {
+    let angle = acos(clamp(sunTheta, -1.0, 1.0));
+    let halo0 = 0.3839724354387525;
+    let width = 0.02617993877991494;
+    let ring = exp(-((angle - halo0) / width) * ((angle - halo0) / width));
+    halo = skyC.sun * ring * haloAmt * 0.55;
+  }
+  let finalSky = sky + sunDisc + halo;
+
+  var background = finalSky;
+  if (rd.y < -0.0001) {
+    let tGround = (GROUND_Y - ro.y) / rd.y;
+    if (tGround > 0.0) {
+      let gp = ro + rd * tGround;
+      let gcol = groundColor(gp, skyC);
+      let gAerial = applyAerial(gcol, tGround, 0.0, 1.0, skyC, sunTheta);
+      let horizon = smoothstep(0.0, 0.06, -rd.y);
+      background = mix(finalSky, gAerial, horizon);
+    }
+  }
+
+  var outColor = color + transmittance * background;
+  if (!hit.hit) {
+    outColor = background;
   }
 
   if (params.g.debugView > 0.5) {

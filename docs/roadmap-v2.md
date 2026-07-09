@@ -401,9 +401,9 @@
 
 - [x] 卷云方向性纤维：`evalCirrus()` 使用云体局部主轴和低成本 curl/domain warp 形成弯钩细丝；`cirrusFiberStrength=0` 精确回退兼容密度，总体方向由 body rotation 控制。
 - [x] 积雨云对流塔/花椰菜：`evalCumulonimbus()` 使用高度门控的解析胞元场重塑中上层密度，并与既有平底、顶部截断和砧顶独立组合。
-- [ ] altostratus `sunDiscVisible`：薄云档透出朦胧日盘。
-- [ ] cirrostratus `haloEffect`：22° 日晕亮环。
-- [ ] cumulonimbus `internalLightning`：随机内部暖色闪光脉冲。
+- [x] altostratus `sunDiscVisible`：薄云档透出朦胧日盘。
+- [x] cirrostratus `haloEffect`：22° 日晕亮环。
+- [x] cumulonimbus `internalLightning`：随机内部暖色闪光脉冲。
 
 ---
 

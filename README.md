@@ -7,7 +7,7 @@ Real-time procedural volumetric clouds rendered with WebGPU. The project combine
 - Compute shader density cache for faster rendering
 - Three switchable ground-shadow paths: Legacy, Adaptive, and cached Transmittance
 - Adjustable cloud appearance and lighting controls
-- Interactive orbit camera with inertia
+- Cities: Skylines–style camera: WASD pan, Q/E height, drag orbit, scroll zoom (wall-clock, independent of simulation speed)
 - Performance panel via `stats.js`
 
 ## Requirements
@@ -45,9 +45,13 @@ The UI panel exposes these parameters:
 - `Map Resolution`: Ground-shadow transmittance map size (`256`, `512`, or `1024`)
 - `Map Update Interval`, `History Weight`, and `Filter Radius`: Temporal/spatial stability controls for Transmittance mode
 
-Camera controls:
-- Drag to orbit
+Camera controls (Cities: Skylines–style):
+- Drag to orbit around the look-at target
 - Scroll to zoom
+- `W` `A` `S` `D` / arrow keys: pan the target on XZ
+- `Q` / `E`: lower / raise the target
+- `Shift`: move faster
+- Gizmo handle drags take priority over orbit
 
 Cloud-body bounds define the saved authoring placement. At runtime, integrated wind displacement transports the complete cloud footprint and density through world XZ; wireframes and gizmos follow the transported position while the saved bounds remain unchanged.
 
@@ -98,10 +102,10 @@ The renderer uses two pipelines and a small set of bind groups to keep per-frame
 - Transmittance mode amortizes the same integrator into a default `512² rgba16float` world-space map. Invalid or out-of-bounds samples fall back to Adaptive, with a blended guard band at map edges.
 
 ### Camera and Matrices
-- The camera orbits a target point using spherical coordinates (`theta`, `phi`, `dist`).
-- Each frame builds `view`, `projection`, and `inverse view-projection` matrices on the CPU.
+- Cities: Skylines–style look-at camera: pan the target with WASD, raise/lower with Q/E, orbit with drag, zoom with scroll.
+- Spherical coordinates `(theta, phi, dist)` around a movable target; each frame builds `view`, `projection`, and `inverse view-projection` on the CPU.
 - The inverse view-projection is used in the fragment shader to reconstruct world-space ray directions.
-- Camera motion uses simple exponential smoothing (inertia).
+- Camera motion uses exponential smoothing (inertia) and wall-clock time (independent of simulation speed).
 
 ### Render Loop Overview
 1. Update camera smoothing and time-dependent parameters.

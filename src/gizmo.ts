@@ -38,7 +38,11 @@ interface Drag {
   startRot: [number, number, number];
 }
 
-export function createGizmoController(deps: GizmoDeps): void {
+export interface GizmoController {
+  isDragging(): boolean;
+}
+
+export function createGizmoController(deps: GizmoDeps): GizmoController {
   const { canvas, params, store } = deps;
   let drag: Drag | null = null;
 
@@ -212,4 +216,8 @@ export function createGizmoController(deps: GizmoDeps): void {
   }
   canvas.addEventListener('pointerup', end, true);
   canvas.addEventListener('pointercancel', end, true);
+
+  return {
+    isDragging: () => drag !== null,
+  };
 }

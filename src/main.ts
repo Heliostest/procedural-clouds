@@ -50,7 +50,10 @@ async function main(): Promise<void> {
     gui.refreshScenario();
   }
 
-  const camera = createOrbitCamera(canvas);
+  let gizmo: ReturnType<typeof createGizmoController> | null = null;
+  const camera = createOrbitCamera(canvas, {
+    shouldOrbit: () => !gizmo?.isDragging(),
+  });
   const renderer = await createRenderer(canvas);
   const axisLabels = createAxisLabelOverlay();
   function applyPlacementPolicy(bodies = store.list()): void {
@@ -133,7 +136,7 @@ async function main(): Promise<void> {
   });
 
   let lastCam: CameraFrame | null = null;
-  createGizmoController({
+  gizmo = createGizmoController({
     canvas,
     params,
     store,
@@ -281,7 +284,7 @@ async function main(): Promise<void> {
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
     const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
     camera.setSceneBounds(worldBoxHalfExtent, worldCloudHeight);
-    camera.update();
+    camera.update(deltaTime);
 
     const aspect = canvas.width / canvas.height;
     const cam = camera.computeFrame(aspect);
