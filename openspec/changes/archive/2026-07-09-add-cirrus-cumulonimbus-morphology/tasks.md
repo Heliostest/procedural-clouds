@@ -52,7 +52,7 @@
 - [x] 6.1 Update `docs/roadmap-v2.md` and `docs/cloud-types-review.md` with implemented morphology and remaining precipitation/flow-field boundaries
 - [x] 6.2 Record fixed fixtures, calibrated defaults, screenshots, compiler health and GPU timing evidence in this change
 - [x] 6.3 Run `openspec validate add-cirrus-cumulonimbus-morphology --strict --no-interactive` and full strict validation
-- [ ] 6.4 Archive only after all acceptance evidence is complete
+- [x] 6.4 Archive only after all acceptance evidence is complete
 
 ## Verification record (2026-07-08)
 

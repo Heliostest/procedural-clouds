@@ -22,6 +22,8 @@ const pascal = (value) => value[0].toUpperCase() + value.slice(1);
 const specializedCalls = {
   cumulonimbus: 'evalCumulonimbus(compatibilityDensity, pos, bodyIndex)',
   cirrus: 'evalCirrus(compatibilityDensity, pos, bodyIndex)',
+  altocumulus: 'evalAltocumulus(compatibilityDensity, pos, bodyIndex)',
+  cirrocumulus: 'evalCirrocumulus(compatibilityDensity, pos, bodyIndex)',
 };
 const caseMatches = [...dispatcher.matchAll(/case GENUS_([A-Z]+):/g)];
 if (caseMatches.length !== genera.length) {
@@ -71,6 +73,7 @@ const p7Fields = [
   ['sunDiscVisible', 28, 'PRESET_P7_SUN_DISC_VISIBLE'],
   ['haloEffect', 29, 'PRESET_P7_HALO_EFFECT'],
   ['internalLightning', 30, 'PRESET_P7_INTERNAL_LIGHTNING'],
+  ['tileScale', 31, 'PRESET_P7_TILE_SCALE'],
 ];
 if (!params.includes('export const PRESET_VEC4_COUNT = 8;') || !cloud.includes('p7 : vec4f,')) {
   throw new Error('genus dispatch check: preset storage must contain eight vec4 values');
@@ -91,7 +94,11 @@ for (const [field, offset, wgslConstant] of p7Fields) {
   if (!params.includes(`${field}: ${offset},`)) {
     throw new Error(`genus dispatch check: ${field} must use preset float offset ${offset}`);
   }
-  if (!cloud.includes(wgslConstant) || !cloud.includes(`p.p7[${wgslConstant}]`)) {
+  const usesP7 = cloud.includes(`p.p7[${wgslConstant}]`);
+  const usesMorph = field === 'tileScale'
+    ? cloud.includes(wgslConstant) && (usesP7 || cloud.includes('tileScale'))
+    : cloud.includes(wgslConstant) && usesP7;
+  if (!usesMorph) {
     throw new Error(`genus dispatch check: WGSL p7 accessor missing for ${field}`);
   }
   const presetFieldCount = [...presetBlock.matchAll(new RegExp(`${field}:`, 'g'))].length;
@@ -100,7 +107,7 @@ for (const [field, offset, wgslConstant] of p7Fields) {
   }
 }
 
-for (const forbidden of ['cirrusFiberStrength', 'cirrusFiberCurl', 'convectiveTowerStrength', 'convectiveCellScale']) {
+for (const forbidden of ['cirrusFiberStrength', 'cirrusFiberCurl', 'convectiveTowerStrength', 'convectiveCellScale', 'tileScale']) {
   if (common.includes(forbidden)) {
     throw new Error(`genus dispatch check: ${forbidden} must stay out of compatibility code`);
   }

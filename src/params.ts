@@ -70,6 +70,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   groundShadowMapValid: 51,
   groundShadowMapGuard: 52,
   groundShadowPhase: 53,
+  todPaletteBlend: 54,
 };
 
 export const GROUND_SHADOW_MODE = {
@@ -94,6 +95,7 @@ export const MORPHOLOGY_PRESET_KEYS = [
   'baseRoundness', 'anvilStrength', 'topCutoffSharpness',
   'cirrusFiberStrength', 'cirrusFiberCurl',
   'convectiveTowerStrength', 'convectiveCellScale',
+  'tileScale',
 ] as const;
 
 export const EDGE_STYLE_PRESET_KEYS = [
@@ -139,16 +141,16 @@ export function setPresetField(preset: ShapePreset, key: ShapeKey, value: number
 }
 
 export const CLOUD_PRESETS: Record<string, ShapePreset> = {
-  cumulus:       { density: 1.0, coverage: 0.55, altitude: 0.5, scale: 3.75, detail: 1.0, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.6,  worleyBlend: 0.5,  detailStrength: 1.0, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.045, phaseForward: 0.6, phaseBack: -0.2, silverLining: 0.4, baseDarkening: 0.35, sssStrength: 0.3, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.35, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  stratus:       { density: 1.2, coverage: 0.9, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.0, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.06, phaseForward: 0.3, phaseBack: -0.1, silverLining: 0.1, baseDarkening: 0.15, sssStrength: 0.15, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  stratocumulus: { density: 1.1, coverage: 0.7, altitude: 0.45, scale: 4.5, detail: 1.0, cloudHeight: 1.3, coverageThreshold: 0.0, edgeSharpness: 0.4, worleyBlend: 0.4, detailStrength: 0.8, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.05, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.25, baseDarkening: 0.25, sssStrength: 0.25, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.2, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  cumulonimbus:  { density: 2.2, coverage: 0.5,  altitude: 0.7,  scale: 5.0,  detail: 2.0, cloudHeight: 3.5, coverageThreshold: 0.1,  edgeSharpness: 0.8,  worleyBlend: 0.65, detailStrength: 1.1, altBase: 0.0,  altTop: 1.0,  absorptionCoeff: 0.1,   phaseForward: 0.7,  phaseBack: -0.3, silverLining: 0.6,  baseDarkening: 0.6,  sssStrength: 0.2,  sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.65, morphology: { baseRoundness: 0.5,  anvilStrength: 0.85, topCutoffSharpness: 0.85, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.82, convectiveCellScale: 0.55 }, edgeStyle: { edgeHardness: 0.85, edgeErosionStrength: 0.85 } },
-  altocumulus:   { density: 0.9, coverage: 0.55, altitude: 0.4, scale: 2.5, detail: 1.0, cloudHeight: 1.5, coverageThreshold: 0.05, edgeSharpness: 0.5, worleyBlend: 0.7, detailStrength: 0.7, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.035, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.3, baseDarkening: 0.2, sssStrength: 0.35, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.1, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  altostratus:   { density: 1.0, coverage: 0.85, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.2, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.05, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.02, phaseForward: 0.5, phaseBack: 0.0, silverLining: 0.1, baseDarkening: 0.1, sssStrength: 0.5, sunDiscVisible: 0.85, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  nimbostratus:  { density: 1.8, coverage: 0.95, altitude: 0.5, scale: 6.5, detail: 0.5, cloudHeight: 1.6, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.09, phaseForward: 0.2, phaseBack: 0.0, silverLining: 0.05, baseDarkening: 0.5, sssStrength: 0.1, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  cirrus:        { density: 0.6, coverage: 0.35, altitude: 0.3, scale: 2.2, detail: 2.5, cloudHeight: 1.2, coverageThreshold: 0.15, edgeSharpness: 0.7, worleyBlend: 0.15, detailStrength: 1.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.008, phaseForward: 0.8, phaseBack: 0.0, silverLining: 0.5, baseDarkening: 0.05, sssStrength: 0.7, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.78, cirrusFiberCurl: 0.55, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  cirrostratus:  { density: 0.5, coverage: 0.7, altitude: 0.3, scale: 5.0, detail: 0.5, cloudHeight: 1.1, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.0, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.005, phaseForward: 0.85, phaseBack: 0.0, silverLining: 0.2, baseDarkening: 0.0, sssStrength: 0.8, sunDiscVisible: 0.0, haloEffect: 0.75, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
-  cirrocumulus:  { density: 0.6, coverage: 0.4, altitude: 0.3, scale: 1.5, detail: 1.5, cloudHeight: 1.1, coverageThreshold: 0.1, edgeSharpness: 0.6, worleyBlend: 0.8, detailStrength: 0.9, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.01, phaseForward: 0.7, phaseBack: 0.0, silverLining: 0.3, baseDarkening: 0.1, sssStrength: 0.6, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cumulus:       { density: 1.0, coverage: 0.55, altitude: 0.5, scale: 3.75, detail: 1.0, cloudHeight: 1.6, coverageThreshold: 0.0,  edgeSharpness: 0.6,  worleyBlend: 0.5,  detailStrength: 1.0, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.045, phaseForward: 0.6, phaseBack: -0.2, silverLining: 0.4, baseDarkening: 0.35, sssStrength: 0.3, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.35, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  stratus:       { density: 1.2, coverage: 0.9, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.0, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.06, phaseForward: 0.3, phaseBack: -0.1, silverLining: 0.1, baseDarkening: 0.15, sssStrength: 0.15, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  stratocumulus: { density: 1.1, coverage: 0.7, altitude: 0.45, scale: 4.5, detail: 1.0, cloudHeight: 1.3, coverageThreshold: 0.0, edgeSharpness: 0.4, worleyBlend: 0.4, detailStrength: 0.8, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.05, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.25, baseDarkening: 0.25, sssStrength: 0.25, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.2, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cumulonimbus:  { density: 2.2, coverage: 0.5,  altitude: 0.7,  scale: 5.0,  detail: 2.0, cloudHeight: 3.5, coverageThreshold: 0.1,  edgeSharpness: 0.8,  worleyBlend: 0.65, detailStrength: 1.1, altBase: 0.0,  altTop: 1.0,  absorptionCoeff: 0.1,   phaseForward: 0.7,  phaseBack: -0.3, silverLining: 0.6,  baseDarkening: 0.6,  sssStrength: 0.2,  sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.65, morphology: { baseRoundness: 0.5,  anvilStrength: 0.85, topCutoffSharpness: 0.85, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.82, convectiveCellScale: 0.55, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.85, edgeErosionStrength: 0.85 } },
+  altocumulus:   { density: 0.9, coverage: 0.55, altitude: 0.4, scale: 2.5, detail: 1.0, cloudHeight: 1.5, coverageThreshold: 0.05, edgeSharpness: 0.5, worleyBlend: 0.7, detailStrength: 0.7, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.035, phaseForward: 0.4, phaseBack: -0.2, silverLining: 0.3, baseDarkening: 0.2, sssStrength: 0.35, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.1, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.55 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  altostratus:   { density: 1.0, coverage: 0.85, altitude: 0.35, scale: 6.0, detail: 0.5, cloudHeight: 1.2, coverageThreshold: 0.0, edgeSharpness: 0.15, worleyBlend: 0.05, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.02, phaseForward: 0.5, phaseBack: 0.0, silverLining: 0.1, baseDarkening: 0.1, sssStrength: 0.5, sunDiscVisible: 0.85, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  nimbostratus:  { density: 1.8, coverage: 0.95, altitude: 0.5, scale: 6.5, detail: 0.5, cloudHeight: 1.6, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.1, detailStrength: 0.4, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.09, phaseForward: 0.2, phaseBack: 0.0, silverLining: 0.05, baseDarkening: 0.5, sssStrength: 0.1, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrus:        { density: 0.6, coverage: 0.35, altitude: 0.3, scale: 2.2, detail: 2.5, cloudHeight: 1.2, coverageThreshold: 0.15, edgeSharpness: 0.7, worleyBlend: 0.15, detailStrength: 1.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.008, phaseForward: 0.8, phaseBack: 0.0, silverLining: 0.5, baseDarkening: 0.05, sssStrength: 0.7, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.78, cirrusFiberCurl: 0.55, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrostratus:  { density: 0.5, coverage: 0.7, altitude: 0.3, scale: 5.0, detail: 0.5, cloudHeight: 1.1, coverageThreshold: 0.0, edgeSharpness: 0.1, worleyBlend: 0.0, detailStrength: 0.3, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.005, phaseForward: 0.85, phaseBack: 0.0, silverLining: 0.2, baseDarkening: 0.0, sssStrength: 0.8, sunDiscVisible: 0.0, haloEffect: 0.75, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.0 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
+  cirrocumulus:  { density: 0.6, coverage: 0.4, altitude: 0.3, scale: 1.5, detail: 1.5, cloudHeight: 1.1, coverageThreshold: 0.1, edgeSharpness: 0.6, worleyBlend: 0.8, detailStrength: 0.9, altBase: 0.0, altTop: 1.0, absorptionCoeff: 0.01, phaseForward: 0.7, phaseBack: 0.0, silverLining: 0.3, baseDarkening: 0.1, sssStrength: 0.6, sunDiscVisible: 0.0, haloEffect: 0.0, internalLightning: 0.0, morphology: { baseRoundness: 0.0, anvilStrength: 0.0, topCutoffSharpness: 0.0, cirrusFiberStrength: 0.0, cirrusFiberCurl: 0.0, convectiveTowerStrength: 0.0, convectiveCellScale: 0.0, tileScale: 0.82 }, edgeStyle: { edgeHardness: 0.0, edgeErosionStrength: 0.0 } },
 };
 
 export type PresetKey = keyof typeof CLOUD_PRESETS;
@@ -178,7 +180,7 @@ export const PRESET_P7_OFFSETS = {
   sunDiscVisible: 28,
   haloEffect: 29,
   internalLightning: 30,
-  reserved: 31,
+  tileScale: 31,
 } as const;
 
 const PRESET_P5_BASE = 5 * 4;
@@ -204,7 +206,7 @@ if (
   PRESET_P7_OFFSETS.sunDiscVisible !== PRESET_P7_BASE
   || PRESET_P7_OFFSETS.haloEffect !== PRESET_P7_BASE + 1
   || PRESET_P7_OFFSETS.internalLightning !== PRESET_P7_BASE + 2
-  || PRESET_P7_OFFSETS.reserved !== PRESET_P7_BASE + 3
+  || PRESET_P7_OFFSETS.tileScale !== PRESET_P7_BASE + 3
 ) {
   throw new Error('Preset p7 CPU layout no longer matches the WGSL x/y/z/w contract');
 }
@@ -240,7 +242,7 @@ export function packPresetArray(): Float32Array {
     out[o + PRESET_P7_OFFSETS.sunDiscVisible] = p.sunDiscVisible;
     out[o + PRESET_P7_OFFSETS.haloEffect] = p.haloEffect;
     out[o + PRESET_P7_OFFSETS.internalLightning] = p.internalLightning;
-    out[o + PRESET_P7_OFFSETS.reserved] = 0;
+    out[o + PRESET_P7_OFFSETS.tileScale] = p.morphology.tileScale;
   });
   return out;
 }
@@ -312,6 +314,7 @@ export interface CloudParams {
   bloomEnabled: boolean;
   bloomThreshold: number;
   bloomAmount: number;
+  todPaletteBlend: number;
   measureLightShare: () => void;
 }
 
@@ -455,6 +458,7 @@ export function createDefaultParams(): CloudParams {
     bloomEnabled: false,
     bloomThreshold: 1.0,
     bloomAmount: 0.5,
+    todPaletteBlend: 1.0,
     measureLightShare: () => {},
   };
 }

@@ -1,3 +1,5 @@
+import { GENUS_ARTISTIC } from './genusArtistic';
+
 export type Lang = 'en' | 'zh';
 
 type Dict = Record<string, { en: string; zh: string }>;
@@ -84,6 +86,7 @@ const DICT: Dict = {
   aerialInscatter: { en: 'Aerial Inscatter', zh: '朝阳内散射' },
   aerialHeightFalloff: { en: 'Aerial Height Falloff', zh: '高度衰减' },
   shadowTintStrength: { en: 'Shadow Tint Strength', zh: '阴影冷色强度' },
+  todPaletteBlend: { en: 'TOD Art Palette', zh: 'TOD 艺术色板' },
 
   presetEditor: { en: 'Preset Editor', zh: '预设编辑器' },
   editPreset: { en: 'Edit Genus', zh: '编辑云属' },
@@ -291,6 +294,13 @@ const PRESET_FIELDS: Record<string, FieldEntry> = {
       zh: '控制积雨云对流胞元和花椰菜分瓣的典型尺度。',
     },
   },
+  tileScale: {
+    name: { en: 'Tile Scale', zh: '鱼鳞尺度' },
+    desc: {
+      en: 'Repeating cloudlet / fish-scale frequency for altocumulus and cirrocumulus. 0 disables; higher = finer tiles.',
+      zh: '高积云/卷积云的重复云胞（鱼鳞）频率。0 关闭；越大鳞片越细。',
+    },
+  },
   worleyBlend: {
     name: { en: 'Worley / Perlin Blend', zh: 'Worley/Perlin 混合' },
     desc: {
@@ -475,6 +485,7 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   aerialInscatter: { en: 'Strength of the sunward in-scattered haze color mixed in by aerial perspective.', zh: '大气透视中朝阳方向内散射雾色的强度。' },
   aerialHeightFalloff: { en: 'How quickly aerial haze thins out with altitude.', zh: '大气雾随高度变薄的速率。' },
   shadowTintStrength: { en: 'How strongly shadowed cloud interiors shift toward the cool shadow color.', zh: '云内阴影区偏向冷色调的强度。' },
+  todPaletteBlend: { en: '0 = legacy TOD colors, 1 = artistic palette from cloud-types.md. Mix for A/B.', zh: '0 = 旧版 TOD 色，1 = cloud-types.md 艺术色板。可混合做 A/B。' },
   editPreset: { en: 'Choose which cloud genus preset to edit below.', zh: '选择下方要编辑的云属预设。' },
   copyPreset: { en: 'Copy this preset\'s values to the clipboard as code.', zh: '将该预设的数值以代码形式拷贝到剪贴板。' },
   copyAllPresets: { en: 'Copy all presets to the clipboard as code.', zh: '将全部预设以代码形式拷贝到剪贴板。' },
@@ -537,6 +548,11 @@ const CLOUD_TYPES: Record<string, { en: string; zh: string }> = {
 
 export function cloudTypeName(key: string): string {
   return CLOUD_TYPES[key]?.[lang] ?? key;
+}
+
+export function genusArtistic(key: string): string {
+  const entry = GENUS_ARTISTIC[key as keyof typeof GENUS_ARTISTIC];
+  return entry?.[lang] ?? entry?.en ?? '';
 }
 
 let lang: Lang = ((): Lang => {

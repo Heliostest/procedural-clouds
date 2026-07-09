@@ -11,7 +11,7 @@ import {
   type ShapeKey,
 } from './params';
 import type { BodyStore, CloudBody } from './body';
-import { t, tip, getLang, setLang, cloudTypeName, presetFieldName, presetFieldDesc, type Lang } from './i18n';
+import { t, tip, getLang, setLang, cloudTypeName, genusArtistic, presetFieldName, presetFieldDesc, type Lang } from './i18n';
 import { WIND_DEMO_MAX_MPS } from './wind';
 import { SIMULATION_RATES, type SimulationState } from './simulationTime';
 
@@ -128,6 +128,7 @@ const PRESET_FIELD_RANGE: Record<ShapeKey, [number, number, number]> = {
   cirrusFiberCurl: [0, 1, 0.01],
   convectiveTowerStrength: [0, 1, 0.01],
   convectiveCellScale: [0, 1, 0.01],
+  tileScale: [0, 1, 0.01],
   edgeHardness: [0, 1, 0.01],
   edgeErosionStrength: [0, 1, 0.01],
 };
@@ -429,6 +430,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(lightFolder.add(params, 'aerialInscatter', 0, 2, 0.01).name(t('aerialInscatter')), 'aerialInscatter');
     tipKey(lightFolder.add(params, 'aerialHeightFalloff', 0, 1, 0.01).name(t('aerialHeightFalloff')), 'aerialHeightFalloff');
     tipKey(lightFolder.add(params, 'shadowTintStrength', 0, 1, 0.01).name(t('shadowTintStrength')), 'shadowTintStrength');
+    tipKey(lightFolder.add(params, 'todPaletteBlend', 0, 1, 0.01).name(t('todPaletteBlend')), 'todPaletteBlend');
 
     function openCompare(initA: string): void {
       const fields = SHAPE_PRESET_KEYS.filter((k) => !RESERVED_PRESET_FIELDS.has(k));
@@ -538,6 +540,12 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       tipFolder(fieldsFolder, getLang() === 'zh'
         ? '该云属的形态、边缘风格与光照模板。形态会改变缓存密度；边缘风格只影响取样后的渲染响应。'
         : 'Morphology, edge style, and lighting for this genus. Morphology changes cached density; edge style changes only post-sample rendering.');
+      const art = genusArtistic(editState.preset);
+      if (art) {
+        tipFolder(fieldsFolder, art);
+        const artProxy = { note: art.length > 80 ? `${art.slice(0, 80)}…` : art };
+        tipText(fieldsFolder.add(artProxy, 'note').name(getLang() === 'zh' ? '艺术向' : 'Artistic').disable(), art);
+      }
       const p = CLOUD_PRESETS[editState.preset];
       const generalFolder = fieldsFolder.addFolder(t('presetProperties'));
       const morphologyFolder = fieldsFolder.addFolder(t('presetMorphology'));

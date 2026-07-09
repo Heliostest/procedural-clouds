@@ -246,18 +246,46 @@ struct VOut { @builtin(position) pos : vec4f };
 }
 `;
 
-function todBackground(elevDeg: number): { r: number; g: number; b: number; a: number } {
-  const t = Math.max(0, Math.min(1, Math.sin((elevDeg * Math.PI) / 180)));
-  const e = Math.max(0, Math.min(1, (t - 0.0) / 0.5));
-  const tk = e * e * (3 - 2 * e);
-  const dusk = [0.2, 0.09, 0.1];
-  const day = [0.045, 0.1, 0.18];
-  return {
-    r: dusk[0] + (day[0] - dusk[0]) * tk,
-    g: dusk[1] + (day[1] - dusk[1]) * tk,
-    b: dusk[2] + (day[2] - dusk[2]) * tk,
-    a: 1.0,
-  };
+const TOD_KNOTS = [-15, -6, 0, 5, 12, 25, 45, 90];
+const TOD_BG_LEGACY: [number, number, number][] = [
+  [0.02, 0.03, 0.07],
+  [0.25, 0.12, 0.15],
+  [0.55, 0.25, 0.15],
+  [0.60, 0.38, 0.22],
+  [0.48, 0.45, 0.50],
+  [0.38, 0.52, 0.75],
+  [0.32, 0.55, 0.84],
+  [0.30, 0.55, 0.85],
+];
+const TOD_BG_ART: [number, number, number][] = [
+  [0.020, 0.020, 0.063],
+  [0.039, 0.102, 0.200],
+  [0.102, 0.200, 0.400],
+  [0.200, 0.400, 0.667],
+  [0.333, 0.600, 0.800],
+  [0.400, 0.600, 0.800],
+  [0.267, 0.533, 0.733],
+  [0.267, 0.533, 0.733],
+];
+
+function mix3(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+function sampleTodBg(elevDeg: number, table: [number, number, number][]): [number, number, number] {
+  const e = Math.max(TOD_KNOTS[0], Math.min(TOD_KNOTS[7], elevDeg));
+  let i = 0;
+  for (let k = 0; k < 7; k++) if (e >= TOD_KNOTS[k]) i = k;
+  const span = TOD_KNOTS[i + 1] - TOD_KNOTS[i];
+  const u = span > 1e-6 ? (e - TOD_KNOTS[i]) / span : 0;
+  const tt = u * u * (3 - 2 * u);
+  return mix3(table[i], table[i + 1], tt);
+}
+
+function todBackground(elevDeg: number, paletteBlend = 1): { r: number; g: number; b: number; a: number } {
+  const blend = Math.max(0, Math.min(1, paletteBlend));
+  const c = mix3(sampleTodBg(elevDeg, TOD_BG_LEGACY), sampleTodBg(elevDeg, TOD_BG_ART), blend);
+  return { r: c[0], g: c[1], b: c[2], a: 1.0 };
 }
 
 const lineShaderSource = /* wgsl */ `
@@ -1130,6 +1158,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       groundShadowMapValid,
       groundShadowMapGuard: Math.max(2 / Math.max(1, groundShadowResolution), 0.002),
       groundShadowPhase,
+      todPaletteBlend: params.todPaletteBlend,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
@@ -1427,7 +1456,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         {
           view: sceneView!,
           loadOp: 'clear',
-          clearValue: todBackground(params.sunElevation),
+          clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
           storeOp: 'store',
         },
       ],
@@ -1534,7 +1563,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         {
           view: textureView,
           loadOp: 'clear',
-          clearValue: todBackground(params.sunElevation),
+          clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
           storeOp: 'store',
         },
       ],

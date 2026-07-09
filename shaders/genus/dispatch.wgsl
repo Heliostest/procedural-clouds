@@ -15,12 +15,12 @@ fn evalGenusDensity(genusIndex : i32, compatibilityDensity : f32, pos : vec3f, b
     case GENUS_STRATUS: { return evalStratus(compatibilityDensity); }
     case GENUS_STRATOCUMULUS: { return evalStratocumulus(compatibilityDensity); }
     case GENUS_CUMULONIMBUS: { return evalCumulonimbus(compatibilityDensity, pos, bodyIndex); }
-    case GENUS_ALTOCUMULUS: { return evalAltocumulus(compatibilityDensity); }
+    case GENUS_ALTOCUMULUS: { return evalAltocumulus(compatibilityDensity, pos, bodyIndex); }
     case GENUS_ALTOSTRATUS: { return evalAltostratus(compatibilityDensity); }
     case GENUS_NIMBOSTRATUS: { return evalNimbostratus(compatibilityDensity); }
     case GENUS_CIRRUS: { return evalCirrus(compatibilityDensity, pos, bodyIndex); }
     case GENUS_CIRROSTRATUS: { return evalCirrostratus(compatibilityDensity); }
-    case GENUS_CIRROCUMULUS: { return evalCirrocumulus(compatibilityDensity); }
+    case GENUS_CIRROCUMULUS: { return evalCirrocumulus(compatibilityDensity, pos, bodyIndex); }
     default: { return evalCumulus(compatibilityDensity); }
   }
 }

@@ -41,6 +41,8 @@
 
 参考边界：层级与 datum 定义来自 WMO International Cloud Atlas；默认实例 base/thickness 采用项目参考 `../procedural-clouds-threejs/cloud-types.md`，两者不可混称。
 
+十属艺术向文案（`src/genusArtistic.ts`）同样摘自该参考的 `artistic` 段，仅作调参/验收说明，不进入 GPU。
+
 ---
 
 ## 三、演化规律与现实的差距

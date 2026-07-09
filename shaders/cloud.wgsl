@@ -63,7 +63,7 @@ struct Globals {
   groundShadowMapValid : f32,
   groundShadowMapGuard : f32,
   groundShadowPhase : f32,
-  _pad8           : f32,
+  todPaletteBlend : f32,
   _pad9           : f32,
 };
 
@@ -111,6 +111,7 @@ const PRESET_P6_CONVECTIVE_CELL_SCALE = 3u;
 const PRESET_P7_SUN_DISC_VISIBLE = 0u;
 const PRESET_P7_HALO_EFFECT = 1u;
 const PRESET_P7_INTERNAL_LIGHTNING = 2u;
+const PRESET_P7_TILE_SCALE = 3u;
 
 override wg_x : u32 = 8u;
 override wg_y : u32 = 8u;
@@ -181,6 +182,7 @@ struct Morphology {
   cirrusFiberCurl : f32,
   convectiveTowerStrength : f32,
   convectiveCellScale : f32,
+  tileScale : f32,
 };
 
 fn presetMorphology(i : i32) -> Morphology {
@@ -194,6 +196,7 @@ fn presetMorphology(i : i32) -> Morphology {
     p.p6[PRESET_P6_CIRRUS_FIBER_CURL],
     p.p6[PRESET_P6_CONVECTIVE_TOWER_STRENGTH],
     p.p6[PRESET_P6_CONVECTIVE_CELL_SCALE],
+    p.p7[PRESET_P7_TILE_SCALE],
   );
 }
 
@@ -493,7 +496,7 @@ struct SkyColors {
 
 const TOD_KNOTS = array<f32, 8>(-15.0, -6.0, 0.0, 5.0, 12.0, 25.0, 45.0, 90.0);
 
-const TOD_SUN = array<vec3f, 8>(
+const TOD_SUN_LEGACY = array<vec3f, 8>(
   vec3f(0.02, 0.03, 0.08),
   vec3f(0.45, 0.22, 0.15),
   vec3f(1.00, 0.38, 0.12),
@@ -504,7 +507,7 @@ const TOD_SUN = array<vec3f, 8>(
   vec3f(1.00, 1.00, 1.00),
 );
 
-const TOD_AMBIENT = array<vec3f, 8>(
+const TOD_AMBIENT_LEGACY = array<vec3f, 8>(
   vec3f(0.05, 0.06, 0.12),
   vec3f(0.10, 0.10, 0.20),
   vec3f(0.16, 0.13, 0.22),
@@ -515,7 +518,7 @@ const TOD_AMBIENT = array<vec3f, 8>(
   vec3f(0.26, 0.30, 0.42),
 );
 
-const TOD_BG = array<vec3f, 8>(
+const TOD_BG_LEGACY = array<vec3f, 8>(
   vec3f(0.02, 0.03, 0.07),
   vec3f(0.25, 0.12, 0.15),
   vec3f(0.55, 0.25, 0.15),
@@ -526,7 +529,7 @@ const TOD_BG = array<vec3f, 8>(
   vec3f(0.30, 0.55, 0.85),
 );
 
-const TOD_TOP = array<vec3f, 8>(
+const TOD_TOP_LEGACY = array<vec3f, 8>(
   vec3f(0.01, 0.01, 0.04),
   vec3f(0.05, 0.05, 0.15),
   vec3f(0.10, 0.12, 0.28),
@@ -537,7 +540,7 @@ const TOD_TOP = array<vec3f, 8>(
   vec3f(0.08, 0.32, 0.78),
 );
 
-const TOD_SHADOW = array<vec3f, 8>(
+const TOD_SHADOW_LEGACY = array<vec3f, 8>(
   vec3f(0.04, 0.05, 0.10),
   vec3f(0.08, 0.08, 0.18),
   vec3f(0.14, 0.12, 0.24),
@@ -548,24 +551,87 @@ const TOD_SHADOW = array<vec3f, 8>(
   vec3f(0.24, 0.28, 0.42),
 );
 
+// Artistic palette from procedural-clouds-threejs/cloud-types.md
+// knots: Night, Twilight, Sunset, Golden, Afternoon, Morning, Midday, Midday
+const TOD_SUN_ART = array<vec3f, 8>(
+  vec3f(0.133, 0.133, 0.200),
+  vec3f(0.800, 0.267, 0.400),
+  vec3f(1.000, 0.400, 0.200),
+  vec3f(1.000, 0.667, 0.267),
+  vec3f(1.000, 0.957, 0.816),
+  vec3f(1.000, 0.941, 0.816),
+  vec3f(1.000, 1.000, 1.000),
+  vec3f(1.000, 1.000, 1.000),
+);
+
+const TOD_SHADOW_ART = array<vec3f, 8>(
+  vec3f(0.067, 0.067, 0.133),
+  vec3f(0.200, 0.133, 0.267),
+  vec3f(0.267, 0.133, 0.333),
+  vec3f(0.467, 0.267, 0.200),
+  vec3f(0.600, 0.667, 0.733),
+  vec3f(0.604, 0.667, 0.733),
+  vec3f(0.667, 0.733, 0.800),
+  vec3f(0.667, 0.733, 0.800),
+);
+
+const TOD_BG_ART = array<vec3f, 8>(
+  vec3f(0.020, 0.020, 0.063),
+  vec3f(0.039, 0.102, 0.200),
+  vec3f(0.102, 0.200, 0.400),
+  vec3f(0.200, 0.400, 0.667),
+  vec3f(0.333, 0.600, 0.800),
+  vec3f(0.400, 0.600, 0.800),
+  vec3f(0.267, 0.533, 0.733),
+  vec3f(0.267, 0.533, 0.733),
+);
+
+const TOD_TOP_ART = array<vec3f, 8>(
+  vec3f(0.010, 0.010, 0.031),
+  vec3f(0.020, 0.051, 0.120),
+  vec3f(0.051, 0.100, 0.240),
+  vec3f(0.080, 0.200, 0.450),
+  vec3f(0.120, 0.320, 0.580),
+  vec3f(0.150, 0.350, 0.620),
+  vec3f(0.100, 0.300, 0.580),
+  vec3f(0.100, 0.300, 0.580),
+);
+
+const TOD_AMBIENT_ART = array<vec3f, 8>(
+  vec3f(0.067, 0.067, 0.120),
+  vec3f(0.160, 0.100, 0.180),
+  vec3f(0.280, 0.160, 0.200),
+  vec3f(0.350, 0.250, 0.220),
+  vec3f(0.420, 0.430, 0.480),
+  vec3f(0.450, 0.460, 0.520),
+  vec3f(0.480, 0.520, 0.580),
+  vec3f(0.480, 0.520, 0.580),
+);
+
 fn todColors() -> SkyColors {
   var knots = TOD_KNOTS;
-  var sunTab = TOD_SUN;
-  var ambTab = TOD_AMBIENT;
-  var bgTab = TOD_BG;
-  var topTab = TOD_TOP;
-  var shadowTab = TOD_SHADOW;
+  var sunL = TOD_SUN_LEGACY;
+  var ambL = TOD_AMBIENT_LEGACY;
+  var bgL = TOD_BG_LEGACY;
+  var topL = TOD_TOP_LEGACY;
+  var shadowL = TOD_SHADOW_LEGACY;
+  var sunA = TOD_SUN_ART;
+  var ambA = TOD_AMBIENT_ART;
+  var bgA = TOD_BG_ART;
+  var topA = TOD_TOP_ART;
+  var shadowA = TOD_SHADOW_ART;
   let e = clamp(params.g.sunElevation, knots[0], knots[7]);
   var i = 0;
   for (var k = 0; k < 7; k++) {
     if (e >= knots[k]) { i = k; }
   }
   let tt = smoothstep(0.0, 1.0, (e - knots[i]) / (knots[i + 1] - knots[i]));
-  let sun = mix(sunTab[i], sunTab[i + 1], tt);
-  let amb = mix(ambTab[i], ambTab[i + 1], tt);
-  let bg  = mix(bgTab[i], bgTab[i + 1], tt);
-  let top = mix(topTab[i], topTab[i + 1], tt);
-  let shadow = mix(shadowTab[i], shadowTab[i + 1], tt);
+  let blend = clamp01(params.g.todPaletteBlend);
+  let sun = mix(mix(sunL[i], sunL[i + 1], tt), mix(sunA[i], sunA[i + 1], tt), blend);
+  let amb = mix(mix(ambL[i], ambL[i + 1], tt), mix(ambA[i], ambA[i + 1], tt), blend);
+  let bg  = mix(mix(bgL[i], bgL[i + 1], tt), mix(bgA[i], bgA[i + 1], tt), blend);
+  let top = mix(mix(topL[i], topL[i + 1], tt), mix(topA[i], topA[i + 1], tt), blend);
+  let shadow = mix(mix(shadowL[i], shadowL[i + 1], tt), mix(shadowA[i], shadowA[i + 1], tt), blend);
   return SkyColors(sun, amb, bg, top, shadow);
 }
 

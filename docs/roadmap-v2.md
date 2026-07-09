@@ -181,7 +181,7 @@
 - [x] 默认 ACES Narkowicz 拟合 + `exposure` 曝光系数（默认 ACES / 0.7，1.0 时偏亮发灰）。
 - [x] tonemap 可切换（Reinhard 保留作 A/B 基线；AgX 用 Benjamin Wrensch 多项式近似，规避 ACES 对大面积天空的 hue shift；Tony McMapface 需 3D LUT 纹理，暂不做）。
 - [x] ~~自动曝光微动幅度调小~~：项目无自动曝光，不适用。
-- [ ] **重校准**（人眼，截图反馈循环）：HDR 化 + tonemap 更换后，统一复查现有光照参数（`silverIntensity`/`powderStrength`/per-preset 光照/太阳与环境色强度）并回填默认值。**待用户人眼校准**：初查黄昏（太阳 8°）天空偏紫灰、云底暖色偏淡，光照色板本身待阶段 7 `todColors` 重做，此处只需确认云面高光不 clip、暗部不死黑。
+- [x] **重校准**（人眼，截图反馈循环）：HDR 化 + tonemap 更换后，统一复查现有光照参数（`silverIntensity`/`powderStrength`/per-preset 光照/太阳与环境色强度）并回填默认值。**色板**：`todColors` 已对齐 cloud-types 艺术色板（`todPaletteBlend`，默认 1；0 回退遗留表）。其余光照数值仍可按截图微调。
 
 实现要点：
 
@@ -404,6 +404,7 @@
 - [x] altostratus `sunDiscVisible`：薄云档透出朦胧日盘。
 - [x] cirrostratus `haloEffect`：22° 日晕亮环。
 - [x] cumulonimbus `internalLightning`：随机内部暖色闪光脉冲。
+- [x] altocumulus / cirrocumulus `tileScale`：鱼鳞胞元重复尺度；`tileScale=0` 回退兼容密度，Cc 默认细于 Ac。
 
 ---
 

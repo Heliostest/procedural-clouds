@@ -35,4 +35,4 @@
 
 - [x] 4.1 更新 `README.md`、`docs/glossary.md`，说明 0× 替代手动 pause checkbox，并区分 scenario pause、scrub 与渲染 FPS
 - [x] 4.2 记录四档验证结果、1× 回归证据和 4× 高速缓存/云影验收结果
-- [ ] 4.3 所有任务完成后归档 `add-global-simulation-speed` 并严格校验全部 OpenSpec
+- [x] 4.3 所有任务完成后归档 `add-global-simulation-speed` 并严格校验全部 OpenSpec
