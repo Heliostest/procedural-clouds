@@ -88,7 +88,7 @@ fn evalCompatibilityGenus(ctx : GenusEvalContext) -> f32 {
   let edgeSoft = smoothstep(0.35, 0.65, alpha);
   let densityParam = shape.density;
   let altitude = shape.altitude;
-  let factorMacro = localCoverage;
+  var factorMacro = localCoverage;
   let scaleAlt = shape.scale;
   let scaleNoise = shape.scale;
   let scaleVoronoi1 = shape.scale;
@@ -104,6 +104,26 @@ fn evalCompatibilityGenus(ctx : GenusEvalContext) -> f32 {
   let detailStrength = shape.detailStrength * (1.0 + weatherMorph * detailBoost);
   // Per-body vertical band: clouds float within [base, altTop].
   let Z = 1.0 - clamp(profileLocal, 0.0, 1.0);
+  let h = clamp(profileLocal, 0.0, 1.0);
+
+  // Sky Ocean Sun–style height–weather shaping (densityShapeModel=1).
+  // Large scale via XZ fbm (footprint weather is single-blob SDF, not dual-scale tex).
+  if (params.g.densityShapeModel > 0.5) {
+    let largeFbm = noise_fbm(vec4f(footprintPos.x * 0.05, footprintPos.y * 0.05, 0.0, timeNoise * 0.15), 2.0, 0.5, 2.0, true);
+    let largeWeather = clamp((largeFbm - 0.18) * 5.0, 0.0, 2.0);
+    var weather = largeWeather * localCoverage;
+    weather *= smoothstep(0.0, 0.5, h) * smoothstep(1.0, 0.5, h);
+    let cloudShape = pow(max(weather, 0.0), 0.3 + 1.5 * smoothstep(0.2, 0.5, h));
+    if (cloudShape <= 1e-4) { return 0.0; }
+    let fbmCoarse = noise_fbm(vec4f(objectPos * 0.01, timeNoise), 3.0, 0.5, 2.02, true);
+    var den = cloudShape - 0.7 * fbmCoarse;
+    if (den <= 0.0) { return 0.0; }
+    let fbmFine = noise_fbm(vec4f(objectPos * 0.05, timeNoise + 17.3), 3.0, 0.5, 2.03, true);
+    den = den - 0.2 * fbmFine;
+    if (den <= 0.0) { return 0.0; }
+    factorMacro = clamp01(min(1.0, 5.0 * den) * largeWeather * 0.2);
+    if (factorMacro < 0.01) { return 0.0; }
+  }
 
   // --- STAGE 1: Altitude Mask ---
   let altFromMax = altitude / 5.0;

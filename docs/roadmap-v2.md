@@ -361,6 +361,7 @@
 
 ### 13.1 密度模型重建（A1）
 
+- [x] **廉价过渡（非 Nubis）**：`densityShapeModel` 高度–天气塑形 + 两级 fbm 侵蚀（Sky Ocean Sun `clouds()`，见 change `add-height-weather-shaping`）；`0` 回退旧兼容链。完整 Perlin-Worley 重建仍待下项。
 - [ ] **最小可关闭版本先行**：新密度路径挂 `densityModel` 开关，与旧 evalBody A/B 对比。
 - [ ] `noise.wgsl` 新增 Perlin-Worley；高频 Worley / curl 复用阶段 10 已落地实现。
 - [ ] `evalBody` 重写为「基础形状 × 高度梯度 → 高频 Worley 边缘侵蚀（remap）→ curl 边缘畸变」。

@@ -5,7 +5,7 @@ import { assertCompleteGenusProfiles } from './genusProfile';
 import type { WindAdvectionSample } from './wind';
 
 export const MAX_BODIES = 12;
-export const BODY_BASE = 56;
+export const BODY_BASE = 60;
 export const BODY_STRIDE = 20;
 
 export const BODY_WIND_OFFSETS = {
@@ -71,6 +71,9 @@ export const PARAM_OFFSETS: Record<string, number> = {
   groundShadowMapGuard: 52,
   groundShadowPhase: 53,
   todPaletteBlend: 54,
+  msModel: 55,
+  energyConservingScatter: 56,
+  densityShapeModel: 57,
 };
 
 export const GROUND_SHADOW_MODE = {
@@ -315,6 +318,9 @@ export interface CloudParams {
   bloomThreshold: number;
   bloomAmount: number;
   todPaletteBlend: number;
+  msModel: number;
+  energyConservingScatter: boolean;
+  densityShapeModel: number;
   measureLightShare: () => void;
 }
 
@@ -405,14 +411,14 @@ export function createDefaultParams(): CloudParams {
     rayMarchSteps: 64,
     lightMarchSteps: 8,
     shadowDarkness: 5,
-    sunIntensity: 17,
+    sunIntensity: 10,
     cacheResolution: 96,
     cacheUpdateRate: 2,
     cacheSmooth: 0,
     sunAzimuth: 34,
     sunElevation: 70,
     silverIntensity: 0,
-    powderStrength: 0,
+    powderStrength: 0, // msModel=1 默认关闭 powder，避免与三指数 Beer 双重压暗
     hgForward: 0.45,
     hgBackward: 0.45,
     hgBlend: 1.0,
@@ -459,6 +465,9 @@ export function createDefaultParams(): CloudParams {
     bloomThreshold: 1.0,
     bloomAmount: 0.5,
     todPaletteBlend: 1.0,
+    msModel: 1,
+    energyConservingScatter: true,
+    densityShapeModel: 1,
     measureLightShare: () => {},
   };
 }

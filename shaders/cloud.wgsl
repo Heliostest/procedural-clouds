@@ -64,7 +64,11 @@ struct Globals {
   groundShadowMapGuard : f32,
   groundShadowPhase : f32,
   todPaletteBlend : f32,
-  _pad9           : f32,
+  msModel         : f32,
+  energyConservingScatter : f32,
+  densityShapeModel : f32,
+  _pad11          : f32,
+  _pad12          : f32,
 };
 
 struct BodyGPU {
@@ -818,12 +822,34 @@ fn lightMarchDepth(pos : vec3f) -> f32 {
 // progressively smaller extinction. The low-extinction octaves keep shadowed
 // interiors from going pitch-black, so the bright lit surface blends into the
 // body instead of reading as a thin "shell" over a dark/transparent core.
-fn sunVisibility(opticalDepth : f32) -> f32 {
+fn sunVisibilityLegacy(opticalDepth : f32) -> f32 {
   let sdk = params.g.shadowDarkness;
   let o0 = exp(-opticalDepth * sdk);
   let o1 = exp(-opticalDepth * sdk * 0.33);
   let o2 = exp(-opticalDepth * sdk * 0.1);
   return (o0 + 0.6 * o1 + 0.35 * o2) / 1.95;
+}
+
+// Sky Ocean Sun style triple-Beer MS: μ-driven scatterAmount softens thick
+// interiors toward the sun without extra light-march samples.
+fn sunVisibilityTripleBeer(opticalDepth : f32, mu : f32) -> f32 {
+  let tau = opticalDepth * params.g.shadowDarkness;
+  let s = mix(0.008, 1.0, smoothstep(0.96, 0.0, mu));
+  return exp(-tau) + 0.5 * s * exp(-0.1 * tau) + 0.4 * s * exp(-0.02 * tau);
+}
+
+fn sunVisibility(opticalDepth : f32, mu : f32) -> f32 {
+  if (params.g.msModel > 0.5) {
+    return sunVisibilityTripleBeer(opticalDepth, mu);
+  }
+  return sunVisibilityLegacy(opticalDepth);
+}
+
+fn msDensityHeightMod(d : f32, zN : f32, opticalDepth : f32) -> f32 {
+  if (params.g.msModel < 0.5) { return 1.0; }
+  let tau = opticalDepth * params.g.shadowDarkness;
+  let thin = 0.05 + 1.5 * pow(min(1.0, d * 8.5), 0.3 + 5.5 * zN);
+  return mix(thin, 1.0, clamp(tau * 0.4, 0.0, 1.0));
 }
 
 fn interleavedGradientNoise(uv: vec2f) -> f32 {
@@ -1056,29 +1082,39 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         }
         let L = blendedLighting(dt.y, dt.z, dt.w);
         let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
-        let step_trans = exp(-d * baseStep * extinction);
+        let sigma = d * extinction;
+        let step_trans = exp(-sigma * baseStep);
         var shadow = 1.0;
-        if (!skipLight) { shadow = sunVisibility(lightMarchDepth(pos)); }
+        var opticalDepth = 0.0;
+        if (!skipLight) {
+          opticalDepth = lightMarchDepth(pos);
+          shadow = sunVisibility(opticalDepth, sunTheta);
+        }
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), csPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
         let phase = mix(phaseGlobal, phaseType, blend);
-        var scattering = shadow * phase * (1.0 - exp(-d * 1.0));
-        scattering *= mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
+        let powder = mix(1.0, 1.0 - exp(-d * 4.0), clamp01(params.g.powderStrength));
         let zN = clamp((pos.y - bmin.y) / max(boxMax.y - bmin.y, 0.001), 0.0, 1.0);
         let densW = smoothstep(0.6, 1.4, d);
         let heightLight = mix(1.0, mix(0.75, 1.18, smoothstep(0.0, 1.0, zN)), densW);
-        scattering *= heightLight;
         let darkAmt = mix(0.0, L.baseDark, blend);
-        scattering *= 1.0 - darkAmt * (1.0 - zN) * densW;
+        let darkMul = 1.0 - darkAmt * (1.0 - zN) * densW;
+        let msMod = msDensityHeightMod(d, zN, opticalDepth);
         let ambTint = mix(skyC.ambient, skyC.shadow, clamp01(params.g.shadowTintStrength) * (1.0 - shadow));
-        var litColor = skyC.sun * scattering * params.g.sunIntensity + ambTint * 0.5;
-        litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * transmittance * 0.5;
+        let energyOn = params.g.energyConservingScatter > 0.5;
+        let tGate = select(transmittance, 1.0, energyOn);
+        var sunPart = shadow * phase * powder * msMod * heightLight * darkMul * params.g.sunIntensity;
+        if (!energyOn) {
+          sunPart = sunPart * (1.0 - exp(-d * 1.0));
+        }
+        var litColor = skyC.sun * sunPart + ambTint * 0.5;
+        litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * tGate * 0.5;
         let silverScale = mix(1.0, L.silver, blend);
         let silverGate = params.g.silverIntensity * silverScale;
         if (sunTheta > 0.0 && silverGate > 0.001) {
           let probeOffset = max(params.g.lightMarchStepSize, 0.001) * 2.0;
           let edgeDens = densityAt(pos + SUN_DIR * probeOffset);
           let edgeThin = exp(-edgeDens * 3.0);
-          litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * transmittance;
+          litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * tGate;
         }
         let lightningAmt = mix(0.0, L.lightning, blend);
         if (lightningAmt > 0.001) {
@@ -1088,6 +1124,8 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         }
 
         let w = transmittance * (1.0 - step_trans);
+        // Energy path: Frostbite analytic step — (1-e^{-σΔt})·(σ_s Li)/σ ≈ w·(albedo·Li)
+        // when σ_s≈σ (sunPart already omits legacy (1-e^{-d})). Legacy keeps (1-e^{-d}) inside sunPart.
         color += w * litColor;
         depthSum += w * t;
         depthW += w;

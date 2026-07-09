@@ -362,6 +362,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       params.weatherSize = next;
       hooks.onWeatherSize(next);
     }), 'weatherSize');
+    tipKey(globalFolder.add(params, 'densityShapeModel', { 'Legacy': 0, 'Height-Weather': 1 }).name(t('densityShapeModel')), 'densityShapeModel');
     tipKey(globalFolder.add(params, 'verticalEdgeRange', 0.0, 2.0, 0.01).name(t('verticalEdgeRange')), 'verticalEdgeRange');
     tipKey(globalFolder.add(params, 'verticalEdgeShape', 0.1, 8.0, 0.05).name(t('verticalEdgeShape')), 'verticalEdgeShape');
     tipKey(globalFolder.add(params, 'morphStrength', 0.0, 1.0, 0.01).name(t('morphStrength')), 'morphStrength');
@@ -418,6 +419,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     const lightFolder = gui.addFolder(t('lighting'));
     tipKey(lightFolder.add(params, 'sunAzimuth', 0, 360, 1).name(t('sunAzimuth')), 'sunAzimuth');
     tipKey(lightFolder.add(params, 'sunElevation', -10, 90, 1).name(t('sunElevation')), 'sunElevation');
+    tipKey(lightFolder.add(params, 'msModel', { 'Legacy 3-octave': 0, 'Triple Beer': 1 }).name(t('msModel')), 'msModel');
+    tipKey(lightFolder.add(params, 'energyConservingScatter').name(t('energyConservingScatter')), 'energyConservingScatter');
     tipKey(lightFolder.add(params, 'silverIntensity', 0.0, 2.0, 0.01).name(t('silverLining')), 'silverLining');
     tipKey(lightFolder.add(params, 'powderStrength', 0.0, 1.0, 0.01).name(t('powder')), 'powder');
     tipKey(lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward')), 'hgForward');

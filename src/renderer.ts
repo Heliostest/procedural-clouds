@@ -1159,6 +1159,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       groundShadowMapGuard: Math.max(2 / Math.max(1, groundShadowResolution), 0.002),
       groundShadowPhase,
       todPaletteBlend: params.todPaletteBlend,
+      msModel: params.msModel,
+      energyConservingScatter: params.energyConservingScatter,
+      densityShapeModel: params.densityShapeModel,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
@@ -1195,6 +1198,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       params.edgeCurveShaper,
       params.verticalEdgeRange,
       params.verticalEdgeShape,
+      params.densityShapeModel,
       params.detailFreq,
       params.detailStrength,
       params.shadowDarkness,

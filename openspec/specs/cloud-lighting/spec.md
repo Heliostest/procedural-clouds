@@ -27,7 +27,7 @@ TBD - created by archiving change lighting-quality. Update Purpose after archive
 - **THEN** `todPaletteBlend` SHALL 为 1，昼夜色温以艺术色板为准
 
 ### Requirement: 双瓣相函数与边缘增亮
-散射 SHALL 采用可调的双瓣 HG 相函数（前向瓣 + 背向瓣按混合权重组合），并 SHALL 支持 silver lining 背光银边与 Beer-powder 暗化：薄处提亮、厚处压暗。各效果强度为 0 时 SHALL 退化为基础单次散射观感。
+散射 SHALL 采用可调的双瓣相函数（前向瓣为 Cornette-Shanks、背向瓣为 HG，按混合权重组合），并 SHALL 支持 silver lining 背光银边与 Beer-powder 暗化：薄处提亮、厚处压暗。各效果强度为 0 时 SHALL 退化为基础单次散射观感。当 `msModel=1`（三指数 Beer）时，系统 SHALL 将 `powderStrength` 的出厂默认值设为 0，避免与多重散射双重压暗；用户仍可手动提高 powder。`msModel=0` 时 powder 默认行为 MUST 与引入三指数 Beer 前一致。
 
 #### Scenario: 前向散射尖峰
 - **WHEN** 视线接近太阳方向
@@ -40,6 +40,14 @@ TBD - created by archiving change lighting-quality. Update Purpose after archive
 #### Scenario: powder 暗化
 - **WHEN** powder 强度大于 0
 - **THEN** 云的薄区 SHALL 提亮、厚实内部 SHALL 相对压暗
+
+#### Scenario: 新 MS 默认关闭 powder
+- **WHEN** 参数取默认值且 `msModel=1`
+- **THEN** `powderStrength` SHALL 为 0
+
+#### Scenario: 旧 MS 保留原 powder 默认
+- **WHEN** `msModel=0` 且其余参数为引入本能力前的默认
+- **THEN** powder 相关观感 SHALL 与引入前一致
 
 ### Requirement: 积雨云暗底亮顶
 着色 SHALL 按采样点归一化高度与局部密度调制散射，使高密度厚云（如 cumulonimbus）呈现底部偏暗、顶部偏亮。该调制对低密度薄云 SHALL 影响轻微。
@@ -130,4 +138,72 @@ TBD - created by archiving change lighting-quality. Update Purpose after archive
 #### Scenario: 关闭旁路
 - **WHEN** `internalLightning == 0` 或 `typeLightingBlend == 0`
 - **THEN** 散射着色 SHALL 与引入本能力前一致
+
+### Requirement: 三指数 Beer 多重散射可见度
+系统 SHALL 提供可切换的朝阳光路可见度模型：`msModel=0` 时 MUST 使用变更前的固定权重三 octave Beer（`sunVisibility`）并复现引入前观感；`msModel=1` 时 MUST 使用三指数 Beer：
+
+`V = exp(-τ) + 0.5·s·exp(-0.1·τ) + 0.4·s·exp(-0.02·τ)`
+
+其中 `τ` 为经 `shadowDarkness` 倍率后的朝阳光学厚度，`s = mix(0.008, 1.0, smoothstep(0.96, 0.0, μ))`，`μ` 为视线与太阳方向的点积。该模型 MUST NOT 增加 light-march 采样步数。`msModel` 默认 SHALL 为 1。
+
+#### Scenario: 新模型朝阳透光
+- **WHEN** `msModel=1` 且渲染高光学厚度积雨云、视线接近太阳方向（`μ` 高）
+- **THEN** 云体内部 SHALL 保留可见透光分层，背光侧 SHALL 不死黑
+
+#### Scenario: 背光散射量降低
+- **WHEN** `msModel=1` 且 `μ` 接近 -1（视线背离太阳）
+- **THEN** `s` SHALL 接近下限，多重散射贡献 SHALL 明显弱于朝阳视角
+
+#### Scenario: 旧模型回退
+- **WHEN** `msModel=0`
+- **THEN** 朝阳可见度 SHALL 与引入本能力前的 `sunVisibility` 公式一致
+
+#### Scenario: 无额外步进成本
+- **WHEN** 切换 `msModel` 且 light-march 步数参数不变
+- **THEN** light-march 循环迭代次数上限 SHALL 不变
+
+### Requirement: 密度与高度调制的散射乘子
+当 `msModel=1` 时，系统 SHALL 在样本散射项上乘以参考式调制：
+
+`mix(0.05 + 1.5·pow(min(1, d·8.5), 0.3+5.5·zN), 1.0, clamp(τ·0.4, 0, 1))`
+
+其中 `d` 为样本密度，`zN` 为盒内归一化高度，`τ` 为该样本朝阳光学厚度（含 `shadowDarkness`）。`msModel=0` 时 MUST NOT 应用该乘子。
+
+#### Scenario: 厚云吃透射
+- **WHEN** `msModel=1` 且样本 `τ` 较大
+- **THEN** 调制因子 SHALL 接近 1，散射以 Beer 透射为主
+
+#### Scenario: 薄高处塑形
+- **WHEN** `msModel=1` 且样本 `τ` 小、`zN` 高
+- **THEN** 调制因子 SHALL 抬高散射，使薄高处相对更亮
+
+#### Scenario: 旧路径无乘子
+- **WHEN** `msModel=0`
+- **THEN** 散射项 SHALL 不包含上述密度/高度调制乘子
+
+### Requirement: 能量守恒散射步进积分
+主体积 raymarch 命中云密度时，系统 SHALL 用与消光一致的解析步进累加散射：`σ = density * extinction`，`Δt` 为该步长，透射 `T *= exp(-σ·Δt)`，散射权重 `w = T * (1 - exp(-σ·Δt))`。能量守恒路径下，太阳散射辐射 MUST NOT 再乘遗留的 `(1 - exp(-density))` 密度假因子，而使 `color += w * L`，其中 `L` 为该步经 shadow、相函数、powder、高度明暗、银边、SSS 与闪电等既有调制后的入射散射辐射（等价于 Frostbite/Hillaire 在 `σ_s≈σ` 时的 `(1-e^{-σΔt})·(σ_s Li)/σ`）。该积分 MUST NOT 改变密度取样、`lightMarchDepth`/`sunVisibility` 或地面云影路径。
+
+#### Scenario: 步长无关亮度
+- **WHEN** 固定相机与云体，仅将 `rayMarchSteps` 在常用档（如 48 与 32）间切换且能量守恒积分开启
+- **THEN** 云体整体亮度与对比度漂移 SHALL 明显小于关闭该积分时的同对比
+
+#### Scenario: 透射与积分一致
+- **WHEN** 单步光学厚度 `σ·Δt` 增大
+- **THEN** 该步透射乘子 SHALL 为 `exp(-σ·Δt)`，且散射权重因子 SHALL 为 `1 - exp(-σ·Δt)`
+
+#### Scenario: 无遗留密度假因子
+- **WHEN** 能量守恒积分开启
+- **THEN** 太阳散射项 MUST NOT 乘以 `(1 - exp(-density))`；关闭时 MUST 保留该乘子以复现旧路径
+
+### Requirement: 能量守恒积分可关闭回退
+系统 SHALL 提供运行时开关（默认开启）在能量守恒解析积分与引入本能力前的 ad hoc 散射乘子路径之间切换。关闭时 MUST 复现引入前主步进累加语义，供 A/B 与回归。
+
+#### Scenario: 默认开启
+- **WHEN** 参数取默认值
+- **THEN** 能量守恒散射积分 SHALL 启用
+
+#### Scenario: 关闭复现旧路径
+- **WHEN** 该开关关闭
+- **THEN** 主步进散射累加 SHALL 使用引入本能力前的 `(1-exp(-d))` 乘子路径，且不引入额外后处理差异
 
