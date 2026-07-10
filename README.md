@@ -60,6 +60,9 @@ Scenario exports use `schemaVersion: 3`, `distanceUnit: "m"`, and `windUnit: "m/
 Simulation speed is a runtime preference, not scenario data. It scales the manual clock, lifecycle, wind advection, morph time, and scenario playhead from one CPU time source. Scenario play/pause remains independent, while manual freezing uses the `0×` button. Timeline scrub always selects an absolute scene time. Rendering, camera motion, TAA, and performance timing continue at wall-clock speed.
 
 ## How It Works
+
+For a source-level Chinese walkthrough of parameter flow, density mathematics, all ten genera, Cached/Hybrid sampling, and the rendering pipeline, see [docs/cloud-density-rendering-architecture.md](docs/cloud-density-rendering-architecture.md).
+
 1. **Compute pass** (`shaders/noise.wgsl` + `shaders/cloud.wgsl`):
    - Writes a 3D density texture (the cache) at a configurable resolution.
 2. **Render pass** (`shaders/cloud.wgsl`):
@@ -80,7 +83,7 @@ The renderer uses two pipelines and a small set of bind groups to keep per-frame
 ### Resources and Bind Groups
 - **Uniform buffers**:
   - `cameraBuffer` (80 bytes): inverse view-projection matrix (64 bytes) + camera position (vec3 + pad).
-  - `paramsBuffer` (1184 bytes): globals plus twelve packed cloud-body records, shared by compute and render stages.
+  - `paramsBuffer` (1200 bytes): globals plus twelve packed cloud-body records, shared by compute and render stages.
 - **Bind groups**:
   - Group 0: `cameraBuffer`, `paramsBuffer`.
   - Group 1: sampler + two 3D texture views (for sampling the density cache).
