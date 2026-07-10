@@ -430,7 +430,7 @@ export function createDefaultParams(): CloudParams {
     detailStrength: 0,
     typeLightingBlend: 1.0,
     fxAbsorption: true,
-    boxHalfExtent: 16000,
+    boxHalfExtent: 32000,
     weatherSize: 256,
     lightMarchStepSize: 0.15,
     verticalEdgeRange: 0.55,

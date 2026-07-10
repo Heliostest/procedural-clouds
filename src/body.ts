@@ -1,5 +1,6 @@
 import { evalLifecycleMod, type LifecycleEnvelope, type BodyMod } from './lifecycle';
-import { applyGenusDefaults } from './genusProfile';
+import { applyGenusDefaults, CLOUD_GENERA, genusProfile, type CloudGenus } from './genusProfile';
+import { CLOUD_PRESETS } from './params';
 
 export type BodyShape = 'rect';
 
@@ -145,10 +146,57 @@ export function createBodyStore(initial: CloudBody[], getCloudHeightM: () => num
   };
 }
 
-export function createDefaultBodies(): CloudBody[] {
-  return [
-    { id: 'B1', shape: 'rect', bounds: [-3500, -1500, -500, 1500], feather: 1500, base: 1000, thickness: 1500, type: 'cumulus', placementLocked: true, coverage: 0.75, densityScale: 1.0, windDeg: 45, windSpeedMps: 5, morphRate: 0.05, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B2', shape: 'rect', bounds: [400, -600, 3600, 2600], feather: 1500, base: 2500, thickness: 2500, type: 'altocumulus', placementLocked: true, coverage: 0.55, densityScale: 1.0, windDeg: 60, windSpeedMps: 10, morphRate: 0.08, rot: [0, 0, 0], life: defaultLife() },
-    { id: 'B3', shape: 'rect', bounds: [-2200, -4200, 2200, 200], feather: 1800, base: 7000, thickness: 5000, type: 'cirrus', placementLocked: true, coverage: 0.4, densityScale: 1.0, windDeg: 80, windSpeedMps: 20, morphRate: 0.1, rot: [0, 0, 0], life: defaultLife() },
-  ];
+const DEFAULT_BODY_CENTERS: Record<CloudGenus, readonly [number, number]> = {
+  cumulus: [-9000, -9000],
+  stratus: [0, -12000],
+  stratocumulus: [9000, -9000],
+  cumulonimbus: [-12000, 0],
+  altocumulus: [0, 0],
+  altostratus: [14000, 0],
+  nimbostratus: [-14000, 10000],
+  cirrus: [0, 12000],
+  cirrostratus: [16000, 14000],
+  cirrocumulus: [-9000, 14000],
+};
+
+const DEFAULT_BODY_WIND: Record<CloudGenus, { windDeg: number; windSpeedMps: number; morphRate: number }> = {
+  cumulus: { windDeg: 45, windSpeedMps: 5, morphRate: 0.05 },
+  stratus: { windDeg: 50, windSpeedMps: 4, morphRate: 0.03 },
+  stratocumulus: { windDeg: 55, windSpeedMps: 6, morphRate: 0.05 },
+  cumulonimbus: { windDeg: 40, windSpeedMps: 8, morphRate: 0.07 },
+  altocumulus: { windDeg: 60, windSpeedMps: 10, morphRate: 0.08 },
+  altostratus: { windDeg: 65, windSpeedMps: 12, morphRate: 0.04 },
+  nimbostratus: { windDeg: 50, windSpeedMps: 7, morphRate: 0.04 },
+  cirrus: { windDeg: 80, windSpeedMps: 20, morphRate: 0.1 },
+  cirrostratus: { windDeg: 85, windSpeedMps: 22, morphRate: 0.06 },
+  cirrocumulus: { windDeg: 75, windSpeedMps: 18, morphRate: 0.09 },
+};
+
+export function createDefaultBodies(cloudHeightM = 12000): CloudBody[] {
+  return CLOUD_GENERA.map((type, i) => {
+    const [cx, cz] = DEFAULT_BODY_CENTERS[type];
+    const profile = genusProfile(type);
+    const preset = CLOUD_PRESETS[type];
+    const wind = DEFAULT_BODY_WIND[type];
+    const body: CloudBody = {
+      id: `B${i + 1}`,
+      shape: 'rect',
+      bounds: [cx, cz, cx, cz],
+      feather: Math.max(400, profile.defaultHorizontalHalfExtentM * 0.35),
+      base: profile.defaultBaseM,
+      thickness: profile.defaultThicknessM,
+      type,
+      placementLocked: true,
+      coverage: preset.coverage,
+      densityScale: 1,
+      windDeg: wind.windDeg,
+      windSpeedMps: wind.windSpeedMps,
+      morphRate: wind.morphRate,
+      rot: [0, 0, 0],
+      life: defaultLife(),
+    };
+    applyGenusDefaults(body, cloudHeightM);
+    body.placementLocked = true;
+    return body;
+  });
 }
