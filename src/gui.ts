@@ -421,6 +421,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(lightFolder.add(params, 'sunElevation', -10, 90, 1).name(t('sunElevation')), 'sunElevation');
     tipKey(lightFolder.add(params, 'msModel', { 'Legacy 3-octave': 0, 'Triple Beer': 1 }).name(t('msModel')), 'msModel');
     tipKey(lightFolder.add(params, 'energyConservingScatter').name(t('energyConservingScatter')), 'energyConservingScatter');
+    tipKey(lightFolder.add(params, 'heightAmbientModel', { 'Legacy Flat': 0, 'Height Tint': 1 }).name(t('heightAmbientModel')), 'heightAmbientModel');
     tipKey(lightFolder.add(params, 'silverIntensity', 0.0, 2.0, 0.01).name(t('silverLining')), 'silverLining');
     tipKey(lightFolder.add(params, 'powderStrength', 0.0, 1.0, 0.01).name(t('powder')), 'powder');
     tipKey(lightFolder.add(params, 'hgForward', 0.0, 0.95, 0.01).name(t('hgForward')), 'hgForward');

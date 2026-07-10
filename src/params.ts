@@ -74,6 +74,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   msModel: 55,
   energyConservingScatter: 56,
   densityShapeModel: 57,
+  heightAmbientModel: 58,
 };
 
 export const GROUND_SHADOW_MODE = {
@@ -321,6 +322,7 @@ export interface CloudParams {
   msModel: number;
   energyConservingScatter: boolean;
   densityShapeModel: number;
+  heightAmbientModel: number;
   measureLightShare: () => void;
 }
 
@@ -468,6 +470,7 @@ export function createDefaultParams(): CloudParams {
     msModel: 1,
     energyConservingScatter: true,
     densityShapeModel: 1,
+    heightAmbientModel: 1,
     measureLightShare: () => {},
   };
 }

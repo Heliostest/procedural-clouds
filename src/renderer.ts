@@ -1162,6 +1162,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       msModel: params.msModel,
       energyConservingScatter: params.energyConservingScatter,
       densityShapeModel: params.densityShapeModel,
+      heightAmbientModel: params.heightAmbientModel,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;

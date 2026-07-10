@@ -67,7 +67,7 @@ struct Globals {
   msModel         : f32,
   energyConservingScatter : f32,
   densityShapeModel : f32,
-  _pad11          : f32,
+  heightAmbientModel : f32,
   _pad12          : f32,
 };
 
@@ -1099,14 +1099,23 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let darkAmt = mix(0.0, L.baseDark, blend);
         let darkMul = 1.0 - darkAmt * (1.0 - zN) * densW;
         let msMod = msDensityHeightMod(d, zN, opticalDepth);
-        let ambTint = mix(skyC.ambient, skyC.shadow, clamp01(params.g.shadowTintStrength) * (1.0 - shadow));
+        let shadowMix = clamp01(params.g.shadowTintStrength) * (1.0 - shadow);
+        var ambLit: vec3f;
+        if (params.g.heightAmbientModel > 0.5) {
+          // Sky Ocean Sun skyRay ambient: low zN colder, high zN brighter blue; white fades above mid-height.
+          // Scale 0.5 keeps daytime mean near legacy ambTint*0.5.
+          let heightAmb = (0.5 + 0.6 * zN) * skyC.ambient + max(0.0, 1.0 - 2.0 * zN) * vec3f(0.85);
+          ambLit = mix(heightAmb, skyC.shadow, shadowMix) * 0.5;
+        } else {
+          ambLit = mix(skyC.ambient, skyC.shadow, shadowMix) * 0.5;
+        }
         let energyOn = params.g.energyConservingScatter > 0.5;
         let tGate = select(transmittance, 1.0, energyOn);
         var sunPart = shadow * phase * powder * msMod * heightLight * darkMul * params.g.sunIntensity;
         if (!energyOn) {
           sunPart = sunPart * (1.0 - exp(-d * 1.0));
         }
-        var litColor = skyC.sun * sunPart + ambTint * 0.5;
+        var litColor = skyC.sun * sunPart + ambLit;
         litColor += skyC.sun * mix(0.0, L.sss, blend) * pow(max(sunTheta, 0.0), 3.0) * exp(-d * 2.0) * tGate * 0.5;
         let silverScale = mix(1.0, L.silver, blend);
         let silverGate = params.g.silverIntensity * silverScale;
