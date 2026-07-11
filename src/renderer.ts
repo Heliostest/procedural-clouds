@@ -1,18 +1,4 @@
-import noiseSource from '../shaders/noise.wgsl?raw';
-import cloudSource from '../shaders/cloud.wgsl?raw';
 import groundShadowResolveSource from '../shaders/ground-shadow-resolve.wgsl?raw';
-import genusCommonSource from '../shaders/genus/common.wgsl?raw';
-import cumulusSource from '../shaders/genus/cumulus.wgsl?raw';
-import stratusSource from '../shaders/genus/stratus.wgsl?raw';
-import stratocumulusSource from '../shaders/genus/stratocumulus.wgsl?raw';
-import cumulonimbusSource from '../shaders/genus/cumulonimbus.wgsl?raw';
-import altocumulusSource from '../shaders/genus/altocumulus.wgsl?raw';
-import altostratusSource from '../shaders/genus/altostratus.wgsl?raw';
-import nimbostratusSource from '../shaders/genus/nimbostratus.wgsl?raw';
-import cirrusSource from '../shaders/genus/cirrus.wgsl?raw';
-import cirrostratusSource from '../shaders/genus/cirrostratus.wgsl?raw';
-import cirrocumulusSource from '../shaders/genus/cirrocumulus.wgsl?raw';
-import genusDispatchSource from '../shaders/genus/dispatch.wgsl?raw';
 import {
   packParams,
   packBodies,
@@ -34,23 +20,19 @@ import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
 import { DensityProducerSelector } from './density/densityProducerSelector';
 import { RecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
 import { DENSITY_PRODUCER_MODE, type DensityProducerKind } from './density/contracts';
-
-const shaderSource = [
-  noiseSource,
-  cloudSource,
-  genusCommonSource,
-  cumulusSource,
-  stratusSource,
-  stratocumulusSource,
-  cumulonimbusSource,
-  altocumulusSource,
-  altostratusSource,
-  nimbostratusSource,
-  cirrusSource,
-  cirrostratusSource,
-  cirrocumulusSource,
-  genusDispatchSource,
-].join('\n');
+import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
+import {
+  createDensityQualityBindings,
+  createDensityQualityPipelineBundle,
+  DensityQualityPipelineManager,
+} from './rendering/densityQualityPipelines';
+import {
+  densityQualityKindFromMode,
+  densityQualityModeFromKind,
+  type DensityQualityBindings,
+  type DensityQualityKind,
+  type DensityQualityPipelineState,
+} from './rendering/densityQualityContracts';
 
 const OFFSCREEN_FORMAT: GPUTextureFormat = 'rgba16float';
 
@@ -448,6 +430,12 @@ export interface RenderStats {
   densityRes: number;
   weatherSize: number;
   cacheWg: [number, number, number];
+  densityQualityRequested: DensityQualityKind;
+  densityQualityActive: DensityQualityKind;
+  densityQualityLifecycle: string;
+  densityQualityFallbackReason: string;
+  densityQualityActiveGeneration: number;
+  densityQualityPipelines: Record<DensityQualityKind, DensityQualityPipelineState>;
   densityProducerRequested: DensityProducerKind;
   densityProducerActive: DensityProducerKind;
   densityProducerFallbackReason: string;
@@ -564,14 +552,37 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     },
   };
 
-  const shaderModule = createShaderModuleTimed({ code: shaderSource });
-
-  const pipeline = createRenderPipelineTimed({
-    layout: 'auto',
-    vertex: { module: shaderModule, entryPoint: 'vs' },
-    fragment: { module: shaderModule, entryPoint: 'fs', targets: [{ format: OFFSCREEN_FORMAT }] },
-    primitive: { topology: 'triangle-list' },
+  const [cachedBundleResult, hybridBundleResult] = await Promise.allSettled([
+    createDensityQualityPipelineBundle({ device, kind: 'cached', colorFormat: OFFSCREEN_FORMAT }),
+    createDensityQualityPipelineBundle({ device, kind: 'hybrid', colorFormat: OFFSCREEN_FORMAT }),
+  ]);
+  if (cachedBundleResult.status === 'rejected') {
+    const reason = cachedBundleResult.reason instanceof Error
+      ? cachedBundleResult.reason.message
+      : String(cachedBundleResult.reason);
+    throw new Error(`Cached density quality pipeline creation failed: ${reason}`);
+  }
+  const cachedBundle = cachedBundleResult.value;
+  const hybridBundle = hybridBundleResult.status === 'fulfilled' ? hybridBundleResult.value : undefined;
+  const hybridFailureReason = hybridBundleResult.status === 'rejected'
+    ? (hybridBundleResult.reason instanceof Error ? hybridBundleResult.reason.message : String(hybridBundleResult.reason))
+    : '';
+  const densityQualityPipelineManager = new DensityQualityPipelineManager({
+    cached: cachedBundle,
+    hybrid: hybridBundle,
+    hybridFailureReason,
+    createRealtime: () => createDensityQualityPipelineBundle({
+      device,
+      kind: 'realtime',
+      colorFormat: OFFSCREEN_FORMAT,
+    }),
   });
+  for (const bundle of [cachedBundle, hybridBundle]) {
+    if (!bundle) continue;
+    shaderModuleCreateMs += bundle.creation.shaderModuleCreateCpuMs;
+    pipelineCreateMs += bundle.creation.renderPipelineCreateCpuMs
+      + bundle.creation.groundShadowPipelineCreateCpuMs;
+  }
 
   const postModule = createShaderModuleTimed({ code: postShaderSource });
   const postPipeline = createRenderPipelineTimed({
@@ -651,10 +662,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
   let cornerRadius = 0.5;
   let sceneScale: SceneScale = { ...DEFAULT_SCENE_SCALE };
-  const groundShadowPipeline = createComputePipelineTimed({
-    layout: 'auto',
-    compute: { module: shaderModule, entryPoint: 'csGroundShadow' },
-  });
   const groundShadowResolveModule = createShaderModuleTimed({ code: groundShadowResolveSource });
   const groundShadowFilterPipeline = createComputePipelineTimed({
     layout: 'auto',
@@ -693,30 +700,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     );
   }
 
-  let groundShadowComputeBindGroup: GPUBindGroup;
-  let bindGroup: GPUBindGroup;
-
-  function rebuildSceneBindGroups(): void {
-    groundShadowComputeBindGroup = device.createBindGroup({
-      layout: groundShadowPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 1, resource: { buffer: paramsBuffer } },
-        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
-        { binding: 3, resource: linearSampler },
-        { binding: 4, resource: { buffer: presetBuffer } },
-      ],
-    });
-    bindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: cameraBuffer } },
-        { binding: 1, resource: { buffer: paramsBuffer } },
-        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
-        { binding: 3, resource: linearSampler },
-        { binding: 4, resource: { buffer: presetBuffer } },
-      ],
-    });
-  }
+  let qualityBindings: DensityQualityBindings;
+  let qualityBindingsReady = false;
 
   const lineModule = createShaderModuleTimed({ code: lineShaderSource });
   const linePipeline = createRenderPipelineTimed({
@@ -848,7 +833,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     shapeSignature = '';
     shadowRevision++;
     densitySceneRevision++;
-    rebuildSceneBindGroups();
+    rebuildQualityBindings(true);
     uploadShapes();
   }
 
@@ -858,25 +843,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let shadowRevision = 0;
   let densitySceneRevision = 0;
-  let densitySampleBindGroup: GPUBindGroup;
-  let groundShadowDensityBindGroup: GPUBindGroup;
   let densityConsumerGeneration = -1;
+  let qualityConsumerGeneration = -1;
+
+  const initialCacheWorkgroup = [8, 8, 4] as const;
+  const legacyPipelineResources = await createLegacyDensityPipelineResources(device, initialCacheWorkgroup);
+  shaderModuleCreateMs += legacyPipelineResources.creation.shaderModuleCreateCpuMs;
+  pipelineCreateMs += legacyPipelineResources.creation.pipelineCreateCpuMs;
 
   const legacyDensityAdapter = new LegacyDensityAdapter({
     device,
     sampler: linearSampler,
     initialResolution: 96,
-    initialWorkgroup: [8, 8, 4],
-    createPipeline(workgroup) {
-      return createComputePipelineTimed({
-        layout: 'auto',
-        compute: {
-          module: shaderModule,
-          entryPoint: 'cs',
-          constants: { wg_x: workgroup[0], wg_y: workgroup[1], wg_z: workgroup[2] },
-        },
-      });
-    },
+    initialWorkgroup: initialCacheWorkgroup,
+    pipelineResources: legacyPipelineResources,
     createSceneBindGroup(densityPipeline) {
       return device.createBindGroup({
         layout: densityPipeline.getBindGroupLayout(0),
@@ -898,36 +878,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     return Math.round(mode) === DENSITY_PRODUCER_MODE.recipeV2 ? 'recipe-v2' : 'legacy';
   }
 
-  function rebuildDensityConsumerBindGroups(force = false): void {
-    const output = densityProducerSelector.getActive().getOutput();
-    if (!force && output.resourceGeneration === densityConsumerGeneration) return;
-    densitySampleBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: output.sampler },
-        { binding: 1, resource: output.sampledViews[0] },
-        { binding: 2, resource: output.sampledViews[1] },
-      ],
-    });
-    groundShadowDensityBindGroup = device.createBindGroup({
-      layout: groundShadowPipeline.getBindGroupLayout(1),
-      entries: [
-        { binding: 0, resource: output.sampler },
-        { binding: 1, resource: output.sampledViews[0] },
-        { binding: 2, resource: output.sampledViews[1] },
-      ],
-    });
-    densityConsumerGeneration = output.resourceGeneration;
-    shadowRevision++;
-  }
-
   function setDensityResolution(res: number): void {
     densityProducerSelector.getActive().setResolution(res);
-    rebuildDensityConsumerBindGroups();
+    rebuildQualityBindings(true);
   }
-
-  rebuildSceneBindGroups();
-  rebuildDensityConsumerBindGroups(true);
 
   const groundShadowResolveUniformBuffer = device.createBuffer({
     size: 16,
@@ -939,8 +893,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let groundShadowFilterTexture: GPUTexture;
   let groundShadowHistoryTextures: [GPUTexture, GPUTexture];
   let groundShadowHistoryViews: [GPUTextureView, GPUTextureView];
-  let groundShadowStoreBindGroup: GPUBindGroup;
-  let groundShadowSampleBindGroup: GPUBindGroup;
   let groundShadowHistoryIndex = 0;
   let groundShadowHistoryValid = false;
   let groundShadowPhaseIndex = 0;
@@ -955,13 +907,48 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function rebuildGroundShadowSampleBindGroup(): void {
-    groundShadowSampleBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(3),
-      entries: [
-        { binding: 0, resource: linearSampler },
-        { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
-      ],
+    if (!qualityBindingsReady) return;
+    const bundle = densityQualityPipelineManager.getActiveBundle();
+    qualityBindings = {
+      ...qualityBindings,
+      cloudGroundShadow: device.createBindGroup({
+        layout: bundle.cloudPipeline.getBindGroupLayout(3),
+        entries: [
+          { binding: 0, resource: linearSampler },
+          { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
+        ],
+      }),
+    };
+  }
+
+  function rebuildQualityBindings(force = false): void {
+    if (groundShadowResolution <= 0) return;
+    const selection = densityQualityPipelineManager.getSelection();
+    const bundle = densityQualityPipelineManager.getActiveBundle();
+    const densityOutput = densityProducerSelector.getActive().getOutput();
+    if (
+      !force
+      && qualityBindingsReady
+      && qualityConsumerGeneration === selection.activeGeneration
+      && (!bundle.usesDensityCache || densityConsumerGeneration === densityOutput.resourceGeneration)
+    ) {
+      return;
+    }
+    qualityBindings = createDensityQualityBindings(device, bundle, {
+      cameraBuffer,
+      paramsBuffer,
+      shapeView: shapeTexture.createView({ dimension: '2d-array' }),
+      weatherSampler: linearSampler,
+      presetBuffer,
+      densityOutput,
+      groundShadowStoreView: groundShadowRawTexture.createView(),
+      groundShadowSampler: linearSampler,
+      groundShadowView: groundShadowHistoryViews[groundShadowHistoryIndex],
     });
+    qualityBindingsReady = true;
+    qualityConsumerGeneration = selection.activeGeneration;
+    densityConsumerGeneration = bundle.usesDensityCache ? densityOutput.resourceGeneration : -1;
+    shadowRevision++;
   }
 
   function ensureGroundShadowResources(requestedResolution: number): boolean {
@@ -980,20 +967,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     groundShadowFilterTexture = device.createTexture(descriptor);
     groundShadowHistoryTextures = [device.createTexture(descriptor), device.createTexture(descriptor)];
     groundShadowHistoryViews = [groundShadowHistoryTextures[0].createView(), groundShadowHistoryTextures[1].createView()];
-    groundShadowStoreBindGroup = device.createBindGroup({
-      layout: groundShadowPipeline.getBindGroupLayout(2),
-      entries: [{ binding: 1, resource: groundShadowRawTexture.createView() }],
-    });
     groundShadowHistoryIndex = 0;
     groundShadowHistoryValid = false;
     groundShadowPhaseIndex = 0;
     lastGroundShadowWindOffsets = [];
     groundShadowResetReason = 'resolution';
-    rebuildGroundShadowSampleBindGroup();
+    if (qualityBindingsReady) rebuildQualityBindings(true);
     return true;
   }
 
   ensureGroundShadowResources(512);
+  rebuildQualityBindings(true);
 
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
@@ -1180,6 +1164,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let tsMapping = false;
   const initialDensityStats = legacyDensityAdapter.getStats();
   const initialDensitySelection = densityProducerSelector.getSelection();
+  const initialQualitySelection = densityQualityPipelineManager.getSelection();
   const stats = {
     gpuTiming: hasTimestamp,
     gpuTimingError: '',
@@ -1198,6 +1183,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityRes: initialDensityStats.resolution,
     weatherSize,
     cacheWg: [...initialDensityStats.workgroup] as [number, number, number],
+    densityQualityRequested: initialQualitySelection.requested,
+    densityQualityActive: initialQualitySelection.active,
+    densityQualityLifecycle: initialQualitySelection.lifecycle,
+    densityQualityFallbackReason: initialQualitySelection.reason,
+    densityQualityActiveGeneration: initialQualitySelection.activeGeneration,
+    densityQualityPipelines: densityQualityPipelineManager.getStates(),
     densityProducerRequested: initialDensitySelection.requested,
     densityProducerActive: initialDensitySelection.active,
     densityProducerFallbackReason: initialDensitySelection.fallbackReason,
@@ -1212,15 +1203,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   };
   void device.lost.then((reason) => {
     densityProducerSelector.handleDeviceLost(reason);
+    densityQualityPipelineManager.destroy();
     stats.gpuTiming = false;
     stats.gpuTimingError = reason.message || String(reason.reason);
     stats.densityProducerLifecycle = 'device-lost';
+    stats.densityQualityLifecycle = 'failed';
+    stats.densityQualityFallbackReason = reason.message || String(reason.reason);
   });
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean, groundShadowPhase: number): Float32Array {
+  function buildParams(params: CloudParams, activeQualityMode: number, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean, groundShadowPhase: number): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -1240,7 +1234,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       hgBackward: params.hgBackward,
       hgBlend: params.hgBlend,
       godrayStrength: params.godrayStrength,
-      qualityMode: params.qualityMode,
+      qualityMode: activeQualityMode,
       detailFreq: params.detailFreq,
       detailStrength: params.detailStrength,
       typeLightingBlend: params.typeLightingBlend,
@@ -1285,7 +1279,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     return paramsData;
   }
 
-  function groundShadowSignature(params: CloudParams): string {
+  function groundShadowSignature(params: CloudParams, activeQuality: DensityQualityKind): string {
     const densityStats = densityProducerSelector.getActive().getStats();
     return [
       params.sunAzimuth,
@@ -1294,7 +1288,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       params.cloudHeight,
       params.horizontalMetersPerWorldUnit,
       params.verticalMetersPerWorldUnit,
-      params.qualityMode,
+      activeQuality,
       densityStats.resolution,
       params.edgeHardness,
       params.edgeHardnessThreshold,
@@ -1376,19 +1370,32 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
+    const qualitySelection = densityQualityPipelineManager.request(densityQualityKindFromMode(params.qualityMode));
+    const activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
+    const qualityChanged = qualityConsumerGeneration !== qualitySelection.activeGeneration;
+    const effectiveParams = activeQualityMode === Math.round(params.qualityMode)
+      ? params
+      : { ...params, qualityMode: activeQualityMode };
+    if (qualityChanged) {
+      groundShadowHistoryValid = false;
+      groundShadowPhaseIndex = 0;
+      groundShadowResetReason = 'quality';
+      historyValid = false;
+    }
+
     const densityProducer = densityProducerSelector.request(requestedDensityProducer(params.densityProducerMode));
     const densityPlan = densityProducer.prepareFrame({
       frameIndex,
       elapsedSeconds: elapsed,
       sceneTimeSeconds: clock,
-      params,
+      params: effectiveParams,
       bodies: currentBodies,
       bodyMods: currentMods,
       windSamples: currentWindSamples,
       sceneRevision: densitySceneRevision,
     });
     const cacheWillRun = densityPlan.willEncode;
-    rebuildDensityConsumerBindGroups();
+    rebuildQualityBindings(qualityChanged);
 
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
@@ -1424,14 +1431,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     const shadowResourcesChanged = ensureGroundShadowResources(params.groundShadowMapResolution);
     const transmittanceMode = Math.round(params.groundShadowMode) === 2;
-    const shadowSignature = groundShadowSignature(params);
+    const shadowSignature = groundShadowSignature(params, qualitySelection.active);
     const shadowSignatureChanged = shadowSignature !== lastGroundShadowSignature;
     const shadowTimeDiscontinuity = deltaTime < -1e-5 || Math.abs(deltaTime) > 0.25;
     const shadowTexelMeters = (params.boxHalfExtent * 2) / groundShadowResolution;
     const shadowWindMotion = groundShadowWindMotionMeters();
     const shadowWindExceeded = shadowWindMotion > shadowTexelMeters * 0.5;
     let shadowResetThisFrame = '';
-    if (transmittanceMode && shadowResourcesChanged) shadowResetThisFrame = 'resolution';
+    if (transmittanceMode && qualityChanged) shadowResetThisFrame = 'quality';
+    else if (transmittanceMode && shadowResourcesChanged) shadowResetThisFrame = 'resolution';
     else if (transmittanceMode && shadowSignatureChanged) shadowResetThisFrame = 'scene';
     else if (transmittanceMode && shadowTimeDiscontinuity) shadowResetThisFrame = 'time';
     else if (transmittanceMode && shadowWindExceeded) shadowResetThisFrame = 'wind';
@@ -1455,7 +1463,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       : 0;
     const effectiveShadowHistoryWeight = params.groundShadowHistoryWeight * motionHistoryScale;
     if (transmittanceMode) lastGroundShadowSignature = shadowSignature;
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, densityPlan.cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, activeQualityMode, densityPlan.cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
 
     const commandEncoder = device.createCommandEncoder();
     let shadowRan = false;
@@ -1476,10 +1484,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       const integrationPass = commandEncoder.beginComputePass(
         timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : undefined,
       );
-      integrationPass.setPipeline(groundShadowPipeline);
-      integrationPass.setBindGroup(0, groundShadowComputeBindGroup);
-      integrationPass.setBindGroup(1, groundShadowDensityBindGroup);
-      integrationPass.setBindGroup(2, groundShadowStoreBindGroup);
+      const activeQualityBundle = densityQualityPipelineManager.getActiveBundle();
+      integrationPass.setPipeline(activeQualityBundle.groundShadowPipeline);
+      integrationPass.setBindGroup(0, qualityBindings.groundShadowScene);
+      if (qualityBindings.groundShadowDensity) {
+        integrationPass.setBindGroup(1, qualityBindings.groundShadowDensity);
+      }
+      integrationPass.setBindGroup(2, qualityBindings.groundShadowStore);
       integrationPass.dispatchWorkgroups(
         Math.ceil(groundShadowResolution / 8),
         Math.ceil(groundShadowResolution / 8),
@@ -1546,10 +1557,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
     });
 
-    renderPass.setPipeline(pipeline);
-    renderPass.setBindGroup(0, bindGroup);
-    renderPass.setBindGroup(1, densitySampleBindGroup);
-    renderPass.setBindGroup(3, groundShadowSampleBindGroup);
+    const activeQualityBundle = densityQualityPipelineManager.getActiveBundle();
+    renderPass.setPipeline(activeQualityBundle.cloudPipeline);
+    renderPass.setBindGroup(0, qualityBindings.cloudScene);
+    if (qualityBindings.cloudDensity) {
+      renderPass.setBindGroup(1, qualityBindings.cloudDensity);
+    }
+    renderPass.setBindGroup(3, qualityBindings.cloudGroundShadow);
     renderPass.draw(3);
 
     if (lineVertCount > 0) {
@@ -1687,10 +1701,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.height = canvas.height;
     const densityStats = densityProducer.getStats();
     const densitySelection = densityProducerSelector.getSelection();
+    const currentQualitySelection = densityQualityPipelineManager.getSelection();
     stats.activeBodyCount = densityStats.activeBodyCount;
     stats.densityRes = densityStats.resolution;
     stats.weatherSize = weatherSize;
     stats.cacheWg = [...densityStats.workgroup] as [number, number, number];
+    stats.densityQualityRequested = currentQualitySelection.requested;
+    stats.densityQualityActive = currentQualitySelection.active;
+    stats.densityQualityLifecycle = currentQualitySelection.lifecycle;
+    stats.densityQualityFallbackReason = currentQualitySelection.reason;
+    stats.densityQualityActiveGeneration = currentQualitySelection.activeGeneration;
+    stats.densityQualityPipelines = densityQualityPipelineManager.getStates();
     stats.densityProducerRequested = densitySelection.requested;
     stats.densityProducerActive = densitySelection.active;
     stats.densityProducerFallbackReason = densitySelection.fallbackReason;
@@ -1744,6 +1765,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   function destroy(): void {
     if (rendererDestroyed) return;
     rendererDestroyed = true;
+    densityQualityPipelineManager.destroy();
     densityProducerSelector.destroy();
     device.destroy();
   }

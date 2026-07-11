@@ -10,13 +10,14 @@ import {
   type DensityProducerLifecycle,
   type DensityProducerStats,
 } from './contracts';
+import type { LegacyDensityPipelineResources } from './legacyDensityPipeline';
 
 export interface LegacyDensityAdapterOptions {
   device: GPUDevice;
   sampler: GPUSampler;
   initialResolution: number;
   initialWorkgroup: readonly [number, number, number];
-  createPipeline(workgroup: readonly [number, number, number]): GPUComputePipeline;
+  pipelineResources: LegacyDensityPipelineResources;
   createSceneBindGroup(pipeline: GPUComputePipeline): GPUBindGroup;
 }
 
@@ -37,7 +38,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
 
   private readonly device: GPUDevice;
   private readonly sampler: GPUSampler;
-  private readonly createPipeline: LegacyDensityAdapterOptions['createPipeline'];
+  private readonly pipelineResources: LegacyDensityPipelineResources;
   private readonly createSceneBindGroup: LegacyDensityAdapterOptions['createSceneBindGroup'];
   private textures: [GPUTexture, GPUTexture] | null = null;
   private sampledViews: [GPUTextureView, GPUTextureView] | null = null;
@@ -71,11 +72,11 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     const started = performance.now();
     this.device = options.device;
     this.sampler = options.sampler;
-    this.createPipeline = options.createPipeline;
+    this.pipelineResources = options.pipelineResources;
     this.createSceneBindGroup = options.createSceneBindGroup;
     this.resolution = normalizedResolution(options.initialResolution);
     this.workgroup = normalizedWorkgroup(options.initialWorkgroup);
-    this.pipeline = this.createPipeline(this.workgroup);
+    this.pipeline = this.pipelineResources.pipeline;
     this.sceneBindGroup = this.createSceneBindGroup(this.pipeline);
     this.rebuildTextures();
     this.createCpuMs = performance.now() - started;
@@ -215,7 +216,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     if (next.every((value, index) => value === this.workgroup[index])) return;
     const started = performance.now();
     this.workgroup = next;
-    this.pipeline = this.createPipeline(this.workgroup);
+    this.pipeline = this.pipelineResources.createPipeline(this.workgroup);
     this.sceneBindGroup = this.createSceneBindGroup(this.pipeline);
     this.storeBindGroup = null;
     this.rebuildCpuMs += performance.now() - started;
@@ -236,6 +237,9 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       activeBodyCount: this.activeBodyCount,
       createCpuMs: this.createCpuMs,
       rebuildCpuMs: this.rebuildCpuMs,
+      shaderModuleCreateCpuMs: this.pipelineResources.creation.shaderModuleCreateCpuMs,
+      pipelineCreateCpuMs: this.pipelineResources.creation.pipelineCreateCpuMs,
+      sourceLength: this.pipelineResources.creation.sourceLength,
     };
   }
 

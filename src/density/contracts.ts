@@ -78,6 +78,9 @@ export interface DensityProducerStats {
   activeBodyCount: number;
   createCpuMs: number;
   rebuildCpuMs: number;
+  shaderModuleCreateCpuMs: number;
+  pipelineCreateCpuMs: number;
+  sourceLength: number;
 }
 
 export interface DensityProducerSelection {

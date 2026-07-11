@@ -8,7 +8,7 @@ const params = read('src/params.ts');
 const cloud = read('shaders/cloud.wgsl');
 const common = read('shaders/genus/common.wgsl');
 const dispatcher = read('shaders/genus/dispatch.wgsl');
-const renderer = read('src/renderer.ts');
+const sourceManifest = read('src/rendering/densityShaderSources.ts');
 
 const presetBlock = params.match(/export const CLOUD_PRESETS:[\s\S]*?^};/m)?.[0];
 if (!presetBlock) throw new Error('genus dispatch check: CLOUD_PRESETS block not found');
@@ -45,8 +45,8 @@ genera.forEach((genus, index) => {
   if (!dispatcher.includes(`case ${constantName}: { return ${call}; }`)) {
     throw new Error(`genus dispatch check: ${genus} case must call ${functionName}`);
   }
-  if (!renderer.includes(`../shaders/genus/${genus}.wgsl?raw`)) {
-    throw new Error(`genus dispatch check: renderer assembly is missing ${genus}.wgsl`);
+  if (!sourceManifest.includes(`../../shaders/genus/${genus}.wgsl?raw`)) {
+    throw new Error(`genus dispatch check: density source manifest is missing ${genus}.wgsl`);
   }
 });
 
