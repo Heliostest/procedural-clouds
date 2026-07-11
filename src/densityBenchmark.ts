@@ -114,6 +114,7 @@ interface RunningCase {
   renderedFrames: number;
   lastGpuSampleId: number;
   lastCacheSampleId: number;
+  lastShadowSampleId: number;
   samples: {
     cloud: number[];
     cache: number[];
@@ -351,6 +352,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       renderedFrames: 0,
       lastGpuSampleId: stats.gpuSampleId,
       lastCacheSampleId: stats.cacheSampleId,
+      lastShadowSampleId: stats.shadowSampleId,
       samples: { cloud: [], cache: [], shadow: [], post: [] },
       warnings: [],
     };
@@ -381,6 +383,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       active.warmupFrames++;
       active.lastGpuSampleId = stats.gpuSampleId;
       active.lastCacheSampleId = stats.cacheSampleId;
+      active.lastShadowSampleId = stats.shadowSampleId;
       publish(statusFor(active, `Warming ${active.definition.id}.`));
       return;
     }
@@ -398,11 +401,14 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       active.lastGpuSampleId = stats.gpuSampleId;
       active.samples.cloud.push(stats.cloudMs);
       active.samples.post.push(stats.postMs);
-      if (stats.shadowMs > 0) active.samples.shadow.push(stats.shadowMs);
     }
     if (stats.cacheSampleId !== active.lastCacheSampleId) {
       active.lastCacheSampleId = stats.cacheSampleId;
       if (stats.cacheRan) active.samples.cache.push(stats.cacheMs);
+    }
+    if (stats.shadowSampleId !== active.lastShadowSampleId) {
+      active.lastShadowSampleId = stats.shadowSampleId;
+      if (stats.shadowRan) active.samples.shadow.push(stats.shadowMs);
     }
     const enough = active.samples.cloud.length >= manifest.minimumGpuSamples
       && active.samples.cache.length >= manifest.minimumGpuSamples

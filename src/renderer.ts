@@ -430,7 +430,9 @@ export interface RenderStats {
   gpuTiming: boolean;
   gpuSampleId: number;
   cacheSampleId: number;
+  shadowSampleId: number;
   cacheRan: boolean;
+  shadowRan: boolean;
   cloudMs: number;
   cacheMs: number;
   shadowMs: number;
@@ -1185,7 +1187,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     gpuTiming: hasTimestamp,
     gpuSampleId: 0,
     cacheSampleId: 0,
+    shadowSampleId: 0,
     cacheRan: false,
+    shadowRan: false,
     cloudMs: 0,
     cacheMs: 0,
     shadowMs: 0,
@@ -1737,8 +1741,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           const filterNs = Number(ts[5] - ts[4]);
           const resolveNs = Number(ts[7] - ts[6]);
           if (integrationNs >= 0 && filterNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + filterNs + resolveNs) / 1e6;
+          stats.shadowSampleId++;
         }
         stats.cacheRan = cacheRan;
+        stats.shadowRan = shadowRan;
         stats.gpuSampleId++;
         tsMapping = false;
       }).catch(() => { tsMapping = false; });
