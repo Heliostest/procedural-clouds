@@ -1,14 +1,14 @@
 ## 0. Approval and scope gate
 
-- [ ] 0.1 用户批准本 proposal、design 与三个 spec delta
-- [ ] 0.2 确认 W0 owner waiver 提交为 `1c62d25`，只放行架构工作，不代表已有定量性能基线
-- [ ] 0.3 确认 W1 不实现 V2 shader/Recipe、pipeline 隔离、tile mask、noise atlas 或任何密度数学变化
+- [x] 0.1 用户批准本 proposal、design 与三个 spec delta
+- [x] 0.2 确认 W0 owner waiver 提交为 `1c62d25`，只放行架构工作，不代表已有定量性能基线
+- [x] 0.3 确认 W1 不实现 V2 shader/Recipe、pipeline 隔离、tile mask、noise atlas 或任何密度数学变化
 
 ## 1. Contracts and module boundary
 
-- [ ] 1.1 新建 `src/density/contracts.ts`，定义 producer kind、frame input/plan、encode context/result、cache output、stats、availability 与生命周期状态；单独提交
-- [ ] 1.2 固化 `rgba16float` 双缓存与 R/G/B/A 通道契约；output 只暴露 sampled views/sampler，不暴露 writable texture、storage view、pipeline 或私有 bind group
-- [ ] 1.3 明确 `prepareFrame → uniform pack → encode → getOutput → consumers` 的单帧调用约束，以及未 prepare、重复 encode、destroyed/failed 状态的有限失败行为
+- [x] 1.1 新建 `src/density/contracts.ts`，定义 producer kind、frame input/plan、encode context/result、cache output、stats、availability 与生命周期状态；单独提交
+- [x] 1.2 固化 `rgba16float` 双缓存与 R/G/B/A 通道契约；output 只暴露 sampled views/sampler，不暴露 writable texture、storage view、pipeline 或私有 bind group
+- [x] 1.3 明确 `prepareFrame → uniform pack → encode → getOutput → consumers` 的单帧调用约束，以及未 prepare、重复 encode、destroyed/failed 状态的有限失败行为
 
 ## 2. LegacyDensityAdapter extraction
 
