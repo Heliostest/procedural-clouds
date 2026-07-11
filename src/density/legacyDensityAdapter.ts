@@ -244,6 +244,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     this.lifecycle = 'device-lost';
     this.failureReason = reason.message || String(reason.reason);
     this.pendingEncode = false;
+    this.destroyTextures();
   }
 
   destroy(): void {

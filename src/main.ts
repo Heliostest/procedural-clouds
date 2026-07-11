@@ -75,6 +75,7 @@ async function main(): Promise<void> {
   renderer.setWindSamples(manualWind.samples(store.list()));
 
   window.addEventListener('resize', renderer.resizeCanvas);
+  window.addEventListener('beforeunload', renderer.destroy, { once: true });
   renderer.resizeCanvas();
 
   params.measureLightShare = () => {
@@ -303,6 +304,7 @@ async function main(): Promise<void> {
     lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
     lines.push(`${t('perfVoxels')}: ${s.densityRes}³ (${((s.densityRes ** 3) / 1e6).toFixed(2)}M) wg ${s.cacheWg.join('×')}`);
     lines.push(`${t('perfQuality')}: ${QUALITY_NAMES[params.qualityMode] ?? params.qualityMode}   weather ${s.weatherSize}²`);
+    lines.push(`density producer: requested=${s.densityProducerRequested} active=${s.densityProducerActive}${s.densityProducerFallbackReason ? ` fallback=${s.densityProducerFallbackReason}` : ''}`);
     lines.push(`ground shadow: ${GROUND_SHADOW_NAMES[params.groundShadowMode] ?? params.groundShadowMode} ~${estimatedGroundShadowSteps()}/${params.groundShadowMaxSteps} samples`);
     if (params.groundShadowMode === 2) {
       lines.push(`shadow map: ${s.shadowMapResolution}² ${s.shadowUpdated ? 'updated' : 'reused'} history-reset:${s.shadowHistoryResetReason}`);

@@ -31,6 +31,9 @@ import type { CameraFrame } from './camera';
 import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, bodyToTransportedRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 import type { WindAdvectionSample } from './wind';
 import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
+import { DensityProducerSelector } from './density/densityProducerSelector';
+import { RecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
+import { DENSITY_PRODUCER_MODE, type DensityProducerKind } from './density/contracts';
 
 const shaderSource = [
   noiseSource,
@@ -445,6 +448,12 @@ export interface RenderStats {
   densityRes: number;
   weatherSize: number;
   cacheWg: [number, number, number];
+  densityProducerRequested: DensityProducerKind;
+  densityProducerActive: DensityProducerKind;
+  densityProducerFallbackReason: string;
+  densityProducerResourceGeneration: number;
+  densityProducerContentRevision: number;
+  densityProducerLifecycle: string;
   shadowMapResolution: number;
   shadowUpdated: boolean;
   shadowHistoryResetReason: string;
@@ -483,6 +492,7 @@ export interface Renderer {
   setWindSamples(samples: readonly WindAdvectionSample[]): void;
   updatePresets(): void;
   renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void;
+  destroy(): void;
 }
 
 export async function createRenderer(canvas: HTMLCanvasElement): Promise<Renderer> {
@@ -843,7 +853,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function setCacheWorkgroup(x: number, y: number, z: number): void {
-    legacyDensityAdapter.setWorkgroup([x, y, z]);
+    densityProducerSelector.getActive().setWorkgroup([x, y, z]);
   }
 
   let shadowRevision = 0;
@@ -879,9 +889,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       });
     },
   });
+  const densityProducerSelector = new DensityProducerSelector({
+    legacy: legacyDensityAdapter,
+    recipeV2: new RecipeDensityV2Adapter(),
+  });
+
+  function requestedDensityProducer(mode: number): DensityProducerKind {
+    return Math.round(mode) === DENSITY_PRODUCER_MODE.recipeV2 ? 'recipe-v2' : 'legacy';
+  }
 
   function rebuildDensityConsumerBindGroups(force = false): void {
-    const output = legacyDensityAdapter.getOutput();
+    const output = densityProducerSelector.getActive().getOutput();
     if (!force && output.resourceGeneration === densityConsumerGeneration) return;
     densitySampleBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
@@ -904,7 +922,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function setDensityResolution(res: number): void {
-    legacyDensityAdapter.setResolution(res);
+    densityProducerSelector.getActive().setResolution(res);
     rebuildDensityConsumerBindGroups();
   }
 
@@ -1152,6 +1170,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let frameIndex = 0;
   let prevSceneTime = 0.0;
+  let rendererDestroyed = false;
 
   const TS_COUNT = 12; // cache, shadow integration, shadow horizontal filter, shadow resolve, cloud render, post
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
@@ -1160,6 +1179,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let timestampEnabled = hasTimestamp;
   let tsMapping = false;
   const initialDensityStats = legacyDensityAdapter.getStats();
+  const initialDensitySelection = densityProducerSelector.getSelection();
   const stats = {
     gpuTiming: hasTimestamp,
     gpuTimingError: '',
@@ -1178,12 +1198,24 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityRes: initialDensityStats.resolution,
     weatherSize,
     cacheWg: [...initialDensityStats.workgroup] as [number, number, number],
+    densityProducerRequested: initialDensitySelection.requested,
+    densityProducerActive: initialDensitySelection.active,
+    densityProducerFallbackReason: initialDensitySelection.fallbackReason,
+    densityProducerResourceGeneration: initialDensityStats.resourceGeneration,
+    densityProducerContentRevision: initialDensityStats.contentRevision,
+    densityProducerLifecycle: initialDensityStats.lifecycle,
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
     deviceInfo,
     startupTiming,
   };
+  void device.lost.then((reason) => {
+    densityProducerSelector.handleDeviceLost(reason);
+    stats.gpuTiming = false;
+    stats.gpuTimingError = reason.message || String(reason.reason);
+    stats.densityProducerLifecycle = 'device-lost';
+  });
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
@@ -1254,7 +1286,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function groundShadowSignature(params: CloudParams): string {
-    const densityStats = legacyDensityAdapter.getStats();
+    const densityStats = densityProducerSelector.getActive().getStats();
     return [
       params.sunAzimuth,
       params.sunElevation,
@@ -1296,6 +1328,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
+    if (rendererDestroyed || densityProducerSelector.getActive().getStats().lifecycle !== 'ready') return;
     frameIndex++;
     const clock = sceneClock ?? elapsed;
 
@@ -1343,7 +1376,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
-    const densityPlan = legacyDensityAdapter.prepareFrame({
+    const densityProducer = densityProducerSelector.request(requestedDensityProducer(params.densityProducerMode));
+    const densityPlan = densityProducer.prepareFrame({
       frameIndex,
       elapsedSeconds: elapsed,
       sceneTimeSeconds: clock,
@@ -1425,7 +1459,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     const commandEncoder = device.createCommandEncoder();
     let shadowRan = false;
-    const cacheEncode = legacyDensityAdapter.encode(commandEncoder, timestampEnabled && tsQuerySet
+    const cacheEncode = densityProducer.encode(commandEncoder, timestampEnabled && tsQuerySet
       ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
       : undefined);
     const cacheRan = cacheEncode.cacheRan;
@@ -1651,11 +1685,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     stats.width = canvas.width;
     stats.height = canvas.height;
-    const densityStats = legacyDensityAdapter.getStats();
+    const densityStats = densityProducer.getStats();
+    const densitySelection = densityProducerSelector.getSelection();
     stats.activeBodyCount = densityStats.activeBodyCount;
     stats.densityRes = densityStats.resolution;
     stats.weatherSize = weatherSize;
     stats.cacheWg = [...densityStats.workgroup] as [number, number, number];
+    stats.densityProducerRequested = densitySelection.requested;
+    stats.densityProducerActive = densitySelection.active;
+    stats.densityProducerFallbackReason = densitySelection.fallbackReason;
+    stats.densityProducerResourceGeneration = densityStats.resourceGeneration;
+    stats.densityProducerContentRevision = densityStats.contentRevision;
+    stats.densityProducerLifecycle = densityStats.lifecycle;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;
@@ -1700,6 +1741,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     return stats;
   }
 
+  function destroy(): void {
+    if (rendererDestroyed) return;
+    rendererDestroyed = true;
+    densityProducerSelector.destroy();
+    device.destroy();
+  }
+
   startupTiming.shaderModuleCreateMs = shaderModuleCreateMs;
   startupTiming.pipelineCreateMs = pipelineCreateMs;
   startupTiming.totalCreateRendererMs = performance.now() - createRendererStarted;
@@ -1716,5 +1764,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     setWindSamples,
     updatePresets,
     renderFrame,
+    destroy,
   };
 }

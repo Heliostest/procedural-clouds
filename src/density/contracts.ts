@@ -86,6 +86,12 @@ export interface DensityProducerSelection {
   fallbackReason: string;
 }
 
+export interface DensityProducerCandidate {
+  readonly kind: DensityProducerKind;
+  readonly availability: DensityProducerAvailability;
+  readonly reason: string;
+}
+
 export interface DensityCacheProducer {
   readonly kind: DensityProducerKind;
   prepareFrame(input: DensityFrameInput): DensityFramePlan;

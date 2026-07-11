@@ -26,17 +26,17 @@
 
 ## 4. Selector, V2 slot, and runtime status
 
-- [ ] 4.1 新增 `RecipeDensityV2Adapter` typed unavailable 槽位；不得创建任何 V2 GPU 资源，reason 固定可诊断
-- [ ] 4.2 新增 selector：默认 Legacy；请求 V2 时若 unavailable/创建失败，原子回退 Legacy 且不销毁健康 Legacy output；单独提交
-- [ ] 4.3 `CloudParams`、GUI 与 i18n 增加 CPU-only `densityProducerMode`；不得写入 `PARAM_OFFSETS`/WGSL `Globals`
-- [ ] 4.4 HUD/`RenderStats` 同时显示 requested producer、active producer 和 fallback reason；不得只显示用户请求值
-- [ ] 4.5 Realtime 下跳过 Producer encode，继续使用现有直接密度路径；不得创建单独 Realtime Producer
+- [x] 4.1 新增 `RecipeDensityV2Adapter` typed unavailable 槽位；不得创建任何 V2 GPU 资源，reason 固定可诊断
+- [x] 4.2 新增 selector：默认 Legacy；请求 V2 时若 unavailable/创建失败，原子回退 Legacy 且不销毁健康 Legacy output；单独提交
+- [x] 4.3 `CloudParams`、GUI 与 i18n 增加 CPU-only `densityProducerMode`；不得写入 `PARAM_OFFSETS`/WGSL `Globals`
+- [x] 4.4 HUD/`RenderStats` 同时显示 requested producer、active producer 和 fallback reason；不得只显示用户请求值
+- [x] 4.5 Realtime 下跳过 Producer encode，继续使用现有直接密度路径；不得创建单独 Realtime Producer
 
 ## 5. Resource lifecycle and failure handling
 
-- [ ] 5.1 为 Producer 和 Renderer 增加幂等 `destroy()`，释放本模块创建的 texture/buffer/query/bindings 引用并阻止销毁后继续使用
-- [ ] 5.2 监听/传递 `device.lost`：Producer 标为 invalid、停止编码并记录原因；完整 renderer/device 自动重建留待独立 change
-- [ ] 5.3 覆盖 resolution、workgroup、producer request 与 fallback 切换，确认 consumer bind group 不引用旧 generation，且无健康 Legacy 资源被失败 V2 请求破坏
+- [x] 5.1 为 Producer 和 Renderer 增加幂等 `destroy()`，释放本模块创建的 texture/buffer/query/bindings 引用并阻止销毁后继续使用
+- [x] 5.2 监听/传递 `device.lost`：Producer 标为 invalid、停止编码并记录原因；完整 renderer/device 自动重建留待独立 change
+- [x] 5.3 覆盖 resolution、workgroup、producer request 与 fallback 切换，确认 consumer bind group 不引用旧 generation，且无健康 Legacy 资源被失败 V2 请求破坏
 
 ## 6. Validation and handoff
 

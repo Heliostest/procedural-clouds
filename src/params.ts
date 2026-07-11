@@ -269,6 +269,7 @@ export interface CloudParams {
   cacheResolution: number;
   cacheUpdateRate: number;
   cacheSmooth: number;
+  densityProducerMode: number;
   sunAzimuth: number;
   sunElevation: number;
   silverIntensity: number;
@@ -417,6 +418,7 @@ export function createDefaultParams(): CloudParams {
     cacheResolution: 96,
     cacheUpdateRate: 2,
     cacheSmooth: 0,
+    densityProducerMode: 0,
     sunAzimuth: 34,
     sunElevation: 70,
     silverIntensity: 0,
