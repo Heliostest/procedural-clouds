@@ -1183,6 +1183,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
+  let timestampEnabled = hasTimestamp;
   let tsMapping = false;
   const stats = {
     gpuTiming: hasTimestamp,
@@ -1482,7 +1483,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       });
 
       const pass = commandEncoder.beginComputePass(
-        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } } : undefined,
+        timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } } : undefined,
       );
       pass.setPipeline(computePipeline);
       pass.setBindGroup(0, computeBindGroup);
@@ -1505,7 +1506,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       device.queue.writeBuffer(groundShadowResolveUniformBuffer, 0, groundShadowResolveData);
 
       const integrationPass = commandEncoder.beginComputePass(
-        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : undefined,
+        timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 2, endOfPassWriteIndex: 3 } } : undefined,
       );
       integrationPass.setPipeline(groundShadowPipeline);
       integrationPass.setBindGroup(0, groundShadowComputeBindGroup);
@@ -1526,7 +1527,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         ],
       });
       const filterPass = commandEncoder.beginComputePass(
-        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : undefined,
+        timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 4, endOfPassWriteIndex: 5 } } : undefined,
       );
       filterPass.setPipeline(groundShadowFilterPipeline);
       filterPass.setBindGroup(0, filterBindGroup);
@@ -1546,7 +1547,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         ],
       });
       const resolvePass = commandEncoder.beginComputePass(
-        tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 6, endOfPassWriteIndex: 7 } } : undefined,
+        timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 6, endOfPassWriteIndex: 7 } } : undefined,
       );
       resolvePass.setPipeline(groundShadowResolvePipeline);
       resolvePass.setBindGroup(0, resolveBindGroup);
@@ -1574,7 +1575,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
+      ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
     });
 
     renderPass.setPipeline(pipeline);
@@ -1681,7 +1682,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
-      ...(tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 10, endOfPassWriteIndex: 11 } } : {}),
+      ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 10, endOfPassWriteIndex: 11 } } : {}),
     });
     postPass.setPipeline(postPipeline);
     postPass.setBindGroup(0, postBindGroup);
@@ -1707,7 +1708,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     histIndex ^= 1;
 
-    if (tsQuerySet && tsResolve && tsRead && !tsMapping) {
+    if (timestampEnabled && tsQuerySet && tsResolve && tsRead && !tsMapping) {
       commandEncoder.resolveQuerySet(tsQuerySet, 0, TS_COUNT, tsResolve, 0);
       commandEncoder.copyBufferToBuffer(tsResolve, 0, tsRead, 0, TS_COUNT * 8);
     }
@@ -1724,7 +1725,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.shadowUpdated = shadowRan;
     stats.shadowHistoryResetReason = groundShadowResetReason;
 
-    if (tsRead && !tsMapping) {
+    if (timestampEnabled && tsRead && !tsMapping) {
       tsMapping = true;
       device.queue.onSubmittedWorkDone().then(() => tsRead.mapAsync(GPUMapMode.READ)).then(() => {
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
@@ -1752,6 +1753,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       }).catch((error: unknown) => {
         stats.gpuTimingError = error instanceof Error ? error.message : String(error);
         stats.gpuTiming = false;
+        timestampEnabled = false;
         tsMapping = false;
       });
     }
