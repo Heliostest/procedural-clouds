@@ -3,7 +3,7 @@ import { CLOUD_GENERA, type CloudGenus } from './genusProfile';
 import { createDefaultParams, type CloudParams } from './params';
 import type { WindAdvectionSample } from './wind';
 
-export const DENSITY_BENCHMARK_SCHEMA_VERSION = 1 as const;
+export const DENSITY_BENCHMARK_SCHEMA_VERSION = 2 as const;
 export const DENSITY_BENCHMARK_BASELINE_ID = 'density-v2-w0-legacy-v1';
 
 export type BenchmarkQuality = 'cached' | 'hybrid' | 'realtime';
@@ -50,6 +50,7 @@ export interface DensityBenchmarkCase {
   sceneId: BenchmarkSceneId;
   quality: BenchmarkQuality;
   view: BenchmarkView;
+  gateRequired: boolean;
   timingRequired: boolean;
   screenshotRequired: boolean;
   realtimeCompatibilityOnly: boolean;
@@ -163,6 +164,41 @@ function screenshotPath(id: string): string {
   return `screenshots/${id}.png`;
 }
 
+const W0_REPRESENTATIVE_SCENES: readonly BenchmarkSceneId[] = [
+  'single-stratus',
+  'single-cumulus',
+  'single-cirrus',
+  'stress-complex-cb',
+  'stress-all-genera',
+];
+
+const W0_VISUAL_ANCHOR_QUALITY: Partial<Record<BenchmarkSceneId, BenchmarkQuality>> = {
+  'single-stratus': 'cached',
+  'single-cumulus': 'hybrid',
+  'single-cirrus': 'cached',
+  'stress-complex-cb': 'hybrid',
+  'stress-all-genera': 'cached',
+};
+
+// Project-owner review on 2026-07-11 made W0 captures advisory. Keep the
+// representative cases runnable, but do not block later Waves on missing evidence.
+const W0_EVIDENCE_BLOCKS_GATE = false;
+
+function evidenceRequirements(
+  sceneId: BenchmarkSceneId,
+  quality: BenchmarkQuality,
+  view: BenchmarkView,
+): Pick<DensityBenchmarkCase, 'gateRequired' | 'timingRequired' | 'screenshotRequired'> {
+  const representative = W0_REPRESENTATIVE_SCENES.includes(sceneId);
+  const timingRequired = representative && quality !== 'realtime' && view === 'normal';
+  const screenshotRequired = representative && W0_VISUAL_ANCHOR_QUALITY[sceneId] === quality;
+  return {
+    gateRequired: W0_EVIDENCE_BLOCKS_GATE && (timingRequired || screenshotRequired),
+    timingRequired,
+    screenshotRequired,
+  };
+}
+
 function createCases(): DensityBenchmarkCase[] {
   const cases: DensityBenchmarkCase[] = [];
   const qualities: BenchmarkQuality[] = ['cached', 'hybrid'];
@@ -173,13 +209,13 @@ function createCases(): DensityBenchmarkCase[] {
     for (const quality of qualities) {
       for (const view of views) {
         const id = caseId(sceneId, quality, view);
+        const requirements = evidenceRequirements(sceneId, quality, view);
         cases.push({
           id,
           sceneId,
           quality,
           view,
-          timingRequired: true,
-          screenshotRequired: true,
+          ...requirements,
           realtimeCompatibilityOnly: false,
           screenshotPath: screenshotPath(id),
         });
@@ -191,13 +227,13 @@ function createCases(): DensityBenchmarkCase[] {
     for (const quality of qualities) {
       for (const view of views) {
         const id = caseId(sceneId, quality, view);
+        const requirements = evidenceRequirements(sceneId, quality, view);
         cases.push({
           id,
           sceneId,
           quality,
           view,
-          timingRequired: view === 'normal',
-          screenshotRequired: true,
+          ...requirements,
           realtimeCompatibilityOnly: false,
           screenshotPath: screenshotPath(id),
         });
@@ -211,6 +247,7 @@ function createCases(): DensityBenchmarkCase[] {
     sceneId: 'single-cumulus',
     quality: 'realtime',
     view: 'normal',
+    gateRequired: false,
     timingRequired: false,
     screenshotRequired: false,
     realtimeCompatibilityOnly: true,

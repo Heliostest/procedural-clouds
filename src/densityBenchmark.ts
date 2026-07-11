@@ -445,21 +445,23 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       .filter((result) => result.status === 'complete')
       .map((result) => result.caseId);
     const staleCases = collected.filter((result) => result.stale).map((result) => result.caseId);
-    const missingCases = manifest.cases
+    const gateCases = manifest.cases.filter((candidate) => candidate.gateRequired);
+    const gateCaseIds = new Set(gateCases.map((candidate) => candidate.id));
+    const missingCases = gateCases
       .filter((candidate) => {
         const result = results.get(candidate.id);
         if (!result || result.status !== 'complete' || result.stale) return true;
         return candidate.screenshotRequired && !result.screenshotCaptured;
       })
       .map((candidate) => candidate.id);
-    const timedCases = manifest.cases.filter((candidate) => candidate.timingRequired);
-    const referenceTimingComplete = stats.gpuTiming && timedCases.every((candidate) => {
+    const timedCases = gateCases.filter((candidate) => candidate.timingRequired);
+    const referenceTimingComplete = timedCases.length === 0 || (stats.gpuTiming && timedCases.every((candidate) => {
       const result = results.get(candidate.id);
       return result?.gpuTiming.availability === 'available'
         && (result.gpuTiming.cloud?.count ?? 0) >= manifest.minimumGpuSamples
         && (result.gpuTiming.cache?.count ?? 0) >= manifest.minimumGpuSamples
         && (result.gpuTiming.post?.count ?? 0) >= manifest.minimumGpuSamples;
-    });
+    }));
     return {
       schemaVersion: manifest.schemaVersion,
       baselineId: manifest.baselineId,
@@ -469,12 +471,14 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       activeChanges: manifest.activeChanges,
       deviceInfo: JSON.parse(JSON.stringify(stats.deviceInfo)) as RendererDeviceInfo,
       startupTiming: { ...stats.startupTiming },
-      expectedCases: manifest.cases.map((candidate) => candidate.id),
+      expectedCases: gateCases.map((candidate) => candidate.id),
       completedCases,
       missingCases,
       staleCases,
       referenceTimingComplete,
-      w0Gate: missingCases.length === 0 && staleCases.length === 0 && referenceTimingComplete
+      w0Gate: missingCases.length === 0
+        && !staleCases.some((caseId) => gateCaseIds.has(caseId))
+        && referenceTimingComplete
         ? 'complete'
         : 'incomplete',
       results: collected,

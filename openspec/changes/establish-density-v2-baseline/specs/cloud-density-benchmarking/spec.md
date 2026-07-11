@@ -19,24 +19,34 @@
 - **WHEN** `densityShapeModel`、`heightAmbientModel` 或相关 active change 的权威状态发生变化
 - **THEN** 新结果 SHALL 具有不同 fingerprint，旧结果 MUST 标为 stale 或保留为具名 compatibility anchor，不得与新 Legacy baseline 合并
 
-### Requirement: 十属视觉与压力场景矩阵
+### Requirement: 代表性视觉与性能场景矩阵
 
-W0 SHALL 提供十个单云属固定场景，并为每个场景分别保存 Cached/Hybrid 与 Normal/Density Debug 证据，共 40 个视觉 case。W0 还 SHALL 提供“十属同场景”和“单个复杂 Cumulonimbus”两个压力场景，分别采集 Cached/Hybrid 正常视图 timing，并保存对应 density debug 证据。所有 case MUST 使用稳定、唯一且可由 manifest 解析的 case ID。
+W0 SHALL 提供十个单云属固定场景、“十属同场景”和“单个复杂 Cumulonimbus”压力场景，作为可重复场景目录。W0 SHOULD 支持 Stratus、Cumulus、Cirrus、复杂 Cumulonimbus 与十属同场五个代表场景在 Cached/Hybrid 正常视图下采集 10 个 timing case，并 SHOULD 支持为每个代表场景保存一张 Normal 和一张 Density Debug 视觉锚点。每个截图 case 的质量模式 SHALL 由 manifest 固定，整组截图配置 SHALL 同时覆盖 Cached 与 Hybrid。所有 case MUST 使用稳定、唯一且可由 manifest 解析的 case ID，并显式标明是否阻塞 W0 Gate。项目所有者明确接受人工视觉签核时，建议 timing 与截图 MAY 保持未采集且 MUST NOT 阻塞后续 Wave；未采集状态 MUST NOT 被表述为性能证据完整。
 
-#### Scenario: 单属矩阵完整
+#### Scenario: 代表矩阵完整
 
-- **WHEN** W0 视觉矩阵被声明完成
-- **THEN** cumulus、stratus、stratocumulus、cumulonimbus、altocumulus、altostratus、nimbostratus、cirrus、cirrostratus 与 cirrocumulus SHALL 各有 Cached/Hybrid × Normal/Density Debug 四个已完成 case
+- **WHEN** W0 代表性矩阵被声明为“性能证据完整”
+- **THEN** Stratus、Cumulus、Cirrus、复杂 Cumulonimbus 与十属同场 SHALL 各有 Cached/Hybrid 两个 Normal timing case，并各有 Normal/Density Debug 两张视觉锚点
+
+#### Scenario: 项目所有者接受人工签核
+
+- **WHEN** 项目所有者确认画面无明显回归并明确豁免严格采集
+- **THEN** timing 与截图 case SHALL 保持可运行但 MAY 标记为非阻塞，W1 MAY 建立；系统 MUST NOT 将缺失数据伪装成已完成结果或定量性能基线
+
+#### Scenario: 其余单属延迟到迁移 Wave
+
+- **WHEN** 某个不属于 W0 代表矩阵的云属进入 Density V2 迁移 Wave
+- **THEN** 该 Wave MUST 复用 W0 manifest 中对应的单属场景补采 Legacy/V2 前后证据；该证据在 W0 阶段 MAY 缺失且 MUST NOT 阻塞 W0 Gate
 
 #### Scenario: 压力场景分开记录
 
 - **WHEN** 采集十属同场景或复杂 Cumulonimbus 场景
 - **THEN** Cached 与 Hybrid SHALL 分别记录，Normal timing MUST NOT 与 Density Debug timing 合并
 
-#### Scenario: Realtime 仅记录兼容状态
+#### Scenario: Realtime 仅为可选兼容状态
 
-- **WHEN** 执行 W0 Realtime 检查
-- **THEN** 系统 SHALL 只在一个代表场景记录 pipeline 可创建、输出有限且无明显错误的状态，MUST NOT 将 Realtime 纳入性能矩阵或 W0 性能目标
+- **WHEN** 未执行 W0 Realtime 检查，或仅在代表场景记录其兼容状态
+- **THEN** 系统 MUST NOT 将 Realtime 纳入性能矩阵、截图矩阵、W0 性能目标或完成 Gate
 
 ### Requirement: 分离且可审计的测量协议
 
@@ -64,7 +74,7 @@ W0 SHALL 提供十个单云属固定场景，并为每个场景分别保存 Cach
 
 ### Requirement: 可追溯的 W0 证据包
 
-W0 SHALL 在仓库中保存机器可读结果、权威 manifest、人类可读索引和截图证据。每份结果 MUST 包含 baseline/manifest version、source revision、采集时间、adapter 信息、features、limits、timestamp availability、配置 fingerprint、case ID、quality/view mode、活跃云体数、warm-up/sample counts、pass statistics、CPU startup timing、截图路径、warnings 和 stale 状态。至少一台支持 `timestamp-query` 的 reference device MUST 完成全部规定性能 case，W0 才能声明性能证据完整。
+W0 SHALL 提供保存机器可读结果、权威 manifest、人类可读索引和截图证据的能力。实际生成的每份结果 MUST 包含 baseline/manifest version、source revision、采集时间、adapter 信息、features、limits、timestamp availability、配置 fingerprint、case ID、quality/view mode、活跃云体数、warm-up/sample counts、pass statistics、CPU startup timing、截图路径、warnings 和 stale 状态。至少一台支持 `timestamp-query` 的 reference device MUST 完成全部建议性能 case，W0 才能声明性能证据完整；未作该声明时，缺少结果包 MAY 被项目所有者接受为非阻塞状态。
 
 #### Scenario: 证据可追溯
 
@@ -83,7 +93,7 @@ W0 SHALL 在仓库中保存机器可读结果、权威 manifest、人类可读�
 
 ### Requirement: W0 不改变渲染行为并阻挡后续实施
 
-benchmark controller SHALL 默认关闭。关闭时 MUST NOT 增加 GPU pass、覆盖渲染参数、改变密度缓存调度或改变 Normal/Density Debug、Cached/Hybrid 的画面。W0 不得实现 `DensityCacheProducer`、V2 shader、Recipe、tile-body mask、noise atlas 或 pipeline 隔离。规定矩阵、结果索引和 reference device timing 未完成前，W0 MUST NOT 标记完成，W1 及后续 Density Engine V2 change MUST NOT 开始实施。
+benchmark controller SHALL 默认关闭。关闭时 MUST NOT 增加 GPU pass、覆盖渲染参数、改变密度缓存调度或改变 Normal/Density Debug、Cached/Hybrid 的画面。W0 不得实现 `DensityCacheProducer`、V2 shader、Recipe、tile-body mask、noise atlas 或 pipeline 隔离。若项目所有者已完成人工视觉签核并明确接受证据缺失，W1 MAY 建立；缺少 reference timing 时，后续 change MUST NOT 声称相对 Legacy 的性能收益。
 
 #### Scenario: Benchmark 关闭保持现状
 
@@ -92,11 +102,10 @@ benchmark controller SHALL 默认关闭。关闭时 MUST NOT 增加 GPU pass、�
 
 #### Scenario: W0 矩阵缺失
 
-- **WHEN** 任一必需单属 case、压力 timing、配置元数据或 reference device GPU timing 缺失
-- **THEN** 证据索引 MUST 将 W0 标为 incomplete，且后续 V2 实施 Gate MUST 保持关闭
+- **WHEN** 任一建议代表 timing case、视觉锚点、配置元数据或 reference device GPU timing 缺失
+- **THEN** 证据索引 MUST 将“性能证据”标为 incomplete；若存在项目所有者人工签核，该状态 MUST NOT 自动关闭 W1 架构 Gate
 
 #### Scenario: W0 完成
 
-- **WHEN** 全部视觉/压力 case、可追溯元数据和 reference device GPU timing 均完整且无未解释 fingerprint mismatch
-- **THEN** W0 MAY 标记完成，并作为后续 Wave 的 Legacy 对照基线，但不得据此自动批准 W1
-
+- **WHEN** benchmark 工具已落地、默认关闭路径经人工确认无视觉回归，且项目所有者明确接受未采集的建议证据
+- **THEN** W0 MAY 作为架构前置工作被接受并允许建立 W1；只有代表 timing、视觉锚点和可追溯元数据均完整时，才 MAY 额外声明“W0 性能证据完整”

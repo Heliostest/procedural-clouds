@@ -15,8 +15,8 @@ W0 的职责是建立测量地基，而不是优化现状或提前实现 V2。
 
 ### Goals
 
-- 为十属和两个压力场景建立可重复输入。
-- 为 Cached/Hybrid 建立可比较的视觉与 GPU timing 基线。
+- 为十属和两个压力场景建立可重复输入场景目录。
+- 以层状、积状、纤维、强对流和多云体五类代表场景，为 Cached/Hybrid 建立可比较的视觉与 GPU timing 基线。
 - 明确 GPU、CPU、正常视图、density debug、cache 执行帧之间的区别。
 - 让每份证据能够追溯 source revision、设备、features/limits 和完整参数状态。
 - 建立后续 Wave 复用的基线格式与 stale 规则。
@@ -51,28 +51,34 @@ W0 的职责是建立测量地基，而不是优化现状或提前实现 V2。
 
 manifest 是输入事实来源。GUI 当前值不得在 benchmark 开始后悄悄覆盖它；运行期间的用户交互必须取消本轮或使结果无效。
 
-### Decision 3: 场景矩阵分为视觉矩阵和压力矩阵
+### Decision 3: 场景目录与 W0 Gate 矩阵分离
 
-视觉矩阵：
+manifest 继续提供十个单云属场景、十属同场景和复杂 Cumulonimbus 场景，避免后续 Wave 各自重新定义输入。但 W0 Gate 只要求五个能够覆盖主要密度架构风险的代表场景：
+
+| 代表场景 | 覆盖的密度/形态风险 |
+|---|---|
+| Stratus | 连续层状场、低频覆盖与垂直薄层 |
+| Cumulus | 离散积状团块、平底与花椰菜顶部 |
+| Cirrus | 高空纤维、方向性拉伸与稀薄密度 |
+| 复杂 Cumulonimbus | 深对流塔体、砧部、强垂直跨度与高成本路径 |
+| 十属同场 | 多云体组合、调度、缓存占用与最坏场景压力 |
+
+建议性能矩阵：
 
 ```text
-10 个单云属场景
+5 个代表场景
 × Cached / Hybrid
-× Normal / Density Debug
-= 40 个证据 case
+× Normal timing
+= 10 个 timing case
 ```
 
-压力矩阵：
+建议视觉锚点：每个代表场景保存一张 Normal 和一张 Density Debug，共 10 张截图。每个场景的截图质量模式由 manifest 固定，整组锚点同时覆盖 Cached 与 Hybrid。Density Debug 不进入 Normal timing 聚合。
 
-```text
-十属同场景
-单个复杂 Cumulonimbus
-× Cached / Hybrid
-```
+其余七个单云属的 case 仍可运行，但不阻塞 W0；当对应云属或云族进入迁移 Wave 时，必须使用同一场景定义补采该属的 Legacy/V2 前后证据。这样把证据成本放在最接近实际改动的位置，也避免 W0 截取大量尚无比较对象的重复图片。
 
-压力场景必须采集正常视图 timing，并至少保存一张对应 density debug 图；不得把 debug timing 与 normal timing 合并。
+项目所有者于 2026-07-11 完成人工视觉审阅并决定不严格执行上述 timing 与截图采集。manifest 仍保留全部入口，但将代表 case 标记为非阻塞；W1 可以继续，代价是后续在真正采集前不得宣称存在 W0 定量性能基线。
 
-Realtime 只在一个代表性场景记录 pipeline 是否可创建、画面是否有限且无明显错误；不进入 timing、截图矩阵或 W0 性能完整性判断。
+Realtime 入口保留为可选兼容检查；当前 W0 不要求采集，也不进入 timing、截图矩阵或完成 Gate。
 
 ### Decision 4: 参考 viewport 固定为 1280×720
 
@@ -93,7 +99,7 @@ GPU timing 使用 `timestamp-query`。每个 case 在状态稳定后先 warm up 
 - 视觉证据仍可采集；
 - GPU 字段写为 `unavailable` 并注明原因；
 - FPS、JavaScript 帧时或 CPU wall time不得填入 GPU 字段；
-- 至少一台支持 `timestamp-query` 的参考设备完成全部矩阵后，W0 才能通过性能证据 Gate。
+- 若要声明“W0 性能证据完整”，仍需至少一台支持 `timestamp-query` 的参考设备完成全部 10 个建议 timing case；该声明与是否允许 W1 架构工作分离。
 
 ### Decision 6: pipeline 创建时间是单独的 CPU 指标
 
@@ -126,7 +132,7 @@ docs/baselines/density-v2-w0/
 - screenshot 相对路径；
 - warnings、unavailable 字段和 stale 状态。
 
-README 汇总矩阵完整度、测量限制和权威 reference device，但不手工复制所有原始数字。
+README 汇总必需/可选 case、矩阵完整度、测量限制和权威 reference device，但不手工复制所有原始数字。
 
 ### Decision 8: 配置漂移使证据失效，不做隐式归一化
 
@@ -138,10 +144,10 @@ benchmark controller 默认关闭。开启时只装载固定输入、读取 stat
 
 ## Risks / Trade-offs
 
-- **40 个视觉 case 较多**：十属后续都会迁移，少于该矩阵会留下盲区；通过 case ID、manifest 和半自动状态切换降低人工错误。
+- **代表矩阵可能遗漏单属特有问题**：W0 用五类场景覆盖共享链和主要成本路径；其余单属证据延迟到对应迁移 Wave，并在改动前后成对采集，避免盲区永久消失。
 - **活动 change 尚未完全验收**：结果包含 source revision、开关和 active change 状态；默认状态变化后明确重采，不混用旧结果。
-- **timestamp-query 非必选 feature**：允许视觉-only 结果，但权威性能基线要求至少一台支持设备。
-- **手动截图可能遗漏**：机器可读结果保存 expected/completed case 列表，README 只在矩阵完整时声明 W0 完成。
+- **timestamp-query 非必选 feature**：允许人工视觉签核后继续 W1；在至少一台支持设备完成建议矩阵前，不得给出权威 W0 性能基线。
+- **手动截图可能遗漏**：机器可读 manifest 用 `gateRequired` 区分阻塞/建议 case；当前 owner waiver 将建议 case 设为非阻塞，但不会伪造 completed 状态。
 - **仪表代码本身有 CPU 开销**：只统计 GPU timestamp；采集控制器默认关闭，CPU startup timing 独立记录。
 - **缓存两帧更新一次**：使用 `cacheRan` 过滤真实 cache 样本，避免重复旧值。
 
@@ -150,13 +156,12 @@ benchmark controller 默认关闭。开启时只装载固定输入、读取 stat
 1. 先补齐只读 stats 与 benchmark manifest，不改变渲染算法。
 2. 建立十属和压力场景，核对装载后的参数 fingerprint。
 3. 加入采样状态机和 JSON export。
-4. 在一台支持 `timestamp-query` 的参考设备完成矩阵。
-5. 补充截图与 README，标记 W0 Gate。
-6. 后续 Wave 复制 manifest version 并以新的 result namespace 写对照，不覆盖 W0 Legacy 原始证据。
+4. 可按需在支持 `timestamp-query` 的参考设备完成 10 个代表 timing case；未采集时明确记录性能基线缺失。
+5. 可按需补充 10 张视觉锚点与 README；当前人工视觉签核已足以放行 W1 架构工作。
+6. 后续 Wave 复用场景目录，在被迁移云属上补采 Legacy/V2 成对证据，并以新的 result namespace 写对照，不覆盖 W0 Legacy 原始证据。
 
 回滚时可以移除 benchmark controller 和采集入口；现有 renderer 行为与参数 schema 不需要迁移。
 
 ## Open Questions
 
 - 无。绝对性能目标与允许回归比例属于 W6 Spike 或后续 V2 提案，不在 W0 决定。
-

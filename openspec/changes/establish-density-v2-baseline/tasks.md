@@ -17,7 +17,7 @@
 - [x] 2.1 扩展 `RenderStats`，暴露 timestamp availability、`cacheRan`、活跃云体数和当前测量所需的既有 pass timing；不改变 pass 内容
 - [x] 2.2 记录 adapter features/limits 和可用 adapter 信息；不新增 required feature
 - [x] 2.3 将 adapter/device/shader/pipeline 首次创建 elapsed time 作为独立 CPU startup timing 记录
-- [ ] 2.4 确认 benchmark controller 默认关闭时无额外 GPU pass、无参数覆盖、无视觉变化
+- [x] 2.4 用户于 2026-07-11 人工确认 benchmark controller 默认关闭时画面与改动前无差异；代码路径确认无额外 benchmark GPU pass 与参数覆盖
 
 ## 3. Sampling and evidence export
 
@@ -29,17 +29,17 @@
 
 ## 4. W0 evidence capture
 
-- [ ] 4.1 在支持 `timestamp-query` 的 reference device 采集 10 属 × Cached/Hybrid × Normal/Density Debug 的 40-case 矩阵
-- [ ] 4.2 采集十属同场景与复杂 Cb 的 Cached/Hybrid 压力 timing，并保存对应 density debug 证据
-- [ ] 4.3 在一个代表场景记录 Realtime pipeline 可创建和有限输出状态；不记录或承诺 Realtime 性能
-- [ ] 4.4 将 manifest、结果 JSON、截图和 README 写入 `docs/baselines/density-v2-w0/`
-- [ ] 4.5 README 记录 reference device、测量限制、active change 状态、缺失 case 与 W0 Gate 结论
+- [x] 4.1 项目所有者于 2026-07-11 豁免严格 timing 采集；保留五个代表场景 × Cached/Hybrid 的 10 个 Normal timing case 作为按需工具，不把未采集状态记作性能完成
+- [x] 4.2 项目所有者于 2026-07-11 接受人工视觉审阅并豁免 10 张视觉锚点；manifest 继续保留可重复截图入口
+- [x] 4.3 将 Realtime 保留为可选兼容入口；当前 W0 不要求采集，且不纳入 timing、截图或完成 Gate
+- [x] 4.4 不生成空的基线证据包；manifest 与 JSON 导出能力保留在代码中，实际采集时再写入 `docs/baselines/density-v2-w0/`
+- [x] 4.5 记录当前结论：人工视觉签核通过、定量 GPU 基线未采集，因此后续不得声称已有 W0 性能数字
 
 ## 5. Validation
 
 - [ ] 5.1 运行 TypeScript typecheck 与 production build
 - [ ] 5.2 运行既有 genus-dispatch 检查，确认十属路由未变
-- [ ] 5.3 A/B 确认 benchmark controller 关闭时正常视图、density debug、Cached/Hybrid 与 change 前一致
-- [ ] 5.4 静态检查 40 个视觉 case、4 个压力 timing case 和 Realtime 状态记录完整
-- [ ] 5.5 运行 `openspec validate establish-density-v2-baseline --strict --no-interactive`
-- [ ] 5.6 W0 证据完整前不创建或实施 W1 `DensityCacheProducer` change
+- [x] 5.3 用户于 2026-07-11 完成人工 A/B，确认 benchmark controller 关闭时正常视图及当前使用的 Cached/Hybrid 与 change 前无视觉差异
+- [x] 5.4 静态确认代表 timing/截图 case 仍可运行，但 `gateRequired=false`；其缺失与 Realtime 缺失均不阻塞后续 Wave
+- [x] 5.5 运行 `openspec validate establish-density-v2-baseline --strict --no-interactive`
+- [x] 5.6 项目所有者于 2026-07-11 明确批准在人工签核基础上创建 W1 `DensityCacheProducer` proposal；未采集 timing 只禁止性能结论
