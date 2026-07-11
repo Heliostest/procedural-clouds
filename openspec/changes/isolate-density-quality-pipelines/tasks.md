@@ -7,9 +7,9 @@
 
 ## 1. Source graph and contracts
 
-- [ ] 1.1 盘点 `shaderSource` 中 shared ABI、cache sampling、Hybrid detail、Legacy evaluator、common render、ground shadow 与 cache writer 的符号依赖，形成显式 source manifest；单独提交
-- [ ] 1.2 定义 `DensityQualityKind`、bundle lifecycle、bundle bindings、requested/active selection 与 per-bundle stats contract；不得修改 `CloudParams.qualityMode` 的 0/1/2 schema
-- [ ] 1.3 增加 source-closure 静态检查：Cached/Hybrid 禁止 `cloudDensityTyped`、`evalBody`、genus dispatch/完整 Legacy evaluator，Future Recipe V2 manifest 禁止 Legacy evaluator
+- [x] 1.1 盘点 `shaderSource` 中 shared ABI、cache sampling、Hybrid detail、Legacy evaluator、common render、ground shadow 与 cache writer 的符号依赖，形成显式 source manifest；单独提交
+- [x] 1.2 定义 `DensityQualityKind`、bundle lifecycle、bundle bindings、requested/active selection 与 per-bundle stats contract；不得修改 `CloudParams.qualityMode` 的 0/1/2 schema
+- [x] 1.3 增加 source-closure 静态检查：Cached/Hybrid 禁止 `cloudDensityTyped`、`evalBody`、genus dispatch/完整 Legacy evaluator，Future Recipe V2 manifest 禁止 Legacy evaluator
 
 ## 2. Shared WGSL extraction
 
