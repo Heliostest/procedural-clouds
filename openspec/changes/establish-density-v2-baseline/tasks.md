@@ -6,10 +6,10 @@
 
 ## 1. Benchmark manifest and fixed scenarios
 
-- [ ] 1.1 定义 versioned benchmark manifest、case ID、配置 fingerprint 与结果类型；单独提交
-- [ ] 1.2 固定 1280×720、96³ cache、update rate 2、相机、时间、暂停、天气、风、生命周期和完整参数快照；单独提交
-- [ ] 1.3 增加十个单云属固定场景并校验 genus/placement/preset 完整性；单独提交
-- [ ] 1.4 增加十属同场景和单个复杂 Cb 压力场景；单独提交
+- [x] 1.1 定义 versioned benchmark manifest、case ID、配置 fingerprint 与结果类型；单独提交
+- [x] 1.2 固定 1280×720、96³ cache、update rate 2、相机、时间、暂停、天气、风、生命周期和完整参数快照；单独提交
+- [x] 1.3 增加十个单云属固定场景并校验 genus/placement/preset 完整性；单独提交
+- [x] 1.4 增加十属同场景和单个复杂 Cb 压力场景；单独提交
 - [ ] 1.5 benchmark 装载后计算 fingerprint；用户交互或参数漂移必须取消/使本轮无效
 
 ## 2. Read-only instrumentation
