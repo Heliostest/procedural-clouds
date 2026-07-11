@@ -14,9 +14,9 @@
 
 ## 2. Read-only instrumentation
 
-- [ ] 2.1 扩展 `RenderStats`，暴露 timestamp availability、`cacheRan`、活跃云体数和当前测量所需的既有 pass timing；不改变 pass 内容
-- [ ] 2.2 记录 adapter features/limits 和可用 adapter 信息；不新增 required feature
-- [ ] 2.3 将 adapter/device/shader/pipeline 首次创建 elapsed time 作为独立 CPU startup timing 记录
+- [x] 2.1 扩展 `RenderStats`，暴露 timestamp availability、`cacheRan`、活跃云体数和当前测量所需的既有 pass timing；不改变 pass 内容
+- [x] 2.2 记录 adapter features/limits 和可用 adapter 信息；不新增 required feature
+- [x] 2.3 将 adapter/device/shader/pipeline 首次创建 elapsed time 作为独立 CPU startup timing 记录
 - [ ] 2.4 确认 benchmark controller 默认关闭时无额外 GPU pass、无参数覆盖、无视觉变化
 
 ## 3. Sampling and evidence export

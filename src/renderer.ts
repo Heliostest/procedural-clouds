@@ -428,10 +428,14 @@ function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'r
 
 export interface RenderStats {
   gpuTiming: boolean;
+  gpuSampleId: number;
+  cacheSampleId: number;
+  cacheRan: boolean;
   cloudMs: number;
   cacheMs: number;
   shadowMs: number;
   postMs: number;
+  activeBodyCount: number;
   width: number;
   height: number;
   densityRes: number;
@@ -440,11 +444,33 @@ export interface RenderStats {
   shadowMapResolution: number;
   shadowUpdated: boolean;
   shadowHistoryResetReason: string;
+  deviceInfo: RendererDeviceInfo;
+  startupTiming: RendererStartupTiming;
+}
+
+export interface RendererDeviceInfo {
+  adapter: {
+    vendor: string;
+    architecture: string;
+    device: string;
+    description: string;
+  };
+  features: string[];
+  limits: Record<string, number>;
+}
+
+export interface RendererStartupTiming {
+  adapterRequestMs: number;
+  deviceRequestMs: number;
+  shaderModuleCreateMs: number;
+  pipelineCreateMs: number;
+  totalCreateRendererMs: number;
 }
 
 export interface Renderer {
   getStats(): RenderStats;
   resizeCanvas(): void;
+  setFixedCanvasSize(size: { width: number; height: number } | null): void;
   setDensityResolution(res: number): void;
   setWeatherSize(size: number): void;
   setCacheWorkgroup(x: number, y: number, z: number): void;
@@ -456,35 +482,85 @@ export interface Renderer {
 }
 
 export async function createRenderer(canvas: HTMLCanvasElement): Promise<Renderer> {
+  const createRendererStarted = performance.now();
   if (!navigator.gpu) {
     document.body.innerHTML = '<p style="color:white;padding:2rem;">WebGPU is not supported in this browser.</p>';
     throw new Error('WebGPU not supported');
   }
 
+  const adapterRequestStarted = performance.now();
   const adapter = await navigator.gpu.requestAdapter();
+  const adapterRequestMs = performance.now() - adapterRequestStarted;
   if (!adapter) throw new Error('No appropriate GPUAdapter found');
 
   const hasTimestamp = adapter.features.has('timestamp-query');
+  const deviceRequestStarted = performance.now();
   const device = await adapter.requestDevice(
     hasTimestamp ? { requiredFeatures: ['timestamp-query'] } : {},
   );
+  const deviceRequestMs = performance.now() - deviceRequestStarted;
   const context = canvas.getContext('webgpu');
   if (!context) throw new Error('Failed to get webgpu context');
 
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format });
 
-  const shaderModule = device.createShaderModule({ code: shaderSource });
+  let shaderModuleCreateMs = 0;
+  let pipelineCreateMs = 0;
+  function createShaderModuleTimed(descriptor: GPUShaderModuleDescriptor): GPUShaderModule {
+    const started = performance.now();
+    const result = device.createShaderModule(descriptor);
+    shaderModuleCreateMs += performance.now() - started;
+    return result;
+  }
+  function createRenderPipelineTimed(descriptor: GPURenderPipelineDescriptor): GPURenderPipeline {
+    const started = performance.now();
+    const result = device.createRenderPipeline(descriptor);
+    pipelineCreateMs += performance.now() - started;
+    return result;
+  }
+  function createComputePipelineTimed(descriptor: GPUComputePipelineDescriptor): GPUComputePipeline {
+    const started = performance.now();
+    const result = device.createComputePipeline(descriptor);
+    pipelineCreateMs += performance.now() - started;
+    return result;
+  }
+  const adapterInfo = adapter.info;
+  const deviceInfo: RendererDeviceInfo = {
+    adapter: {
+      vendor: adapterInfo.vendor ?? '',
+      architecture: adapterInfo.architecture ?? '',
+      device: adapterInfo.device ?? '',
+      description: adapterInfo.description ?? '',
+    },
+    features: Array.from(adapter.features, (feature) => String(feature)).sort(),
+    limits: {
+      maxTextureDimension1D: adapter.limits.maxTextureDimension1D,
+      maxTextureDimension2D: adapter.limits.maxTextureDimension2D,
+      maxTextureDimension3D: adapter.limits.maxTextureDimension3D,
+      maxTextureArrayLayers: adapter.limits.maxTextureArrayLayers,
+      maxBindGroups: adapter.limits.maxBindGroups,
+      maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+      maxComputeWorkgroupStorageSize: adapter.limits.maxComputeWorkgroupStorageSize,
+      maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
+      maxComputeWorkgroupSizeX: adapter.limits.maxComputeWorkgroupSizeX,
+      maxComputeWorkgroupSizeY: adapter.limits.maxComputeWorkgroupSizeY,
+      maxComputeWorkgroupSizeZ: adapter.limits.maxComputeWorkgroupSizeZ,
+      maxComputeWorkgroupsPerDimension: adapter.limits.maxComputeWorkgroupsPerDimension,
+    },
+  };
 
-  const pipeline = device.createRenderPipeline({
+  const shaderModule = createShaderModuleTimed({ code: shaderSource });
+
+  const pipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: shaderModule, entryPoint: 'vs' },
     fragment: { module: shaderModule, entryPoint: 'fs', targets: [{ format: OFFSCREEN_FORMAT }] },
     primitive: { topology: 'triangle-list' },
   });
 
-  const postModule = device.createShaderModule({ code: postShaderSource });
-  const postPipeline = device.createRenderPipeline({
+  const postModule = createShaderModuleTimed({ code: postShaderSource });
+  const postPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: postModule, entryPoint: 'vsPost' },
     fragment: { module: postModule, entryPoint: 'fsPost', targets: [{ format }] },
@@ -496,20 +572,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   const postData = new Float32Array(12);
 
-  const bloomModule = device.createShaderModule({ code: bloomShaderSource });
-  const bloomExtractPipeline = device.createRenderPipeline({
+  const bloomModule = createShaderModuleTimed({ code: bloomShaderSource });
+  const bloomExtractPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: bloomModule, entryPoint: 'vsBloom' },
     fragment: { module: bloomModule, entryPoint: 'fsBloomExtract', targets: [{ format: OFFSCREEN_FORMAT }] },
     primitive: { topology: 'triangle-list' },
   });
-  const bloomDownPipeline = device.createRenderPipeline({
+  const bloomDownPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: bloomModule, entryPoint: 'vsBloom' },
     fragment: { module: bloomModule, entryPoint: 'fsBloomDown', targets: [{ format: OFFSCREEN_FORMAT }] },
     primitive: { topology: 'triangle-list' },
   });
-  const bloomUpPipeline = device.createRenderPipeline({
+  const bloomUpPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: bloomModule, entryPoint: 'vsBloom' },
     fragment: {
@@ -537,8 +613,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   const dummyBloomView = dummyBloomTexture.createView();
 
-  const taaModule = device.createShaderModule({ code: taaShaderSource });
-  const taaPipeline = device.createRenderPipeline({
+  const taaModule = createShaderModuleTimed({ code: taaShaderSource });
+  const taaPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: { module: taaModule, entryPoint: 'vsTaa' },
     fragment: { module: taaModule, entryPoint: 'fsTaa', targets: [{ format: OFFSCREEN_FORMAT }] },
@@ -562,7 +638,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let cornerRadius = 0.5;
   let sceneScale: SceneScale = { ...DEFAULT_SCENE_SCALE };
   let cacheWg: [number, number, number] = [8, 8, 4];
-  let computePipeline = device.createComputePipeline({
+  let computePipeline = createComputePipelineTimed({
     layout: 'auto',
     compute: {
       module: shaderModule,
@@ -570,16 +646,16 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       constants: { wg_x: cacheWg[0], wg_y: cacheWg[1], wg_z: cacheWg[2] },
     },
   });
-  const groundShadowPipeline = device.createComputePipeline({
+  const groundShadowPipeline = createComputePipelineTimed({
     layout: 'auto',
     compute: { module: shaderModule, entryPoint: 'csGroundShadow' },
   });
-  const groundShadowResolveModule = device.createShaderModule({ code: groundShadowResolveSource });
-  const groundShadowFilterPipeline = device.createComputePipeline({
+  const groundShadowResolveModule = createShaderModuleTimed({ code: groundShadowResolveSource });
+  const groundShadowFilterPipeline = createComputePipelineTimed({
     layout: 'auto',
     compute: { module: groundShadowResolveModule, entryPoint: 'csGroundShadowFilter' },
   });
-  const groundShadowResolvePipeline = device.createComputePipeline({
+  const groundShadowResolvePipeline = createComputePipelineTimed({
     layout: 'auto',
     compute: { module: groundShadowResolveModule, entryPoint: 'csGroundShadowResolve' },
   });
@@ -647,8 +723,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     });
   }
 
-  const lineModule = device.createShaderModule({ code: lineShaderSource });
-  const linePipeline = device.createRenderPipeline({
+  const lineModule = createShaderModuleTimed({ code: lineShaderSource });
+  const linePipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: {
       module: lineModule,
@@ -676,7 +752,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     layout: linePipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: lineCamBuffer } }],
   });
-  const axisPipeline = device.createRenderPipeline({
+  const axisPipeline = createRenderPipelineTimed({
     layout: 'auto',
     vertex: {
       module: lineModule,
@@ -696,6 +772,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     },
     primitive: { topology: 'triangle-list', cullMode: 'none' },
   });
+  const startupTiming: RendererStartupTiming = {
+    adapterRequestMs,
+    deviceRequestMs,
+    shaderModuleCreateMs,
+    pipelineCreateMs,
+    totalCreateRendererMs: 0,
+  };
   const axisVertexBuffer = device.createBuffer({
     size: MAX_AXIS_VERTS * 24,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -1070,10 +1153,24 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     historyValid = false;
   }
 
+  let fixedCanvasSize: { width: number; height: number } | null = null;
+
   function resizeCanvas(): void {
+    if (fixedCanvasSize) {
+      canvas.width = fixedCanvasSize.width;
+      canvas.height = fixedCanvasSize.height;
+      return;
+    }
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvas.clientWidth * dpr;
     canvas.height = canvas.clientHeight * dpr;
+  }
+
+  function setFixedCanvasSize(size: { width: number; height: number } | null): void {
+    fixedCanvasSize = size
+      ? { width: Math.max(1, Math.round(size.width)), height: Math.max(1, Math.round(size.height)) }
+      : null;
+    resizeCanvas();
   }
 
   let frameIndex = 0;
@@ -1086,10 +1183,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let tsMapping = false;
   const stats = {
     gpuTiming: hasTimestamp,
+    gpuSampleId: 0,
+    cacheSampleId: 0,
+    cacheRan: false,
     cloudMs: 0,
     cacheMs: 0,
     shadowMs: 0,
     postMs: 0,
+    activeBodyCount: 0,
     width: 0,
     height: 0,
     densityRes,
@@ -1098,6 +1199,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
+    deviceInfo,
+    startupTiming,
   };
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
@@ -1607,6 +1710,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     stats.width = canvas.width;
     stats.height = canvas.height;
+    stats.activeBodyCount = Math.min(currentBodies.length, MAX_BODIES);
     stats.densityRes = densityRes;
     stats.weatherSize = weatherSize;
     stats.cacheWg = [cacheWg[0], cacheWg[1], cacheWg[2]];
@@ -1626,6 +1730,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         if (cacheRan) {
           const cacheNs = Number(ts[1] - ts[0]);
           if (cacheNs >= 0) stats.cacheMs = cacheNs / 1e6;
+          stats.cacheSampleId++;
         }
         if (shadowRan) {
           const integrationNs = Number(ts[3] - ts[2]);
@@ -1633,6 +1738,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           const resolveNs = Number(ts[7] - ts[6]);
           if (integrationNs >= 0 && filterNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + filterNs + resolveNs) / 1e6;
         }
+        stats.cacheRan = cacheRan;
+        stats.gpuSampleId++;
         tsMapping = false;
       }).catch(() => { tsMapping = false; });
     }
@@ -1642,9 +1749,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     return stats;
   }
 
+  startupTiming.shaderModuleCreateMs = shaderModuleCreateMs;
+  startupTiming.pipelineCreateMs = pipelineCreateMs;
+  startupTiming.totalCreateRendererMs = performance.now() - createRendererStarted;
+
   return {
     getStats,
     resizeCanvas,
+    setFixedCanvasSize,
     setDensityResolution,
     setWeatherSize,
     setCacheWorkgroup,
