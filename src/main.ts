@@ -163,7 +163,58 @@ async function main(): Promise<void> {
     },
   });
   window.densityBenchmark = benchmark;
-  const requestedBenchmarkCase = new URLSearchParams(window.location.search).get('benchmarkCase');
+  const benchmarkQuery = new URLSearchParams(window.location.search);
+  const requestedBenchmarkCase = benchmarkQuery.get('benchmarkCase');
+  if (benchmarkQuery.get('benchmark') === '1') {
+    const panel = document.createElement('div');
+    panel.id = 'density-benchmark-controls';
+    panel.dataset.testid = 'density-benchmark-controls';
+    panel.style.cssText = 'position:fixed;left:8px;top:44px;z-index:10001;display:grid;grid-template-columns:auto auto;gap:6px;padding:8px;background:rgba(0,0,0,0.78);color:#d7f7b5;font:11px/1.4 monospace;border-radius:4px';
+    const select = document.createElement('select');
+    select.dataset.testid = 'density-benchmark-case';
+    for (const candidate of benchmark.manifest.cases) {
+      const option = document.createElement('option');
+      option.value = candidate.id;
+      option.textContent = candidate.id;
+      select.appendChild(option);
+    }
+    const startButton = document.createElement('button');
+    startButton.dataset.testid = 'density-benchmark-start';
+    startButton.textContent = 'Start case';
+    startButton.addEventListener('click', () => benchmark.start(select.value));
+    const screenshotButton = document.createElement('button');
+    screenshotButton.dataset.testid = 'density-benchmark-mark-screenshot';
+    screenshotButton.textContent = 'Mark screenshot';
+    screenshotButton.addEventListener('click', () => benchmark.markScreenshot());
+    const copyButton = document.createElement('button');
+    copyButton.dataset.testid = 'density-benchmark-copy-results';
+    copyButton.textContent = 'Copy results';
+    copyButton.addEventListener('click', () => {
+      void navigator.clipboard.writeText(benchmark.exportJson());
+    });
+    const copyManifestButton = document.createElement('button');
+    copyManifestButton.dataset.testid = 'density-benchmark-copy-manifest';
+    copyManifestButton.textContent = 'Copy manifest';
+    copyManifestButton.addEventListener('click', () => {
+      void navigator.clipboard.writeText(`${JSON.stringify(benchmark.manifest, null, 2)}\n`);
+    });
+    const downloadButton = document.createElement('button');
+    downloadButton.dataset.testid = 'density-benchmark-download-results';
+    downloadButton.textContent = 'Download results';
+    downloadButton.addEventListener('click', benchmark.downloadJson);
+    const cleanCaptureButton = document.createElement('button');
+    cleanCaptureButton.dataset.testid = 'density-benchmark-clean-capture';
+    cleanCaptureButton.textContent = 'Clean capture (5s)';
+    cleanCaptureButton.addEventListener('click', () => {
+      document.body.classList.add('density-benchmark-clean-capture');
+      window.setTimeout(() => document.body.classList.remove('density-benchmark-clean-capture'), 5000);
+    });
+    const cleanCaptureStyle = document.createElement('style');
+    cleanCaptureStyle.textContent = 'body.density-benchmark-clean-capture > *:not(#canvas) { visibility: hidden !important; }';
+    document.head.appendChild(cleanCaptureStyle);
+    panel.append(select, startButton, screenshotButton, copyButton, copyManifestButton, downloadButton, cleanCaptureButton);
+    document.body.appendChild(panel);
+  }
   if (requestedBenchmarkCase) benchmark.start(requestedBenchmarkCase);
 
   let lastCam: CameraFrame | null = null;
@@ -241,7 +292,7 @@ async function main(): Promise<void> {
       lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)} · ${t('post')} ${s.postMs.toFixed(2)})`);
       if (params.groundShadowMode === 2) lines.push(`shadow compute: ${s.shadowMs.toFixed(2)}ms`);
     } else {
-      lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}`);
+      lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}${s.gpuTimingError ? ` (${s.gpuTimingError})` : ''}`);
     }
     if (measureState !== 'idle') {
       lines.push(`${t('lightShare')}: ${t('measuring')}`);

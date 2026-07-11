@@ -428,6 +428,7 @@ function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'r
 
 export interface RenderStats {
   gpuTiming: boolean;
+  gpuTimingError: string;
   gpuSampleId: number;
   cacheSampleId: number;
   shadowSampleId: number;
@@ -1185,6 +1186,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let tsMapping = false;
   const stats = {
     gpuTiming: hasTimestamp,
+    gpuTimingError: '',
     gpuSampleId: 0,
     cacheSampleId: 0,
     shadowSampleId: 0,
@@ -1724,7 +1726,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     if (tsRead && !tsMapping) {
       tsMapping = true;
-      tsRead.mapAsync(GPUMapMode.READ).then(() => {
+      device.queue.onSubmittedWorkDone().then(() => tsRead.mapAsync(GPUMapMode.READ)).then(() => {
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
         tsRead.unmap();
         const renderNs = Number(ts[9] - ts[8]);
@@ -1747,7 +1749,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         stats.shadowRan = shadowRan;
         stats.gpuSampleId++;
         tsMapping = false;
-      }).catch(() => { tsMapping = false; });
+      }).catch((error: unknown) => {
+        stats.gpuTimingError = error instanceof Error ? error.message : String(error);
+        stats.gpuTiming = false;
+        tsMapping = false;
+      });
     }
   }
 

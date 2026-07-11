@@ -246,7 +246,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
         }
       : {
           availability: 'unavailable',
-          reason: 'timestamp-query is not supported by this adapter',
+          reason: stats.gpuTimingError || 'timestamp-query is not supported by this adapter',
           unit: 'gpu-ms',
         };
     const existing = results.get(active.definition.id);
@@ -393,7 +393,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       return;
     }
     if (!stats.gpuTiming) {
-      active.warnings.push('timestamp-query unavailable; visual evidence only');
+      active.warnings.push(`${stats.gpuTimingError || 'timestamp-query unavailable'}; visual evidence only`);
       complete(active, stats);
       return;
     }
