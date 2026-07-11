@@ -14,6 +14,13 @@ import { metersToWorldXZ, metersToWorldY } from './space';
 import { verifyPhysicalContracts } from './physicalVerification';
 import { createWindAdvectionController, WIND_DEMO_MAX_MPS } from './wind';
 import { DEFAULT_SIMULATION_RATE, scaledSimulationDelta, type SimulationState } from './simulationTime';
+import { createDensityBenchmarkController, type DensityBenchmarkController } from './densityBenchmark';
+
+declare global {
+  interface Window {
+    densityBenchmark?: DensityBenchmarkController;
+  }
+}
 
 const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 
@@ -135,6 +142,30 @@ async function main(): Promise<void> {
     },
   });
 
+  let benchmarkStatusEl: HTMLPreElement | null = null;
+  const benchmark = createDensityBenchmarkController({
+    canvas,
+    params,
+    renderer,
+    onStatusChange(status) {
+      if (!benchmarkStatusEl) {
+        benchmarkStatusEl = document.createElement('pre');
+        benchmarkStatusEl.id = 'density-benchmark-status';
+        benchmarkStatusEl.style.cssText = 'position:fixed;right:8px;bottom:8px;margin:0;padding:8px 10px;font:11px/1.45 monospace;color:#d7f7b5;background:rgba(0,0,0,0.72);white-space:pre;pointer-events:none;z-index:10000;border-radius:4px;max-width:58ch';
+        document.body.appendChild(benchmarkStatusEl);
+      }
+      benchmarkStatusEl.textContent = [
+        `W0 ${status.state}: ${status.caseId ?? '-'}`,
+        `warmup ${status.warmupFrames}/${status.requiredWarmupFrames}`,
+        `samples cloud ${status.cloudSamples}/${status.requiredGpuSamples} · cache ${status.cacheSamples}/${status.requiredGpuSamples}`,
+        status.message,
+      ].join('\n');
+    },
+  });
+  window.densityBenchmark = benchmark;
+  const requestedBenchmarkCase = new URLSearchParams(window.location.search).get('benchmarkCase');
+  if (requestedBenchmarkCase) benchmark.start(requestedBenchmarkCase);
+
   let lastCam: CameraFrame | null = null;
   gizmo = createGizmoController({
     canvas,
@@ -248,7 +279,8 @@ async function main(): Promise<void> {
     lastElapsed = elapsed;
     const simulationDelta = scaledSimulationDelta(deltaTime, simulationState.rate);
 
-    if (scenarioState.enabled) {
+    const benchmarkFrame = benchmark.getFrameOverride();
+    if (!benchmarkFrame && scenarioState.enabled) {
       if (timeline.scrub) {
         playhead = timeline.time;
       } else if (scenarioState.playing) {
@@ -265,7 +297,7 @@ async function main(): Promise<void> {
         renderer.setWindSamples(s.windSamples);
         lastPlayhead = playhead;
       }
-    } else {
+    } else if (!benchmarkFrame) {
       if (lastPlayhead >= 0) {
         renderer.setBodies(store.list());
         renderer.setWindSamples(manualWind.samples(store.list()));
@@ -284,15 +316,16 @@ async function main(): Promise<void> {
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
     const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
     camera.setSceneBounds(worldBoxHalfExtent, worldCloudHeight);
-    camera.update(deltaTime);
+    if (!benchmarkFrame) camera.update(deltaTime);
 
     const aspect = canvas.width / canvas.height;
-    const cam = camera.computeFrame(aspect);
+    const cam = benchmarkFrame?.camera ?? camera.computeFrame(aspect);
     lastCam = cam;
-    const sceneClock = scenarioState.enabled
+    const sceneClock = benchmarkFrame?.sceneClock ?? (scenarioState.enabled
       ? playhead
-      : (timeline.scrub ? timeline.time : manualClock);
+      : (timeline.scrub ? timeline.time : manualClock));
     renderer.renderFrame(params, cam, elapsed, sceneClock);
+    benchmark.observe(renderer.getStats());
     axisLabels.update(params.showAxes, cam.viewProj, canvas, worldBoxHalfExtent, worldCloudHeight, {
       verticalMetersPerWorldUnit: params.verticalMetersPerWorldUnit,
       horizontalMetersPerWorldUnit: params.horizontalMetersPerWorldUnit,
