@@ -21,6 +21,18 @@ npm run dev
 ```
 Then open the URL printed by Vite (typically `http://localhost:5173`).
 
+## Public Debugging
+
+Start the Vite development server and a temporary Cloudflare Quick Tunnel with one command:
+
+```bash
+npm run dev:public
+```
+
+Open the HTTPS `https://...trycloudflare.com` URL printed by the `tunnel` process. No Cloudflare account or token is required. The public URL remains available only while this command is running; press `Ctrl+C` to stop both the tunnel and the local server.
+
+Quick Tunnels are intended only for temporary testing. Anyone with the generated URL can reach the development server, so do not expose sensitive local content or share the URL more widely than necessary.
+
 ## Controls
 The UI panel exposes these parameters:
 - `Density`: Overall cloud density multiplier

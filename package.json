@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:public": "node scripts/start-public-dev.mjs",
     "test:genus-dispatch": "node scripts/check-genus-dispatch.mjs",
     "test:ground-shadow-hash": "node scripts/check-ground-shadow-hash.mjs",
     "typecheck": "tsc --noEmit",
@@ -17,7 +18,8 @@
     "@webgpu/types": "^0.1.70",
     "gh-pages": "^6.3.0",
     "typescript": "^6.0.3",
-    "vite": "^6.4.1"
+    "vite": "^6.4.1",
+    "wrangler": "^4.110.0"
   },
   "dependencies": {
     "lil-gui": "^0.21.0",
