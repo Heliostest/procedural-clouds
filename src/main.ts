@@ -238,7 +238,6 @@ async function main(): Promise<void> {
 
   let emaCpuMs = 0;
   let emaWorkMs = 0;
-  const QUALITY_NAMES = ['Cached', 'Hybrid', 'Realtime'];
   const GROUND_SHADOW_NAMES = ['Legacy', 'Adaptive', 'Transmittance'];
 
   function estimatedGroundShadowSteps(): number {
@@ -303,7 +302,13 @@ async function main(): Promise<void> {
     lines.push(`${t('perfRes')}: ${s.width}×${s.height} (${(px / 1e6).toFixed(2)}M px)`);
     lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
     lines.push(`${t('perfVoxels')}: ${s.densityRes}³ (${((s.densityRes ** 3) / 1e6).toFixed(2)}M) wg ${s.cacheWg.join('×')}`);
-    lines.push(`${t('perfQuality')}: ${QUALITY_NAMES[params.qualityMode] ?? params.qualityMode}   weather ${s.weatherSize}²`);
+    lines.push(`${t('perfQuality')}: requested=${s.densityQualityRequested} active=${s.densityQualityActive}${s.densityQualityFallbackReason ? ` fallback=${s.densityQualityFallbackReason}` : ''}   weather ${s.weatherSize}²`);
+    const qualityPipelineSummary = (['cached', 'hybrid', 'realtime'] as const).map((kind) => {
+      const state = s.densityQualityPipelines[kind];
+      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
+      return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
+    }).join(' ');
+    lines.push(`quality pipelines: ${qualityPipelineSummary}`);
     lines.push(`density producer: requested=${s.densityProducerRequested} active=${s.densityProducerActive}${s.densityProducerFallbackReason ? ` fallback=${s.densityProducerFallbackReason}` : ''}`);
     lines.push(`ground shadow: ${GROUND_SHADOW_NAMES[params.groundShadowMode] ?? params.groundShadowMode} ~${estimatedGroundShadowSteps()}/${params.groundShadowMaxSteps} samples`);
     if (params.groundShadowMode === 2) {
