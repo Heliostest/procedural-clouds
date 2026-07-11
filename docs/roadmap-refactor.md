@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已建立 OpenSpec 提案、等待批准；W2–W12 尚未建立提案。
+> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 代码与自动检查已完成，等待项目所有者完成 Cached/Hybrid 与 V2→Legacy 回退的最终视觉签核；W2–W12 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
