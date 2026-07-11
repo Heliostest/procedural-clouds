@@ -1214,7 +1214,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
   const cameraData = new Float32Array(20);
 
-  function buildParams(params: CloudParams, activeQualityMode: number, cacheBlend: number, sceneTime: number, deltaTime: number, frameIndex: number, jitterX: number, jitterY: number, taaOn: boolean, groundShadowMapValid: boolean, groundShadowPhase: number): Float32Array {
+  function buildParams(
+    params: CloudParams,
+    activeQualityMode: number,
+    cacheBlend: number,
+    densityResolution: number,
+    sceneTime: number,
+    deltaTime: number,
+    frameIndex: number,
+    jitterX: number,
+    jitterY: number,
+    taaOn: boolean,
+    groundShadowMapValid: boolean,
+    groundShadowPhase: number,
+  ): Float32Array {
     packParams(paramsData, {
       rayMarchSteps: params.rayMarchSteps,
       lightMarchSteps: params.lightMarchSteps,
@@ -1274,6 +1287,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       energyConservingScatter: params.energyConservingScatter,
       densityShapeModel: params.densityShapeModel,
       heightAmbientModel: params.heightAmbientModel,
+      densityResolution,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
     return paramsData;
@@ -1394,6 +1408,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       windSamples: currentWindSamples,
       sceneRevision: densitySceneRevision,
     });
+    const densityResolution = densityProducer.getStats().resolution;
     const cacheWillRun = densityPlan.willEncode;
     rebuildQualityBindings(qualityChanged);
 
@@ -1463,7 +1478,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       : 0;
     const effectiveShadowHistoryWeight = params.groundShadowHistoryWeight * motionHistoryScale;
     if (transmittanceMode) lastGroundShadowSignature = shadowSignature;
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, activeQualityMode, densityPlan.cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(
+      params,
+      activeQualityMode,
+      densityPlan.cacheBlend,
+      densityResolution,
+      clock,
+      deltaTime,
+      frameIndex,
+      jitterX,
+      jitterY,
+      taaOn,
+      groundShadowWillBeValid,
+      groundShadowPhaseIndex,
+    ));
 
     const commandEncoder = device.createCommandEncoder();
     let shadowRan = false;

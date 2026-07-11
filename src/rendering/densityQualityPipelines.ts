@@ -88,28 +88,32 @@ export function createDensityQualityBindings(
   bundle: DensityQualityPipelineBundle,
   resources: DensityQualityBindingResources,
 ): DensityQualityBindings {
-  const sceneEntries: GPUBindGroupEntry[] = [
+  const sharedSceneEntries: GPUBindGroupEntry[] = [
     { binding: 1, resource: { buffer: resources.paramsBuffer } },
     { binding: 4, resource: { buffer: resources.presetBuffer } },
   ];
-  if (bundle.kind !== 'cached') {
-    sceneEntries.splice(1, 0,
-      { binding: 2, resource: resources.shapeView },
-      { binding: 3, resource: resources.weatherSampler },
-    );
-  }
+  const weatherEntries: GPUBindGroupEntry[] = [
+    { binding: 2, resource: resources.shapeView },
+    { binding: 3, resource: resources.weatherSampler },
+  ];
+  // Every fragment entry can reach the shared weather debug view, even Cached.
   const cloudScene = device.createBindGroup({
     label: `density-quality-${bundle.kind}-cloud-scene`,
     layout: bundle.cloudPipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: resources.cameraBuffer } },
-      ...sceneEntries,
+      ...sharedSceneEntries,
+      ...weatherEntries,
     ],
   });
   const groundShadowScene = device.createBindGroup({
     label: `density-quality-${bundle.kind}-ground-shadow-scene`,
     layout: bundle.groundShadowPipeline.getBindGroupLayout(0),
-    entries: sceneEntries,
+    // Cached shadow integration samples the density cache only. Hybrid detail and
+    // the Realtime evaluator still need weather resources in their shadow entry.
+    entries: bundle.kind === 'cached'
+      ? sharedSceneEntries
+      : [...sharedSceneEntries, ...weatherEntries],
   });
 
   let cloudDensity: GPUBindGroup | null = null;

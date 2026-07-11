@@ -75,6 +75,7 @@ export const PARAM_OFFSETS: Record<string, number> = {
   energyConservingScatter: 56,
   densityShapeModel: 57,
   heightAmbientModel: 58,
+  densityResolution: 59,
 };
 
 export const GROUND_SHADOW_MODE = {

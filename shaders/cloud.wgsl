@@ -68,7 +68,7 @@ struct Globals {
   energyConservingScatter : f32,
   densityShapeModel : f32,
   heightAmbientModel : f32,
-  _pad12          : f32,
+  densityResolution : f32,
 };
 
 struct BodyGPU {
@@ -925,9 +925,10 @@ fn integrateGroundShadow(p : vec3f, shadowCell : vec2u, phase : u32) -> GroundSh
   let t1 = h.tFar;
   if (t1 <= t0) { return GroundShadowResult(1.0, 0.0); }
 
-  let dims = max(vec3f(textureDimensions(densityTex0, 0)), vec3f(1.0));
-  let voxel = (getBoxMax() - boxMin()) / dims;
-  let targetStep = max(max(voxel.x, voxel.z) * max(params.g.groundShadowStepScale, 0.1), 0.001);
+  // Keep the adaptive step tied to density voxel scale without making Realtime
+  // shadow integration statically depend on a density-cache texture binding.
+  let densityVoxelXZ = (2.0 * boxMaxXZ()) / max(params.g.densityResolution, 1.0);
+  let targetStep = max(densityVoxelXZ * max(params.g.groundShadowStepScale, 0.1), 0.001);
   let maxSteps = clamp(i32(round(params.g.groundShadowMaxSteps)), 8, GROUND_SHADOW_MAX_STEPS);
   let desiredSteps = max(8, i32(ceil((t1 - t0) / targetStep)));
   let steps = min(maxSteps, desiredSteps);

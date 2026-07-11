@@ -7,6 +7,7 @@ const noise = readFileSync(resolve(root, 'shaders/noise.wgsl'), 'utf8');
 const manifestSource = readFileSync(resolve(root, 'src/rendering/densityShaderSources.ts'), 'utf8');
 const rendererSource = readFileSync(resolve(root, 'src/renderer.ts'), 'utf8');
 const managerSource = readFileSync(resolve(root, 'src/rendering/densityQualityPipelines.ts'), 'utf8');
+const paramsSource = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
 const genusNames = [
   'common', 'cumulus', 'stratus', 'stratocumulus', 'cumulonimbus',
   'altocumulus', 'altostratus', 'nimbostratus', 'cirrus', 'cirrostratus',
@@ -99,6 +100,16 @@ if (!rendererSource.includes('createRealtime: () => createDensityQualityPipeline
 }
 if (!managerSource.includes("kind === 'realtime' && state.lifecycle === 'idle'")) {
   throw new Error('Realtime manager does not guard first creation behind an idle request');
+}
+const cloudBindingSource = between(managerSource, 'const cloudScene =', 'const groundShadowScene =');
+if (!cloudBindingSource.includes('...weatherEntries,')) {
+  throw new Error('Cloud render bindings do not provide shared debug weather resources to every quality mode');
+}
+if (realtime.includes('textureDimensions(densityTex0')) {
+  throw new Error('Ground-shadow source derives step size from a density-cache texture');
+}
+if (!realtime.includes('params.g.densityResolution') || !paramsSource.includes('densityResolution: 59')) {
+  throw new Error('Ground-shadow density resolution uniform contract is incomplete');
 }
 
 console.log('density pipeline source closures are isolated');
