@@ -12,17 +12,17 @@
 
 ## 2. LegacyDensityAdapter extraction
 
-- [ ] 2.1 将 density textures、cache index/valid count、transition timing、wind snapshot 与 update-rate/voxel-motion 调度移入 `LegacyDensityAdapter`；单独提交
-- [ ] 2.2 将 Legacy cache compute dispatch、storage bind group 与 pass instrumentation 移入 Adapter；保持当前 pipeline、binding、dispatch 和 pass 顺序；单独提交
-- [ ] 2.3 将 resolution/workgroup 更新、resource generation、content revision 和相关资源重建移入 Adapter；不得改变默认值
-- [ ] 2.4 将 cacheRan、active body、resolution/workgroup、create/rebuild timing 与 cache timing 映射到 `DensityProducerStats`
+- [x] 2.1 将 density textures、cache index/valid count、transition timing、wind snapshot 与 update-rate/voxel-motion 调度移入 `LegacyDensityAdapter`；单独提交
+- [x] 2.2 将 Legacy cache compute dispatch、storage bind group 与 pass instrumentation 移入 Adapter；保持当前 pipeline、binding、dispatch 和 pass 顺序；单独提交
+- [x] 2.3 将 resolution/workgroup 更新、resource generation、content revision 和相关资源重建移入 Adapter；不得改变默认值
+- [x] 2.4 将 cacheRan、active body、resolution/workgroup、create/rebuild timing 与 cache timing 映射到 `DensityProducerStats`
 
 ## 3. Consumer isolation
 
-- [ ] 3.1 主 cloud render 只用 `DensityCacheOutput` 创建 sampled bind group，不再访问 Adapter 内部 density texture/index/pipeline
-- [ ] 3.2 ground-shadow compute 只用同一 output 创建 sampled bind group，并以 resource generation/content revision 驱动历史失效；单独提交
-- [ ] 3.3 Normal 与所有 density debug 视图继续经现有 `densityAtTyped()/densityAt()` 消费同一 sampled output，不改 WGSL 数值语义
-- [ ] 3.4 静态审查 `renderer.ts`：除 contracts 允许的 output 字段外，不保留直接 density producer 内部资源访问
+- [x] 3.1 主 cloud render 只用 `DensityCacheOutput` 创建 sampled bind group，不再访问 Adapter 内部 density texture/index/pipeline
+- [x] 3.2 ground-shadow compute 只用同一 output 创建 sampled bind group，并以 resource generation/content revision 驱动历史失效；单独提交
+- [x] 3.3 Normal 与所有 density debug 视图继续经现有 `densityAtTyped()/densityAt()` 消费同一 sampled output，不改 WGSL 数值语义
+- [x] 3.4 静态审查 `renderer.ts`：除 contracts 允许的 output 字段外，不保留直接 density producer 内部资源访问
 
 ## 4. Selector, V2 slot, and runtime status
 

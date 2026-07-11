@@ -30,6 +30,7 @@ import type { BodyMod } from './lifecycle';
 import type { CameraFrame } from './camera';
 import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, bodyToTransportedRenderSpace, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 import type { WindAdvectionSample } from './wind';
+import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
 
 const shaderSource = [
   noiseSource,
@@ -640,15 +641,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
   let cornerRadius = 0.5;
   let sceneScale: SceneScale = { ...DEFAULT_SCENE_SCALE };
-  let cacheWg: [number, number, number] = [8, 8, 4];
-  let computePipeline = createComputePipelineTimed({
-    layout: 'auto',
-    compute: {
-      module: shaderModule,
-      entryPoint: 'cs',
-      constants: { wg_x: cacheWg[0], wg_y: cacheWg[1], wg_z: cacheWg[2] },
-    },
-  });
   const groundShadowPipeline = createComputePipelineTimed({
     layout: 'auto',
     compute: { module: shaderModule, entryPoint: 'csGroundShadow' },
@@ -691,20 +683,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     );
   }
 
-  let computeBindGroup: GPUBindGroup;
   let groundShadowComputeBindGroup: GPUBindGroup;
   let bindGroup: GPUBindGroup;
 
   function rebuildSceneBindGroups(): void {
-    computeBindGroup = device.createBindGroup({
-      layout: computePipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 1, resource: { buffer: paramsBuffer } },
-        { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
-        { binding: 3, resource: linearSampler },
-        { binding: 4, resource: { buffer: presetBuffer } },
-      ],
-    });
     groundShadowComputeBindGroup = device.createBindGroup({
       layout: groundShadowPipeline.getBindGroupLayout(0),
       entries: [
@@ -855,87 +837,79 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     shapeData = createShapeData(weatherSize);
     shapeSignature = '';
     shadowRevision++;
+    densitySceneRevision++;
     rebuildSceneBindGroups();
     uploadShapes();
   }
 
   function setCacheWorkgroup(x: number, y: number, z: number): void {
-    const wx = Math.max(1, Math.min(32, Math.round(x)));
-    const wy = Math.max(1, Math.min(32, Math.round(y)));
-    const wz = Math.max(1, Math.min(16, Math.round(z)));
-    if (wx === cacheWg[0] && wy === cacheWg[1] && wz === cacheWg[2]) return;
-    cacheWg = [wx, wy, wz];
-    computePipeline = device.createComputePipeline({
-      layout: 'auto',
-      compute: {
-        module: shaderModule,
-        entryPoint: 'cs',
-        constants: { wg_x: wx, wg_y: wy, wg_z: wz },
-      },
-    });
-    rebuildSceneBindGroups();
-    if (densityTextures) {
-      densityStoreBindGroup = device.createBindGroup({
-        layout: computePipeline.getBindGroupLayout(2),
-        entries: [
-          { binding: 0, resource: densityTextures[cacheIndex].createView({ dimension: '3d' }) },
-        ],
-      });
-    }
+    legacyDensityAdapter.setWorkgroup([x, y, z]);
   }
 
-  let cacheIndex = 0;
-  let cacheValidCount = 0;
-  let cacheTransitionStart = 0.0;
-  let cacheTransitionDuration = 1 / 60;
-  let lastCacheUpdateElapsed = 0.0;
-  let lastCachedWindOffsets: Array<[number, number]> = [];
   let shadowRevision = 0;
-  let densityRes = 96;
-  let densityTextures: [GPUTexture, GPUTexture] | null = null;
+  let densitySceneRevision = 0;
   let densitySampleBindGroup: GPUBindGroup;
   let groundShadowDensityBindGroup: GPUBindGroup;
-  let densityStoreBindGroup: GPUBindGroup;
+  let densityConsumerGeneration = -1;
 
-  function setDensityResolution(res: number): void {
-    if (densityTextures) for (const t of densityTextures) t.destroy();
-    densityRes = res;
-    densityTextures = [0, 1].map(() => device.createTexture({
-      size: [res, res, res],
-      dimension: '3d',
-      format: 'rgba16float',
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
-    })) as [GPUTexture, GPUTexture];
+  const legacyDensityAdapter = new LegacyDensityAdapter({
+    device,
+    sampler: linearSampler,
+    initialResolution: 96,
+    initialWorkgroup: [8, 8, 4],
+    createPipeline(workgroup) {
+      return createComputePipelineTimed({
+        layout: 'auto',
+        compute: {
+          module: shaderModule,
+          entryPoint: 'cs',
+          constants: { wg_x: workgroup[0], wg_y: workgroup[1], wg_z: workgroup[2] },
+        },
+      });
+    },
+    createSceneBindGroup(densityPipeline) {
+      return device.createBindGroup({
+        layout: densityPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 1, resource: { buffer: paramsBuffer } },
+          { binding: 2, resource: shapeTexture.createView({ dimension: '2d-array' }) },
+          { binding: 3, resource: linearSampler },
+          { binding: 4, resource: { buffer: presetBuffer } },
+        ],
+      });
+    },
+  });
 
-    densityStoreBindGroup = device.createBindGroup({
-      layout: computePipeline.getBindGroupLayout(2),
-      entries: [
-        { binding: 0, resource: densityTextures[0].createView({ dimension: '3d' }) },
-      ],
-    });
+  function rebuildDensityConsumerBindGroups(force = false): void {
+    const output = legacyDensityAdapter.getOutput();
+    if (!force && output.resourceGeneration === densityConsumerGeneration) return;
     densitySampleBindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
       entries: [
-        { binding: 0, resource: linearSampler },
-        { binding: 1, resource: densityTextures[0].createView({ dimension: '3d' }) },
-        { binding: 2, resource: densityTextures[1].createView({ dimension: '3d' }) },
+        { binding: 0, resource: output.sampler },
+        { binding: 1, resource: output.sampledViews[0] },
+        { binding: 2, resource: output.sampledViews[1] },
       ],
     });
     groundShadowDensityBindGroup = device.createBindGroup({
       layout: groundShadowPipeline.getBindGroupLayout(1),
       entries: [
-        { binding: 0, resource: linearSampler },
-        { binding: 1, resource: densityTextures[0].createView({ dimension: '3d' }) },
-        { binding: 2, resource: densityTextures[1].createView({ dimension: '3d' }) },
+        { binding: 0, resource: output.sampler },
+        { binding: 1, resource: output.sampledViews[0] },
+        { binding: 2, resource: output.sampledViews[1] },
       ],
     });
-    cacheValidCount = 0;
-    lastCachedWindOffsets = [];
+    densityConsumerGeneration = output.resourceGeneration;
     shadowRevision++;
   }
 
-  setDensityResolution(densityRes);
+  function setDensityResolution(res: number): void {
+    legacyDensityAdapter.setResolution(res);
+    rebuildDensityConsumerBindGroups();
+  }
+
   rebuildSceneBindGroups();
+  rebuildDensityConsumerBindGroups(true);
 
   const groundShadowResolveUniformBuffer = device.createBuffer({
     size: 16,
@@ -1185,6 +1159,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
   let timestampEnabled = hasTimestamp;
   let tsMapping = false;
+  const initialDensityStats = legacyDensityAdapter.getStats();
   const stats = {
     gpuTiming: hasTimestamp,
     gpuTimingError: '',
@@ -1200,9 +1175,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     activeBodyCount: 0,
     width: 0,
     height: 0,
-    densityRes,
+    densityRes: initialDensityStats.resolution,
     weatherSize,
-    cacheWg: [cacheWg[0], cacheWg[1], cacheWg[2]] as [number, number, number],
+    cacheWg: [...initialDensityStats.workgroup] as [number, number, number],
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
@@ -1278,22 +1253,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     return paramsData;
   }
 
-  function windMovedPastVoxel(params: CloudParams): boolean {
-    if (currentWindSamples.length !== lastCachedWindOffsets.length) return true;
-    const horizontalVoxelM = (params.boxHalfExtent * 2) / Math.max(1, densityRes);
-    for (let i = 0; i < currentWindSamples.length; i++) {
-      const current = currentWindSamples[i].offsetM;
-      const previous = lastCachedWindOffsets[i];
-      if (Math.hypot(current[0] - previous[0], current[1] - previous[1]) > horizontalVoxelM) return true;
-    }
-    return false;
-  }
-
-  function snapshotCachedWindOffsets(): void {
-    lastCachedWindOffsets = currentWindSamples.map((sample) => [sample.offsetM[0], sample.offsetM[1]]);
-  }
-
   function groundShadowSignature(params: CloudParams): string {
+    const densityStats = legacyDensityAdapter.getStats();
     return [
       params.sunAzimuth,
       params.sunElevation,
@@ -1302,7 +1263,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       params.horizontalMetersPerWorldUnit,
       params.verticalMetersPerWorldUnit,
       params.qualityMode,
-      densityRes,
+      densityStats.resolution,
       params.edgeHardness,
       params.edgeHardnessThreshold,
       params.edgeCurveWidth,
@@ -1382,25 +1343,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
-    const scheduledCacheUpdate = frameIndex % Math.max(1, params.cacheUpdateRate) === 0;
-    const cacheWillRun = params.qualityMode !== 2 && (scheduledCacheUpdate || windMovedPastVoxel(params));
-    if (cacheWillRun) {
-      const interval = lastCacheUpdateElapsed > 0 ? elapsed - lastCacheUpdateElapsed : 1 / 60;
-      cacheTransitionDuration = Math.max(1 / 240, interval);
-      cacheTransitionStart = elapsed;
-      lastCacheUpdateElapsed = elapsed;
-      cacheIndex = 1 - cacheIndex;
-      cacheValidCount++;
-      snapshotCachedWindOffsets();
-    }
-    let cacheBlend: number;
-    if (cacheValidCount <= 1) {
-      cacheBlend = cacheIndex === 0 ? 0 : 1;
-    } else {
-      let progress = Math.min(1, Math.max(0, (elapsed - cacheTransitionStart) / cacheTransitionDuration));
-      if (params.cacheSmooth > 0) progress = Math.pow(progress, 1 / (1 + params.cacheSmooth * 4));
-      cacheBlend = cacheIndex === 1 ? progress : 1 - progress;
-    }
+    const densityPlan = legacyDensityAdapter.prepareFrame({
+      frameIndex,
+      elapsedSeconds: elapsed,
+      sceneTimeSeconds: clock,
+      params,
+      bodies: currentBodies,
+      bodyMods: currentMods,
+      windSamples: currentWindSamples,
+      sceneRevision: densitySceneRevision,
+    });
+    const cacheWillRun = densityPlan.willEncode;
+    rebuildDensityConsumerBindGroups();
 
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
@@ -1467,34 +1421,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       : 0;
     const effectiveShadowHistoryWeight = params.groundShadowHistoryWeight * motionHistoryScale;
     if (transmittanceMode) lastGroundShadowSignature = shadowSignature;
-    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
+    device.queue.writeBuffer(paramsBuffer, 0, buildParams(params, densityPlan.cacheBlend, clock, deltaTime, frameIndex, jitterX, jitterY, taaOn, groundShadowWillBeValid, groundShadowPhaseIndex));
 
     const commandEncoder = device.createCommandEncoder();
-    let cacheRan = false;
     let shadowRan = false;
-
-    if (cacheWillRun) {
-      cacheRan = true;
-      densityStoreBindGroup = device.createBindGroup({
-        layout: computePipeline.getBindGroupLayout(2),
-        entries: [
-          { binding: 0, resource: densityTextures![cacheIndex].createView({ dimension: '3d' }) },
-        ],
-      });
-
-      const pass = commandEncoder.beginComputePass(
-        timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } } : undefined,
-      );
-      pass.setPipeline(computePipeline);
-      pass.setBindGroup(0, computeBindGroup);
-      pass.setBindGroup(2, densityStoreBindGroup);
-      pass.dispatchWorkgroups(
-        Math.ceil(densityRes / cacheWg[0]),
-        Math.ceil(densityRes / cacheWg[1]),
-        Math.ceil(densityRes / cacheWg[2]),
-      );
-      pass.end();
-    }
+    const cacheEncode = legacyDensityAdapter.encode(commandEncoder, timestampEnabled && tsQuerySet
+      ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
+      : undefined);
+    const cacheRan = cacheEncode.cacheRan;
 
     if (groundShadowWillRun) {
       shadowRan = true;
@@ -1717,10 +1651,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     stats.width = canvas.width;
     stats.height = canvas.height;
-    stats.activeBodyCount = Math.min(currentBodies.length, MAX_BODIES);
-    stats.densityRes = densityRes;
+    const densityStats = legacyDensityAdapter.getStats();
+    stats.activeBodyCount = densityStats.activeBodyCount;
+    stats.densityRes = densityStats.resolution;
     stats.weatherSize = weatherSize;
-    stats.cacheWg = [cacheWg[0], cacheWg[1], cacheWg[2]];
+    stats.cacheWg = [...densityStats.workgroup] as [number, number, number];
+    stats.cacheRan = cacheRan;
+    stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;
     stats.shadowUpdated = shadowRan;
     stats.shadowHistoryResetReason = groundShadowResetReason;
