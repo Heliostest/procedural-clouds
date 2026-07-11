@@ -204,10 +204,10 @@ async function main(): Promise<void> {
     downloadButton.addEventListener('click', benchmark.downloadJson);
     const cleanCaptureButton = document.createElement('button');
     cleanCaptureButton.dataset.testid = 'density-benchmark-clean-capture';
-    cleanCaptureButton.textContent = 'Clean capture (5s)';
+    cleanCaptureButton.textContent = 'Clean capture (1s)';
     cleanCaptureButton.addEventListener('click', () => {
       document.body.classList.add('density-benchmark-clean-capture');
-      window.setTimeout(() => document.body.classList.remove('density-benchmark-clean-capture'), 5000);
+      window.setTimeout(() => document.body.classList.remove('density-benchmark-clean-capture'), 1000);
     });
     const cleanCaptureStyle = document.createElement('style');
     cleanCaptureStyle.textContent = 'body.density-benchmark-clean-capture > *:not(#canvas) { visibility: hidden !important; }';
