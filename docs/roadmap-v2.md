@@ -361,7 +361,7 @@
 
 ### 13.1 密度模型重建（A1）
 
-> 组合式十属密度重构已细化到 `docs/roadmap-refactor.md` 与 OpenSpec change `refactor-cloud-density-recipes`。本节保留为历史摘要；后续密度实现、波次、回退和 Cached/Hybrid 验收以新 roadmap 为准。
+> 十属密度重构已重新规划到 `docs/roadmap-refactor.md`。旧 OpenSpec change `refactor-cloud-density-recipes` 已废弃；本节保留为历史摘要，待新 roadmap 评审通过后再建立替代提案。
 
 - [x] **廉价过渡（非 Nubis）**：`densityShapeModel` 高度–天气塑形 + 两级 fbm 侵蚀（Sky Ocean Sun `clouds()`，见 change `add-height-weather-shaping`）；`0` 回退旧兼容链。完整 Perlin-Worley 重建仍待下项。
 - [ ] **最小可关闭版本先行**：新密度路径挂 `densityModel` 开关，与旧 evalBody A/B 对比。

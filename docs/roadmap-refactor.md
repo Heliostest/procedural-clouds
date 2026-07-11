@@ -1,259 +1,398 @@
-# Roadmap Refactor — 组合式云属密度 Recipe
+# Roadmap Refactor — 并行重写 Density Engine V2
 
-本文把 `cloud-morphology-and-density-family-discussion.md` 的目标架构转换为可执行重构路线。规范性要求和完整任务清单位于 OpenSpec change：`refactor-cloud-density-recipes`。
+本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：提案阶段。用户批准 OpenSpec change 前，不进入实现。
+> 状态：roadmap 评审稿；W0 已建立独立 OpenSpec 提案，W1–W12 尚未建立提案。
 >
-> 执行重点：Cached 与 Hybrid。Realtime 只验证正确性，不作为实时性能目标。
+> 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
+>
+> 核心决策：不重写整个应用，也不在旧共享链内部原地大拆；在同一仓库中并行重写一个输出兼容的 Density Engine V2。
 
-## 1. 重构目标
+## 1. 为什么改成“子系统并行重写”
 
-当前十属已经有独立 evaluator，但仍强制经过同一条 `evalCompatibilityGenus()` 团块密度链。本路线将其改造成：
+当前真正需要重新设计的是密度求值热区，而不是整个程序。以下能力已经形成可复用资产，应继续保留：
+
+- WebGPU 设备、资源生命周期与帧循环；
+- 场景、云体、天气、风和生命周期；
+- Cached/Hybrid 缓存调度与时间混合；
+- raymarch、light march、地面云影、TAA、Bloom 与 HDR；
+- GUI、参数上传、预设、调试视图与 GPU timing。
+
+旧方案先把 `evalCompatibilityGenus()` 拆成多个共享步骤，再逐属替换。这会让旧参数、新 Recipe 和昂贵 4D 噪声长期缠绕，导致每一步都可能影响十属。新路线改为：
 
 ```text
-Placement Profile
-  + Static Density Recipe
-  + Optical Profile
+现有应用与 renderer
+        │
+        ▼
+DensityCacheProducer Seam
+        ├── LegacyDensityAdapter  ── 当前密度实现，冻结并用于回退/A-B
+        └── RecipeDensityV2Adapter ── 新数据、新算子、新 compute pipeline
 ```
 
-Density Recipe 的内部顺序是：
+两个 Adapter 输出同一缓存契约，形成真实 Seam。renderer 不知道内部使用旧共享链还是 V2 Recipe。这样可以获得：
+
+- **Leverage**：renderer、阴影和调试视图只学习一个 Interface；
+- **Locality**：V2 的 Recipe、图集、剔除和性能策略集中在一个 Module 内；
+- 每个 Wave 可独立切回 Legacy；
+- 同场景、同相机、同缓存分辨率下可以直接 A/B；
+- V2 失败时不需要回滚整个应用架构。
+
+## 2. 目标架构
+
+### 2.1 外部 Seam
+
+概念 Interface 如下，具体类型名由后续提案确定：
+
+```ts
+interface DensityCacheProducer {
+  prepareFrame(input: DensityFrameInput): void;
+  encode(commandEncoder: GPUCommandEncoder): void;
+  getOutput(): DensityCacheOutput;
+  getStats(): DensityProducerStats;
+}
+```
+
+Interface 必须同时约束：
+
+- 输入：云体、Recipe、天气、风、生命周期、时间和缓存配置；
+- 输出：当前 renderer 可消费的密度、主云属、次云属和混合权重；
+- 调用顺序：`prepareFrame → encode → getOutput`；
+- 回退：Adapter 创建失败或 V2 feature 不可用时切回 Legacy；
+- 性能统计：cache pass、预计算 pass、活跃云体数、被剔除 tile 数；
+- 资源生命周期：resize、device loss 和销毁责任由 Adapter 内部承担。
+
+初期保持现有 RGBA16F ping-pong 缓存，避免同时修改密度算法和 renderer 契约。缓存格式拆分只能在性能数据证明值得时另行实施。
+
+### 2.2 V2 内部数据流
+
+```mermaid
+flowchart TB
+    Scene["场景 / 云体 / 天气 / 风 / 生命周期"] --> Pack["V2 Frame Packing"]
+    Pack --> Mask["Conservative Tile-Body Mask"]
+    Pack --> Macro["低频 2D Macro Fields"]
+    AtlasBuild["共享 3D Noise Atlas 生成"] --> Atlas["Base / Detail Atlases"]
+    Pack --> Dispatch["Recipe Dispatch"]
+    Mask --> Dispatch
+    Macro --> Dispatch
+    Atlas --> Dispatch
+    Dispatch --> Cache["V2 RGBA Density Cache"]
+    Legacy["Legacy Adapter"] --> LegacyCache["Legacy RGBA Density Cache"]
+    LegacyCache --> Select["Producer Selector"]
+    Cache --> Select
+    Select --> Cached
+    Select --> Hybrid
+    Cached["Lean Cached Pipeline"] --> Render["统一光照与后处理"]
+    Hybrid["Lean Hybrid Pipeline + 有界微观细节"] --> Render
+    Realtime["独立、懒创建的 Realtime Pipeline"] -.不参与性能目标.-> Render
+```
+
+### 2.3 Recipe 内部顺序
+
+十属共享控制框架，不共享同一套昂贵数学链：
 
 ```text
-Domain Transform
+Tile / Body Reject
+→ Domain Transform
 → Macro Support
 → Vertical Profile
 → Base Topology
-→ Detail / Erosion
-→ Attachment Fields
+→ Bounded Detail / Erosion
+→ Bounded Attachments
 → Finalize Density
 ```
 
-最终效果：
+每个阶段都允许在确定密度为零时立即退出。昂贵图集采样或程序噪声必须位于包围盒、高度和覆盖率拒绝之后。
 
-- 层状云不再执行不必要的完整团块 Voronoi；
-- 卷云纤维可以直接生成主体，不再被 Legacy 团块截断；
-- Sc/Ac/Cc 共享 Cellular 算子，但拥有不同 cell 尺度、连通率和厚度；
-- Cu/Cb 共享 Billow/Convective 算子，Cb 可组合 Tower、Anvil 和 Fiber Cap；
-- 四云族保留为模板，不再是互斥运行时类型；
-- 后续荚状、堡状、絮状、滚轴、碎片、乳状等通过有限 Modifier/Attachment 扩展。
+## 3. GPU 成本模型与硬约束
 
-## 2. 不变的下游契约
+### 3.1 当前成本锚点
 
-本路线不重写整套 renderer。以下契约全程保持：
+默认 `96³` 缓存包含 884,736 个体素。当前实现每个体素最多遍历 `MAX_BODIES = 12`；十个活动云体时，一次更新约有 885 万次有效云体尝试。完整 4D Voronoi 每 octave 搜索 `3⁴ = 81` 个候选单元，再乘以多 octave 和多云体，是首要成本来源。
 
-- `cloudDensityTyped()` 统一合成每体密度；
-- 多云体采用现有主密度 + 其余软饱和；
-- 密度缓存继续使用 RGBA：密度、主云属、次云属、权重；
-- Cached/Hybrid 继续使用 ping-pong 时间混合；
-- 主 raymarch、light march、地面云影继续经统一密度入口；
-- edge-style 继续发生在缓存采样后；
-- 现有按属 Optical Profile 和特殊光效继续工作；
-- `CloudBody` 与 scenario 在核心十属迁移阶段不改 schema。
+因此 V2 必须遵守以下规则：
 
-## 3. 路线原则
+1. V2 主路径不得调用完整 4D Voronoi 或无界 4D fBm；
+2. 不允许运行时任意 operator graph/interpreter；
+3. octave、atlas sample、attachment 和循环次数必须有编译期或固定 record 上限；
+4. 先做 tile/body、高度、Support 和天气拒绝，再执行形态噪声；
+5. 共享噪声资源，不为每个云体分配独立 3D atlas；
+6. Cached 保存宏观和中尺度，Hybrid 只补可丢失的微观细节；
+7. 不以默认提高缓存分辨率掩盖算法问题。
 
-### 3.1 小提交、单属纵向切片
+### 3.2 各形态族的初始预算
 
-每个提交只做一种事情：数据边界、一个算子、一个云属迁移、一次校准或一项检查。每个提交都应保持 typecheck/build 可用；每个波次都应可以回退到 Legacy。
+这些预算是 roadmap 的设计护栏，最终数值在新 OpenSpec 中根据 Spike 数据固化。
 
-### 3.2 LegacyPuffy 是稳定锚，不立即删除
+| 形态族 | 主体实现 | 每次有效体素求值的初始预算 | 禁止事项 |
+| --- | --- | --- | --- |
+| Stratiform | 2D macro + 低频 3D atlas | 1–2 次 macro/atlas 采样 | 完整 4D Voronoi |
+| Billow | 共享 Perlin-Worley atlas | 2–4 次 atlas 采样，最多 1 次低频 warp | `detail × 5` octave 链 |
+| Cellular | Worley atlas 或受限 3D cell | 2–3 次采样/有界邻域 | 4D 81 邻域循环 |
+| Fiber | 解析方向脊线 + warp | 解析 ALU + 最多 2 次 atlas 采样 | 先生成团块再裁出纤维 |
+| Wave/Lens | 正弦、椭球/透镜 SDF | 解析 ALU，零强度早退 | 为零强度执行噪声 |
+| Convective | 高度门控 cell + 柱/砧解析场 | 4–6 次主体采样，附件数固定 | 无界塔体/附件循环 |
+| Hybrid detail | 按主/次云属选择细节 | 每种 Recipe 最多 2 次额外采样 | 空缓存区域生成新主体 |
 
-当前兼容链改名为 `LegacyPuffy`，保留两级回退：
+### 3.3 WebGPU 使用原则
 
-```text
-全局 Legacy：十属全部走旧路径
-全局 Recipe：已迁移属走新 Recipe，未迁移属仍走 LegacyPuffy
-```
+- workgroup 尺寸必须同时校验 X/Y/Z 和乘积，并读取 `device.limits`；
+- 不假设最大 invocation 数最快，至少比较 64、128、256 三档候选；
+- 继续以 `timestamp-query` 作为主要 GPU 计时证据；
+- `shader-f16` 仅作为可选 Adapter 内部优化，必须有 f32 fallback；
+- 初期不依赖 `subgroups`，避免把可选 feature 变成基础契约；
+- 大型 compute/render pipeline 使用异步创建，并缓存编译结果；
+- workgroup storage 只用于测量证明存在重复读取的值；
+- 不在早期引入 occupied-tile compaction 或 indirect dispatch，先验证保守 mask 的收益。
 
-删除 Legacy 是最后一个独立 change，不是本路线中顺手完成的清理。
+### 3.4 与其他 active changes 的关系
 
-### 3.3 分发必须早于昂贵噪声
-
-目标不是让每个 Recipe 执行全部算子，而是让静态 evaluator 只调用需要的函数。Stratiform 不执行完整 4D Voronoi，Fiber 不执行 Legacy 团块链，未启用 Modifier 在额外噪声前早退。
-
-### 3.4 缓存主体，Hybrid 补微观
-
-缓存保存宏观/中尺度拓扑；Hybrid 只补允许丢失的小细节。不能通过默认提高缓存分辨率解决所有问题，因为成本按立方增长。
-
-## 4. 依赖与冲突处理
-
-实施前必须处理：
-
-| Active change | 处理方式 |
+| Active change | 本路线中的处理 |
 | --- | --- |
-| `add-height-weather-shaping` | 完成或接受剩余视觉/性能风险；其结果保留在 LegacyPuffy/Billow，不重复实现 |
-| `add-height-ambient-tint` | 独立收尾；冻结第一次密度校准使用的光照基线 |
-| `add-stratocumulus-cumulus-breakup` | 当前为空 change；由 Cellular/Billow 与后续 fractus Modifier 吸收，不并行造另一套 breakup |
+| `add-height-weather-shaping` | 作为 Legacy 视觉与行为基线；V2 可以吸收其高度/天气语义，但不得继续依赖旧昂贵噪声链，也不复制一份同名参数链 |
+| `add-height-ambient-tint` | 属于 Optical/Lighting，不并入 Density V2；W0 冻结基线后独立演进 |
+| `add-stratocumulus-cumulus-breakup` | 不与 V2 并行制造第三套 breakup；其目标由 W8 Cellular 和后续 Variant Modifier 决策吸收，提案状态应在新 OpenSpec 前单独处理 |
 
-本路线细化并取代旧 `roadmap-v2` 阶段 13.1 的单体密度重建步骤，并吸收阶段 14 的形态扩展边界；不取代 13.2 光照和 13.3 大气。
+本路线细化并取代 `roadmap-v2` 阶段 13.1 的密度模型重建路线，并吸收阶段 14 中与形态算子有关的部分；不取代阶段 13.2 光照或 13.3 大气。
 
-## 5. 波次总览
+## 4. Wave 总览
 
 ```mermaid
 flowchart LR
-    W0["W0 基线与协调"] --> W1["W1 Legacy 边界"]
-    W1 --> W2["W2 Recipe 数据"]
-    W2 --> W3["W3 共享算子库"]
-    W3 --> W4["W4 Stratiform"]
-    W4 --> W5["W5 Fiber"]
-    W5 --> W6["W6 Cellular / Wave"]
-    W6 --> W7["W7 Convective"]
-    W7 --> W8["W8 Hybrid Detail"]
-    W8 --> W9["W9 收尾与后续提案"]
+    W0["W0 基线与预算"] --> W1["W1 Producer Seam"]
+    W1 --> W2["W2 Pipeline 隔离"]
+    W2 --> W3["W3 V2 空壳与数据"]
+    W3 --> W4["W4 Tile 剔除"]
+    W4 --> W5["W5 共享场与图集"]
+    W5 --> W6["W6 双属 Spike"]
+    W6 --> Gate{"继续 V2?"}
+    Gate -->|是| W7["W7 Stratiform"]
+    Gate -->|否| Stop["保留 Legacy / 重审架构"]
+    W7 --> W8["W8 Cellular / Wave"]
+    W8 --> W9["W9 Fiber"]
+    W9 --> W10["W10 Convective"]
+    W10 --> W11["W11 Hybrid 与调优"]
+    W11 --> W12["W12 默认切换与收尾"]
 ```
 
-| 波次 | 结果 | 有意改变观感 | 主要风险 |
+| Wave | 可交付结果 | 视觉变化 | 主要风险 |
 | --- | --- | --- | --- |
-| W0 | 冻结十属 Cached/Hybrid 基线 | 否 | 基线不完整导致后续无法判断回归 |
-| W1 | LegacyPuffy、Context、Support、Finalize 边界 | 否 | 机械提取改变浮点顺序 |
-| W2 | 独立 recipe buffer 和全局/属级回退 | 否 | CPU/WGSL 布局错位 |
-| W3 | 可复用算子库，默认未启用 | 否 | shader 体积/编译成本 |
-| W4 | St/Cs/As/Ns 使用 Stratiform | 是，仅四属 | 首轮密度重校准量大 |
-| W5 | Ci 直接 Fiber 主体 | 是，仅 Ci | 缓存低通使细丝变粗或断裂 |
-| W6 | Sc/Ac/Cc 使用 Cellular/Wave | 是，仅三属 | cell 尺度和排列过于规则 |
-| W7 | Cu/Cb 使用 Billow/Convective | 是，仅两属 | Cb 组合最多、成本最高 |
-| W8 | 按 Recipe 的 Hybrid 微观细节 | 是，微观 | 主次云属边界闪变 |
-| W9 | 文档、最终矩阵、后续 change | 否 | 过早删除 Legacy 或扩 scope |
+| W0 | 冻结 Legacy Cached/Hybrid 基线和预算 | 否 | 缺少可重复证据 |
+| W1 | 一个 Seam、两个 Adapter 槽位，Legacy 仍唯一工作实现 | 否 | Interface 泄漏 renderer 细节 |
+| W2 | Cached/Hybrid/Realtime shader 与 pipeline 生命周期隔离 | 否 | shader 组装改变资源布局 |
+| W3 | V2 独立资源、参数布局和空密度 compute 闭环 | 否 | CPU/WGSL layout 错位 |
+| W4 | active-body 上限、早退和保守 tile-body mask | 否或仅性能变化 | 包围盒过小造成缺云 |
+| W5 | 共享 3D atlas 与低频 2D macro fields | 否，尚不接管云属 | atlas 周期或精度产生伪影 |
+| W6 | Stratus + Cumulus V2 Spike 和继续/停止门 | 是，仅两个测试属 | 核心假设不成立 |
+| W7 | St/Cs/As/Ns 完整 Stratiform 迁移 | 是，仅四属 | 薄层缓存丢失 |
+| W8 | Sc/Ac/Cc Cellular/Wave 迁移 | 是，仅三属 | cell 过度规则 |
+| W9 | Cirrus Fiber 迁移 | 是，仅 Ci | 纤维被缓存低通截断 |
+| W10 | Cu/Cb Convective 正式迁移 | 是，仅两属 | Cb 组合成本失控 |
+| W11 | Recipe-aware Hybrid、workgroup 和格式决策 | 是，微观 | 主次属交界闪变 |
+| W12 | V2 默认启用、最终证据和后续提案清单 | 否 | 过早删除 Legacy |
 
-## 6. W0 — 协调、基线与测试门
+## 5. W0 — Legacy 基线与性能预算
 
-### 工作
-
-- 完成 active changes 的协调 gate；
-- 固定 camera、scene time、每属 body/placement、96³ cache；
-- 每属记录正常视图和 density debug；
-- Cached、Hybrid 分别记录 cache/cloud pass 中位数；
-- 扩展 genus 静态检查，为 Recipe 顺序和布局预留公开契约。
-
-### 退出条件
-
-- 十属基线齐全；
-- 当前 Legacy 路径和 preset 参数有明确快照；
-- `typecheck`、生产 build、genus dispatch 检查通过；
-- 不要求 Realtime 性能，只记录当前正确性状态。
-
-## 7. W1 — 机械拆出 LegacyPuffy
+OpenSpec change：`openspec/changes/establish-density-v2-baseline/`。该 change 只负责基线、观测与证据，不授权 W1 Seam 或 V2 实现。
 
 ### 工作
 
-1. 将兼容五阶段链命名为 LegacyPuffy；
-2. 整理 Density Context；
-3. 抽取无团块语义的 Macro Support；
-4. 抽取 Finalize；
-5. 更新 dispatcher/evaluator 检查，使 evaluator 可以直接消费 Context/Support。
+- 固定 camera、scene time、body placement、天气、风和生命周期状态；
+- 使用固定 `96³`、固定 update rate，分别记录 Cached 与 Hybrid；
+- 十属分别保存正常视图和 density debug；
+- 记录 cache pass、cloud pass、活跃云体数和 shader/pipeline 首次创建时间；
+- 建立两类压力场景：十属同场景、单个大体积 Cb；
+- 记录设备 feature/limits，但不据单台设备硬编码通用参数。
 
 ### 退出条件
 
-- 十属仍走完全相同的 Legacy 行为；
-- 正常与 density debug 视觉等价；
-- Cached/Hybrid 性能处于测量噪声范围；
-- Cb 仍能在 footprint 采样前改变高层坐标。
+- 每个云属有可重复的 Legacy 视觉锚；
+- 性能记录区分预热、稳态、正常视图和 debug 视图；
+- 所有后续 Wave 都使用同一套输入进行 A/B；
+- Realtime 只记录是否可创建和正确显示，不纳入预算。
 
-## 8. W2 — Recipe 数据基础
-
-### 数据职责
-
-```text
-Placement：沿用 genusProfile + CloudBody
-Density：新增固定布局 DensityRecipeGPU
-Optical：沿用现有 preset 光照字段
-```
+## 6. W1 — 建立 DensityCacheProducer Seam
 
 ### 工作
 
-- 定义最小 `DensityRecipe` 与 `RecipeMode`；
-- 十属 Recipe 初始全部为 LegacyPuffy；
-- 新增独立 recipe buffer 和具名打包；
-- 增加 CPU/WGSL 布局静态检查；
-- 增加全局 Legacy/Recipe 开关；
-- Recipe 模式下允许未迁移属继续选择 LegacyPuffy。
+- 定义最小 `DensityCacheProducer` Interface；
+- 用 `LegacyDensityAdapter` 包住当前 compute/cache 行为，不拆旧 shader 内部函数；
+- 建立 `RecipeDensityV2Adapter` 槽位，但本 Wave 不实现新密度；
+- renderer、地面云影和 debug 视图只消费 `DensityCacheOutput`；
+- 明确 resize、device loss、销毁、统计与失败回退语义；
+- 增加运行时 Legacy/V2 选择，但 V2 未就绪时必须安全回退。
 
 ### 退出条件
 
-- 加入 recipe buffer 不改变画面；
-- 全局两种模式当前等价；
-- 十属顺序与 preset/dispatcher 一致；
-- 旧 scenario 无需迁移。
+- Legacy Adapter 与当前画面、缓存更新节奏和性能处于测量噪声范围；
+- renderer 不直接访问 Adapter 内部 buffer/pipeline；
+- 删除 Interface 后复杂度会重新散落到多个调用方，证明该 Module 具有 Depth；
+- V2 创建失败不会破坏 Legacy。
 
-## 9. W3 — 共享算子库
+## 7. W2 — 隔离 Cached、Hybrid 与 Realtime Pipeline
 
-按一次一个提交增加，默认全部未启用：
+### 工作
 
-| 类别 | 算子 |
-| --- | --- |
-| Vertical | Thin Sheet、Soft Layer、Flat-base Dome、Tower、Anvil、Roll/Lens |
-| Topology | Stratiform、Billow、Cellular、Fiber、Wave/Lens、Convective Column |
-| Detail | Worley erosion、fBm cutout、curl breakup、ripple |
-| Composition | remap、smooth union、soft max、非负/有限 guard |
+- Cached 渲染模块只包含缓存采样和其必需函数；
+- Hybrid 渲染模块只增加有界微观细节入口；
+- Realtime 的完整密度调用图移到独立模块和独立 pipeline；
+- Realtime 只有在用户选择时才异步创建；
+- V2 compute shader 不拼接 Legacy 的完整 genus/noise 调用图；
+- 为 pipeline 创建时间和失败原因增加统计。
 
 ### 退出条件
 
-- 新算子未启用时无视觉变化；
-- octave、循环、attachment 数量均有静态上限；
-- 不引入运行时 operator interpreter；
-- 不因 CSV 描述新增固定 128³/32³ 噪声纹理。
+- Cached/Hybrid 不再静态携带完整 Realtime 密度实现；
+- 三种质量模式资源布局明确，切换无悬空引用；
+- Cached/Hybrid 视觉与 W0 基线等价；
+- Realtime 仍能按需创建，但没有性能承诺。
 
-## 10. W4 — Stratiform 纵向切片
+## 8. W3 — V2 Compute 空壳与数据布局
+
+### 工作
+
+- 建立 V2 自有 WGSL 模块、compute pipeline、bind group 和资源生命周期；
+- 定义固定布局的 `DensityRecipeGPU`，不复用旧 `detail` 字段承载多种语义；
+- 将 Placement、Density Recipe、Optical Profile 保持为三条正交数据轴；
+- 十属 Recipe 表先只包含静态模式和有界参数，不引入 operator interpreter；
+- 让 V2 写出与 Legacy 相同的 RGBA 缓存协议；
+- 在无云输入、单体输入和无效 genus 下验证有限值与零密度语义。
+
+### 退出条件
+
+- V2 可独立创建、dispatch、resize 和销毁；
+- CPU/WGSL record 顺序和对齐有机器可读检查计划；
+- V2 shader 不引用 Legacy 4D Voronoi/4D fBm；
+- 切换 Adapter 不要求 renderer 重建无关后处理资源。
+
+## 9. W4 — 空间剔除与廉价早退
+
+### 工作
+
+1. 循环上限使用真实 `activeBodyCount`；
+2. 在天气和噪声前增加保守 body AABB、高度与 profile 拒绝；
+3. 按实际 workgroup 网格生成保守 tile-body bit mask；
+4. mask 纳入旋转、风位移、Cb 砧顶和附件的最大扩展；
+5. 统计空 tile、每 tile 候选 body 数和实际 evaluator 调用数；
+6. workgroup 改变、缓存 resize 或 body bounds 改变时正确重建 mask。
+
+默认 `96³`、`8×8×4` 下约有 3,456 个 tile。CPU 每次更新做约 `3,456 × 12` 次保守相交判断，预期远低于 GPU 对每体素尝试所有云体的成本。
+
+### 退出条件
+
+- mask 关闭时与开启时的密度结果在约定容差内一致；
+- 快速移动、旋转和 Cb 砧顶场景不缺块；
+- 有指标能证明 evaluator 调用量下降，而不是只观察 FPS；
+- 暂不引入 GPU compaction、原子累积或 indirect dispatch。
+
+## 10. W5 — 共享 GPU 场与噪声图集
+
+### 工作
+
+- 用 compute 一次或低频生成共享 Base Atlas 和 Detail Atlas；
+- 比较 `rgba8unorm`、`r16float/rgba16float` 等候选格式的质量、带宽和兼容性；
+- 使用硬件三线性采样、坐标平流和低频 warp 取代主路径 4D 动画噪声；
+- 不为每个云体创建独立 3D texture；
+- 为仅依赖 XZ 的天气覆盖、层厚、波相位和 cell 布局建立低频 2D macro fields；
+- macro、density cache、Hybrid detail 使用不同更新频率；
+- 增加 atlas 切片/debug 视图，用于检查周期、接缝和量化。
+
+### 退出条件
+
+- atlas 生成不进入每帧热路径；
+- 风平流和时间演化连续，不出现明显方块或固定纹理锁定；
+- 共享资源内存有明确上限；
+- 尚未迁移的 Legacy 云属不受新资源影响。
+
+## 11. W6 — 双属 Proof-of-Architecture Spike
+
+选择两个相反的代表属：
+
+- **Stratus**：验证 Stratiform、2D macro 和廉价层状路径；
+- **Cumulus**：验证 Billow、共享 Perlin-Worley atlas 和中等复杂度主体。
+
+### 工作
+
+- 分别实现最小 V2 Recipe，不追求全部变种；
+- Stratus：Thin Sheet + 低幅 macro + 最多两次主体采样；
+- Cumulus：Flat-base Dome + Billow atlas + 有界高度变化；
+- 保留属级 Legacy/V2 切换；
+- 对比正常视图、density debug、Cached、Hybrid、单体和多体场景；
+- 记录 V2 预计算 pass、cache pass、总 cloud pass、pipeline 创建时间和资源占用。
+
+### 继续/停止 Gate
+
+只有满足以下条件才进入 W7：
+
+- Stratus 明显减少 cache pass 成本，且层体连续；
+- Cumulus 在等价分辨率下不比 Legacy 稳态中位数显著变慢；
+- 两属均无 Support 外密度、NaN、tile 缺块和明显 atlas 周期伪影；
+- V2 shader/pipeline 的编译与资源复杂度可维护；
+- 视觉问题能够通过 Recipe 参数或有限算子修正，而不需要恢复完整 4D Voronoi 链。
+
+若 Gate 失败：停止迁移，保留 W1 Seam 与 Legacy，针对失败原因重审 atlas、Recipe 或缓存策略；不得以“已投入较多”为理由继续八属迁移。
+
+## 12. W7 — Stratiform 家族迁移
 
 迁移顺序：
 
-1. Stratus：Thin Sheet + 低幅 Stratiform；
-2. Cirrostratus：Ultra-thin、近均匀；halo 留在 Optical；
-3. Altostratus：水平拉伸 Soft Layer；sun disc 留在 Optical；
-4. Nimbostratus：厚 Stratiform，预留底部 Attachment，不实现降水场。
-
-### 目标
-
-- 四属不再运行 Legacy 的两套分形 4D Voronoi；
-- St/Cs/As/Ns 分别呈现贴地薄层、高空薄幕、中层磨砂云幕、厚雨层；
-- 其他六属保持 Legacy 基线。
+1. Stratus：沿用 Spike 结果；
+2. Cirrostratus：极薄、近均匀，高空薄幕；halo 留在 Optical；
+3. Altostratus：中层、水平拉伸、磨砂层；sun disc 留在 Optical；
+4. Nimbostratus：厚层与暗底，预留降水 Attachment，但不实现降水输运。
 
 ### 退出条件
 
-- 每属独立截图、密度调试和 GPU 中位数通过；
-- Support 外无密度；
-- 光学效果不因密度代码重复实现；
-- 属级 Legacy 回退可用。
+- 四属不调用 Legacy 完整团块噪声链；
+- 四种厚度、破碎度和垂直位置肉眼可分；
+- 薄层在 Cached 下连续，不依靠默认提高 cache resolution；
+- 每属保留 Legacy 回退和独立 timing。
 
-## 11. W5 — Fiber 纵向切片
-
-### 工作
-
-- Cirrus Fiber Field 直接从 Support 产生主体密度；
-- 解耦 fiber length、width、curl、breakup、vertical thinness；
-- 云体旋转控制长轴，物理风移动完整纤维；
-- 缓存保存长丝骨架，微观分叉留给后续 Hybrid。
-
-### 退出条件
-
-- 长纤维不再被 Legacy 团块空洞随机截断；
-- footprint 与实例高度外严格为零；
-- Cached 主体连续，Hybrid/Legacy 回退可用。
-
-## 12. W6 — Cellular 与 Wave
+## 13. W8 — Cellular 与 Wave 家族迁移
 
 迁移顺序：
 
-1. Stratocumulus：大 cell、高 connectivity、较厚；
-2. Altocumulus：中 cell、中 connectivity；
-3. Cirrocumulus：小 cell、薄 profile、高 ripple。
+1. Stratocumulus：大 cell、高连接率、较厚；
+2. Altocumulus：中 cell、中连接率；
+3. Cirrocumulus：小 cell、薄 profile、较强 ripple。
 
-`tileScale` 先兼容映射到 cell scale。Wave/Lens/Roll hook 初始默认关闭，为 lenticularis/volutus 后续变体准备，不在这一波扩 scenario schema。
+### 工作
+
+- Cellular 使用共享 atlas 或受限 3D cell，不使用完整 4D 邻域；
+- cell scale、connectivity、thickness 和 ripple 分开控制；
+- Wave/Lens/Roll 作为静态可选 hook，零强度必须在噪声前早退；
+- 不在本 Wave 扩展 scenario schema 或一次实现所有云种/变种。
 
 ### 退出条件
 
-- Sc/Ac/Cc cell 尺度和厚度肉眼可辨；
-- 云粒不再被无关 Legacy 宏观团块截断；
-- 未启用 Wave/Lens 零强度早退；
-- 空的 breakup active change 目标已被明确吸收。
+- Sc/Ac/Cc 的 cell 尺寸、层厚和连接度可辨；
+- 不出现明显棋盘重复或随相机锁定；
+- 空的 `add-stratocumulus-cumulus-breakup` 目标由新架构吸收，但不复制其旧设计；
+- 三属在相同场景中可独立切回 Legacy。
 
-## 13. W7 — Convective
+## 14. W9 — Fiber 家族迁移
+
+### 工作
+
+- Cirrus 直接以解析方向脊线和低频 warp 生成主体；
+- fiber length、width、curl、breakup、vertical thinness 分离；
+- body rotation 控制主方向，风平流移动完整纤维结构；
+- Cached 保存长丝骨架，细分叉和断续留给 Hybrid；
+- 不先生成 Billow 团块再裁切成纤维。
+
+### 退出条件
+
+- 纤维连续、具有方向性且不被团块空洞随机截断；
+- footprint 和高度范围外严格为零；
+- Cached 不因低通变成粗条，Hybrid 不在空区生成新纤维；
+- atlas/warp 采样保持在预算内。
+
+## 15. W10 — Convective 家族迁移
 
 ### Cumulus
 
-- 先用 Billow + Flat-base Dome 匹配 Legacy 视觉锚；
-- 再加入高度相关 cell scale 和有限 Convective Column；
-- 高频 Worley/curl 成为明确 Detail，不再由一个 `detail` 同时控制宏观 octave。
+- 固化 W6 的 Billow + Flat-base Dome；
+- 加入高度相关 cell scale 和有界 Convective Column；
+- 宏观 cell 与微观侵蚀使用不同参数，不再由单一 `detail` 同时控制。
 
 ### Cumulonimbus
 
@@ -262,111 +401,142 @@ Optical：沿用现有 preset 光照字段
 中部：Convective Column
 中上部：更小的 cauliflower cells
 顶部：Anvil Support + Fiber Cap
-附属 hook：Mammatus / precipitation core，默认关闭
+可选 Attachment：Mammatus / precipitation core，默认关闭且数量固定
 ```
 
 ### 退出条件
 
-- Cu 平底圆顶和 Cb 塔/砧/纤维顶部可分别关闭和辨认；
-- 所有结构受 Support 限定；
-- 十属都具备新主体 Recipe；
-- Cb 迁移不得破坏 internal lightning 等 Optical 行为。
+- Cu 平底圆顶与 Cb 塔、砧、纤维顶可以分别辨认；
+- 每项附件可关闭，关闭后在昂贵采样前早退；
+- 所有结构受保守 Support 与 tile mask 包含；
+- Cb 不破坏 internal lightning 等 Optical 行为；
+- 单个复杂 Cb 与十属同场景均不突破新提案届时确定的预算。
 
-## 14. W8 — Recipe-aware Hybrid Detail
+## 16. W11 — Recipe-aware Hybrid 与 GPU 调优
 
-当前全局 4D Perlin 保留为 Legacy fallback。新 Recipe 根据缓存主、次云属选择：
+### Hybrid 策略
 
-| 主体 | Hybrid Detail |
+| 主体 | Hybrid 微观细节 |
 | --- | --- |
-| Stratiform | 无，或极弱 thickness noise |
-| Billow/Convective | 高频 Worley/curl 翻卷 |
+| Stratiform | 无或极弱 thickness noise |
+| Billow/Convective | 最多两次高频 Worley/curl atlas 采样 |
 | Cellular | 粒边 breakup/ripple |
 | Fiber | 高频分叉和断续 |
 
-主、次云属交叠处使用现有 `w2` 混合。所有 detail 只在缓存非空区渐入。
+主、次云属交叠处沿缓存权重平滑混合。细节只能侵蚀或微调已有缓存主体，不能在空区域凭空造云。
+
+### GPU 调优
+
+- 在真实设备上比较 `4×4×4`、`8×4×4`、`8×8×2`、`8×8×4` 等合法候选；
+- GUI 输入同时校验各维限制和 invocation 乘积；
+- 可按 adapter/device 指纹缓存最快候选，不把单机结果写成全局常量；
+- 评估 `shader-f16` 的临时值与 atlas 路径，保留 f32 fallback；
+- 只有 timing 证明收益时，才考虑密度/metadata 分纹理、occupied tile compaction 或 subgroup 优化。
 
 ### 退出条件
 
-- Cached 主体稳定；
-- Hybrid 的微观差异符合拓扑；
-- 空区不凭空生云；
-- 主 ray、light march、ground shadow 语义一致；
-- 不出现云属边界硬切。
+- 十属 Cached 主体稳定，Hybrid 差异符合各自拓扑；
+- 主/次云属边界无硬切和时间闪变；
+- workgroup 设置不可能超过设备 limits；
+- 每项可选优化都有独立关闭路径和前后 timing；
+- 不为了单台高端 GPU 的收益破坏基础兼容路径。
 
-## 15. W9 — 收尾，而不是扩大范围
+## 17. W12 — 默认切换、证据矩阵与收尾
 
-- 完成十属最终截图和 GPU timing 矩阵；
-- 更新源码导读、参数说明和 roadmap；
-- 严格 OpenSpec 验证；
-- 分别建立后续提案：VariantModifier、precipitation field、Legacy cleanup；
-- 未获新批准前不实施这些后续能力。
+### 工作
 
-### Legacy 删除条件
+- 完成十属 Legacy/V2、Cached/Hybrid、正常/debug 截图矩阵；
+- 完成单体、十属同场景、复杂 Cb 的 GPU timing 矩阵；
+- V2 达标后将默认 Producer 切为 V2，Legacy 仍保留可见回退；
+- 更新源码导读、参数传递、数学算子和渲染数据流文档；
+- 清理只属于未落地设计的命名，不删除仍被旧场景使用的字段；
+- 列出后续独立提案：Legacy cleanup、Variant Modifier、降水场、缓存格式拆分。
 
-只有同时满足以下条件才允许创建删除提案：
+### Legacy 删除 Gate
 
-- 十属新 Recipe 全部默认启用；
-- 十属均有 Cached/Hybrid 验收证据；
-- 旧 scenario/preset 有明确迁移策略；
+本 roadmap 不直接删除 Legacy。只有同时满足以下条件，才能另建 OpenSpec change：
+
+- 十属 V2 全部默认启用；
+- 十属均有 Cached/Hybrid 视觉与性能证据；
 - 至少一个稳定版本周期内未依赖属级 Legacy 回退；
-- 性能没有依赖 Legacy 才能达标的属。
+- 旧 scenario/preset 字段有明确迁移或保留策略；
+- V2 在目标设备矩阵上没有依靠 Legacy 才能达标的云属；
+- 删除后 renderer 仍只依赖原 `DensityCacheProducer` Interface。
 
-## 16. 验证策略
+## 18. 每个 Wave 的提交与验证规则
 
-### 自动检查
+### 提交规则
 
-- TypeScript typecheck；
-- production build；
-- genus/recipe 顺序与完整性；
-- CPU/WGSL recipe buffer 布局；
-- 固定 record 和 octave 上限；
-- dispatcher 路由和无效索引回退；
-- 零强度昂贵路径的早退边界。
+- 一个提交只完成一种职责：Seam、Adapter、资源布局、一个算子、一个云属、一次校准或一项检查；
+- 不在云属迁移提交中顺手改 renderer 光照；
+- 不在性能提交中同时改变视觉参数；
+- 每个 Wave 结束时 Legacy 回退必须可用；
+- 未经新 OpenSpec 批准，不开始任何实施提交。
 
-### 视觉检查
+### 自动检查计划
 
-每个迁移属至少保留：
+- TypeScript typecheck 与 production build；
+- CPU/WGSL record 布局、genus/recipe 顺序和固定上限；
+- workgroup limits 与 invocation 乘积；
+- Adapter 路由、创建失败回退和资源销毁；
+- 零强度、空 tile、无效索引和非有限值保护；
+- Cached/Hybrid shader 不静态引用 Realtime 完整密度链。
 
-- Legacy 正常视图；
-- Recipe 正常视图；
-- Legacy density debug；
-- Recipe density debug；
-- Cached；
-- Hybrid；
-- 固定 camera/time/placement。
+### 视觉与性能证据
 
-测试目标是公开行为：轮廓、拓扑、Support、缓存和最终成像。不要把 WGSL 私有函数的具体文本顺序当成行为测试。
+每个迁移云属至少保留：
 
-### 性能检查
+- Legacy 与 V2 正常视图；
+- Legacy 与 V2 density debug；
+- Cached 与 Hybrid；
+- 固定 camera/time/weather/body placement；
+- cache pass、cloud pass、预计算 pass 和总 GPU 中位数；
+- 被剔除 tile、平均候选 body 数和实际 evaluator 调用量。
 
-正式预算只看 Cached/Hybrid：
+性能判断看稳态 GPU timing，不只看 FPS；正常视图与 density debug 分开记录。Realtime 只要求可选创建、无 NaN/越界和基础语义正确。
 
-- cache pass 中位数；
-- cloud pass 中位数；
-- 活跃云体数；
-- cacheResolution/updateRate；
-- 正常视图与 density debug 分开记录。
+## 19. 明确不在本路线内
 
-Realtime 只要求编译、无 NaN/越界、基础 Recipe 语义一致。
-
-## 17. 明确不在本路线内
-
-- 任意 shader graph、用户自定义 WGSL；
-- 十属所有云种/变种一次实现；
+- 重写整个应用或另建独立项目；
+- 在 V2 内继续复刻旧完整 4D Voronoi/fBm 链；
+- 任意 shader graph、用户自定义 WGSL 或运行时 operator interpreter；
+- 十属所有云种、变种一次实现；
+- 每云体独立 3D noise texture；
 - precipitation curtain、virga、真实降水输运；
 - 台风涡旋、风切变和流体模拟；
 - 物理大气 LUT 和光照模型重写；
-- Realtime 60fps；
-- 未经迁移提案删除旧 preset 字段或 scenario 兼容；
-- 用默认升高缓存分辨率掩盖密度算法问题。
+- Realtime 60 fps；
+- 未经迁移提案删除旧 preset/scenario 兼容；
+- 未测量就引入 subgroup、indirect dispatch、原子累积或复杂 GPU compaction。
 
-## 18. OpenSpec 与执行入口
+## 20. 分 Wave OpenSpec 入口
 
-- Proposal：`openspec/changes/refactor-cloud-density-recipes/proposal.md`
-- Design：`openspec/changes/refactor-cloud-density-recipes/design.md`
-- Tiny commits：`openspec/changes/refactor-cloud-density-recipes/tasks.md`
-- Spec deltas：`cloud-morphology`、`cloud-presets`、`cloud-rendering`、`cloud-params`
-- 形态依据：`docs/cloud-morphology-and-density-family-discussion.md`
-- 源数据：`docs/云属分类与数学建模技术手册 - Table 1.csv`
+当前只建立 W0 change：
 
-OpenSpec tasks 是进度事实来源；本文负责解释波次、依赖与退出条件。二者发生冲突时，应先更新设计和 spec，再同步路线图，不允许只改 checklist 掩盖架构变化。
+- Proposal：`openspec/changes/establish-density-v2-baseline/proposal.md`
+- Design：`openspec/changes/establish-density-v2-baseline/design.md`
+- Tasks：`openspec/changes/establish-density-v2-baseline/tasks.md`
+- Spec delta：`cloud-density-benchmarking`
+
+W0 获批并完成前，不创建或实施 W1–W12 change。后续提案仍需分别把以下决定写成规范性要求：
+
+- `DensityCacheProducer` Interface、两个 Adapter 与失败回退；
+- Cached/Hybrid 与 Realtime pipeline 隔离；
+- V2 禁止完整 4D Voronoi 主路径和固定算子预算；
+- tile-body mask 的保守性要求；
+- 共享 atlas、2D macro fields 与多频率更新；
+- W6 双属 Spike 的继续/停止 Gate；
+- 十属分 Wave 迁移及属级回退；
+- 性能证据格式、workgroup limits 和可选 feature fallback；
+- Legacy 删除必须由独立 change 批准。
+
+相关依据：
+
+- `docs/cloud-morphology-and-density-family-discussion.md`
+- `docs/云属分类与数学建模技术手册 - Table 1.csv`
+- `docs/roadmap-v2.md` 阶段 13.1 与阶段 14
+- `openspec/specs/cloud-morphology/spec.md`
+- `openspec/specs/cloud-rendering/spec.md`
+- `openspec/specs/cloud-params/spec.md`
+
+新 OpenSpec 的 tasks 才是未来实施进度的事实来源；本 roadmap 负责说明架构选择、Wave 依赖、性能护栏和停止条件。
