@@ -43,8 +43,8 @@
 - [x] 6.1 运行 `npm run typecheck` 与 `npm run build`
 - [x] 6.2 运行 `npm run test:genus-dispatch`，确认十属 evaluator 和现有 density shader 语义未改
 - [x] 6.3 代码分析确认 Legacy Cached/Hybrid 的 update-rate、wind threshold、ping-pong index、cacheBlend、dispatch 数与 pass 顺序保持一致
-- [ ] 6.4 人工 A/B：Legacy + Cached/Hybrid 的 Normal 与 density debug 无明显视觉差异；当前自动验证环境无 WebGPU adapter，等待项目所有者在实际 WebGPU 页面签核
-- [ ] 6.5 请求 Recipe V2，确认 UI/HUD 显示 requested=V2、active=Legacy、reason=not implemented，画面仍由 Legacy 正常输出；代码路径与 HUD 已完成，等待实际 WebGPU 页面签核
+- [x] 6.4 人工 A/B：Legacy + Cached/Hybrid 的 Normal 与 density debug 无明显视觉差异；项目所有者于 2026-07-11 确认无误
+- [x] 6.5 请求 Recipe V2，确认 UI/HUD 显示 requested=V2、active=Legacy、reason=not implemented，画面仍由 Legacy 正常输出；项目所有者于 2026-07-11 确认无误
 - [x] 6.6 静态验证 Realtime 基础兼容：`qualityMode=2` 时 plan 跳过 cache encode 并保留现有直接密度路径；不做性能验收
 - [x] 6.7 运行 `openspec validate add-density-cache-producer-seam --strict --no-interactive`
 - [x] 6.8 W1 完成前不创建或实施 W2 pipeline isolation change

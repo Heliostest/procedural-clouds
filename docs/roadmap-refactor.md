@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 代码与自动检查已完成，等待项目所有者完成 Cached/Hybrid 与 V2→Legacy 回退的最终视觉签核；W2–W12 尚未建立提案。
+> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已完成代码、自动检查及项目所有者视觉签核，并于 2026-07-11 归档；W2–W12 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
@@ -511,23 +511,22 @@ OpenSpec change：`openspec/changes/establish-density-v2-baseline/`。该 change
 
 ## 20. 分 Wave OpenSpec 入口
 
-当前已建立两个 change：
+当前保留一个活跃 change，并已归档 W1：
 
 - Proposal：`openspec/changes/establish-density-v2-baseline/proposal.md`
 - Design：`openspec/changes/establish-density-v2-baseline/design.md`
 - Tasks：`openspec/changes/establish-density-v2-baseline/tasks.md`
 - Spec delta：`cloud-density-benchmarking`
 
-W1：`openspec/changes/add-density-cache-producer-seam/`
+W1（已归档）：`openspec/changes/archive/2026-07-11-add-density-cache-producer-seam/`
 
 - Proposal：`proposal.md`
 - Design：`design.md`
 - Tasks：`tasks.md`
 - Spec deltas：`density-cache-production`、`cloud-rendering`、`cloud-params`
 
-W1 仍须单独批准后才能实施；W2–W12 也必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
+W1 已完成实施、视觉签核与归档；W2–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
 
-- `DensityCacheProducer` Interface、两个 Adapter 与失败回退；
 - Cached/Hybrid 与 Realtime pipeline 隔离；
 - V2 禁止完整 4D Voronoi 主路径和固定算子预算；
 - tile-body mask 的保守性要求；
