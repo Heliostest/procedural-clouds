@@ -81,6 +81,10 @@ export interface DensityProducerStats {
   shaderModuleCreateCpuMs: number;
   pipelineCreateCpuMs: number;
   sourceLength: number;
+  recordBytes: number;
+  outputBytes: number;
+  dispatchWorkgroups: readonly [number, number, number];
+  emptyDensity: boolean;
 }
 
 export interface DensityProducerSelection {
@@ -105,6 +109,7 @@ export interface DensityCacheProducer {
   getOutput(): DensityCacheOutput;
   setResolution(resolution: number): void;
   setWorkgroup(size: readonly [number, number, number]): void;
+  invalidate(reason: string): void;
   getStats(): DensityProducerStats;
   handleDeviceLost(reason: GPUDeviceLostInfo): void;
   destroy(): void;

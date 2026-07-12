@@ -309,7 +309,16 @@ async function main(): Promise<void> {
       return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
     }).join(' ');
     lines.push(`quality pipelines: ${qualityPipelineSummary}`);
-    lines.push(`density producer: requested=${s.densityProducerRequested} active=${s.densityProducerActive}${s.densityProducerFallbackReason ? ` fallback=${s.densityProducerFallbackReason}` : ''}`);
+    lines.push(`density producer: requested=${s.densityProducerRequested} active=${s.densityProducerActive} gen=${s.densityProducerActiveGeneration} lifecycle=${s.densityProducerLifecycle}${s.densityProducerFallbackReason ? ` fallback=${s.densityProducerFallbackReason}` : ''}`);
+    if (s.densityProducerRequested !== s.densityProducerActive || s.densityProducerCandidateReason) {
+      lines.push(`density candidate: ${s.densityProducerCandidateLifecycle}${s.densityProducerCandidateReason ? ` (${s.densityProducerCandidateReason})` : ''}`);
+    }
+    if (s.densityProducerEmptyDensity) {
+      const dispatch = s.densityProducerDispatchWorkgroups.join('x');
+      lines.push(`W3 empty-density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
+      lines.push(`V2 create: adapter=${s.densityProducerCreateCpuMs.toFixed(1)}ms shader=${s.densityProducerShaderModuleCreateCpuMs.toFixed(1)}ms pipeline=${s.densityProducerPipelineCreateCpuMs.toFixed(1)}ms rebuild=${s.densityProducerRebuildCpuMs.toFixed(1)}ms source=${s.densityProducerSourceLength}`);
+    }
+    if (s.densityProducerFailureReason) lines.push(`density failure: ${s.densityProducerFailureReason}`);
     lines.push(`ground shadow: ${GROUND_SHADOW_NAMES[params.groundShadowMode] ?? params.groundShadowMode} ~${estimatedGroundShadowSteps()}/${params.groundShadowMaxSteps} samples`);
     if (params.groundShadowMode === 2) {
       lines.push(`shadow map: ${s.shadowMapResolution}² ${s.shadowUpdated ? 'updated' : 'reused'} history-reset:${s.shadowHistoryResetReason}`);

@@ -10,6 +10,8 @@ const managerSource = readFileSync(resolve(root, 'src/rendering/densityQualityPi
 const paramsSource = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
 const recipeV2Source = readFileSync(resolve(root, 'shaders/density-v2-empty.wgsl'), 'utf8');
 const recipeV2PipelineSource = readFileSync(resolve(root, 'src/density/recipeV2Pipeline.ts'), 'utf8');
+const recipeV2AdapterSource = readFileSync(resolve(root, 'src/density/recipeDensityV2Adapter.ts'), 'utf8');
+const producerSelectorSource = readFileSync(resolve(root, 'src/density/densityProducerSelector.ts'), 'utf8');
 const genusNames = [
   'common', 'cumulus', 'stratus', 'stratocumulus', 'cumulonimbus',
   'altocumulus', 'altostratus', 'nimbostratus', 'cirrus', 'cirrostratus',
@@ -115,7 +117,8 @@ if (!realtime.includes('params.g.densityResolution') || !paramsSource.includes('
 }
 const recipeV2Forbidden = [
   'cloudDensityTyped', 'evalBody', 'node_tex_voronoi', 'noise_fbm',
-  'textureSample', 'atomic', 'var<workgroup>', 'operatorCount', 'indirect',
+  'textureSample', 'textureLoad', 'textureGather', 'atomic', 'var<workgroup>',
+  'operatorCount', 'indirect', 'tileMask', 'macroField', 'atlasTexture',
 ];
 for (const symbol of recipeV2Forbidden) {
   if (recipeV2Source.includes(symbol)) throw new Error(`Recipe V2 empty compute contains forbidden symbol: ${symbol}`);
@@ -126,9 +129,33 @@ if ((recipeV2Source.match(/textureStore\(/g) ?? []).length !== 1) {
 if (!recipeV2Source.includes('csDensityV2Empty') || !recipeV2Source.includes('vec4f(0.0)')) {
   throw new Error('Recipe V2 empty compute entry is incomplete');
 }
+if ((recipeV2Source.match(/@compute\b/g) ?? []).length !== 1
+  || /\b(for|while|loop)\s*[{(]/.test(recipeV2Source)) {
+  throw new Error('Recipe V2 empty compute must have one bounded entry and no evaluator loops');
+}
 if (!recipeV2PipelineSource.includes('createBindGroupLayout')
   || recipeV2PipelineSource.includes("layout: 'auto'")) {
   throw new Error('Recipe V2 pipeline does not use explicit layouts');
+}
+if (rendererSource.includes('new RecipeDensityV2Adapter(')
+  || !rendererSource.includes('createRecipeV2: () => createRecipeDensityV2Adapter({')) {
+  throw new Error('Renderer must expose Recipe V2 only through the lazy selector factory');
+}
+if (!producerSelectorSource.includes("if (kind === 'recipe-v2' && cacheRequired) this.ensureRecipeV2();")
+  || !producerSelectorSource.includes('this.activeGeneration++;')
+  || !producerSelectorSource.includes('prepareTransition(')
+  || !producerSelectorSource.includes('encodeTransition(')
+  || !producerSelectorSource.includes('commitTransition()')) {
+  throw new Error('Recipe V2 lazy creation or atomic promotion protocol is incomplete');
+}
+if (!rendererSource.includes('densityConsumerProducerGeneration === producerSelection.activeGeneration')
+  || !rendererSource.includes('densityProducerSelector.commitTransition();')) {
+  throw new Error('Density consumers do not key bindings and promotion by Producer identity');
+}
+for (const resource of ['frameBuffer', 'bodyBuffer', 'recipeBuffer', 'textures', 'outputBindGroups']) {
+  if (!recipeV2AdapterSource.includes(resource)) {
+    throw new Error(`Recipe V2 Adapter is missing owned resource: ${resource}`);
+  }
 }
 
 console.log('density pipeline source closures are isolated');

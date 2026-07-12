@@ -60,6 +60,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
   private preparedFrame = -1;
   private encodedFrame = -1;
   private pendingEncode = false;
+  private forceRefresh = true;
   private activeBodyCount = 0;
   private lifecycle: DensityProducerLifecycle = 'ready';
   private failureReason = '';
@@ -100,7 +101,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     const updateRate = Math.max(1, Math.round(input.params.cacheUpdateRate));
     const scheduledUpdate = input.frameIndex % updateRate === 0;
     const willEncode = input.params.qualityMode !== 2
-      && (scheduledUpdate || this.windMovedPastVoxel(input));
+      && (this.forceRefresh || scheduledUpdate || this.windMovedPastVoxel(input));
 
     if (willEncode) {
       const interval = this.lastCacheUpdateElapsed > 0
@@ -176,6 +177,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     pass.end();
 
     this.pendingEncode = false;
+    this.forceRefresh = false;
     this.cacheRan = true;
     this.cacheSampleId++;
     this.contentRevision++;
@@ -222,6 +224,11 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     this.rebuildCpuMs += performance.now() - started;
   }
 
+  invalidate(_reason: string): void {
+    this.forceRefresh = true;
+    this.lastCachedWindOffsets = [];
+  }
+
   getStats(): DensityProducerStats {
     return {
       kind: this.kind,
@@ -240,6 +247,14 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       shaderModuleCreateCpuMs: this.pipelineResources.creation.shaderModuleCreateCpuMs,
       pipelineCreateCpuMs: this.pipelineResources.creation.pipelineCreateCpuMs,
       sourceLength: this.pipelineResources.creation.sourceLength,
+      recordBytes: 0,
+      outputBytes: this.resolution ** 3 * 8 * 2,
+      dispatchWorkgroups: [
+        Math.ceil(this.resolution / this.workgroup[0]),
+        Math.ceil(this.resolution / this.workgroup[1]),
+        Math.ceil(this.resolution / this.workgroup[2]),
+      ],
+      emptyDensity: false,
     };
   }
 
@@ -292,6 +307,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     this.cacheValidCount = 0;
     this.cacheBlend = 0;
     this.lastCachedWindOffsets = [];
+    this.forceRefresh = true;
     this.resourceGeneration++;
     this.rebuildCpuMs += performance.now() - started;
   }

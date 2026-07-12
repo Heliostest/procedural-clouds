@@ -18,8 +18,8 @@ import { DEFAULT_SCENE_SCALE, bodyToRenderSpace, bodyToTransportedRenderSpace, m
 import type { WindAdvectionSample } from './wind';
 import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
 import { DensityProducerSelector } from './density/densityProducerSelector';
-import { RecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
-import { DENSITY_PRODUCER_MODE, type DensityProducerKind } from './density/contracts';
+import { createRecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
+import { DENSITY_PRODUCER_MODE, type DensityFrameInput, type DensityProducerKind } from './density/contracts';
 import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
 import {
   createDensityQualityBindings,
@@ -438,10 +438,23 @@ export interface RenderStats {
   densityQualityPipelines: Record<DensityQualityKind, DensityQualityPipelineState>;
   densityProducerRequested: DensityProducerKind;
   densityProducerActive: DensityProducerKind;
+  densityProducerActiveGeneration: number;
+  densityProducerCandidateLifecycle: string;
+  densityProducerCandidateReason: string;
   densityProducerFallbackReason: string;
   densityProducerResourceGeneration: number;
   densityProducerContentRevision: number;
   densityProducerLifecycle: string;
+  densityProducerFailureReason: string;
+  densityProducerCreateCpuMs: number;
+  densityProducerRebuildCpuMs: number;
+  densityProducerShaderModuleCreateCpuMs: number;
+  densityProducerPipelineCreateCpuMs: number;
+  densityProducerSourceLength: number;
+  densityProducerRecordBytes: number;
+  densityProducerOutputBytes: number;
+  densityProducerDispatchWorkgroups: [number, number, number];
+  densityProducerEmptyDensity: boolean;
   shadowMapResolution: number;
   shadowUpdated: boolean;
   shadowHistoryResetReason: string;
@@ -838,12 +851,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function setCacheWorkgroup(x: number, y: number, z: number): void {
-    densityProducerSelector.getActive().setWorkgroup([x, y, z]);
+    densityProducerSelector.setWorkgroup([x, y, z]);
   }
 
   let shadowRevision = 0;
   let densitySceneRevision = 0;
   let densityConsumerGeneration = -1;
+  let densityConsumerProducerGeneration = -1;
   let qualityConsumerGeneration = -1;
 
   const initialCacheWorkgroup = [8, 8, 4] as const;
@@ -871,7 +885,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   const densityProducerSelector = new DensityProducerSelector({
     legacy: legacyDensityAdapter,
-    recipeV2: new RecipeDensityV2Adapter(),
+    createRecipeV2: () => createRecipeDensityV2Adapter({
+      device,
+      initialResolution: legacyDensityAdapter.getStats().resolution,
+      initialWorkgroup: legacyDensityAdapter.getStats().workgroup,
+    }),
   });
 
   function requestedDensityProducer(mode: number): DensityProducerKind {
@@ -879,7 +897,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function setDensityResolution(res: number): void {
-    densityProducerSelector.getActive().setResolution(res);
+    densityProducerSelector.setResolution(res);
     rebuildQualityBindings(true);
   }
 
@@ -925,11 +943,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (groundShadowResolution <= 0) return;
     const selection = densityQualityPipelineManager.getSelection();
     const bundle = densityQualityPipelineManager.getActiveBundle();
+    const producerSelection = densityProducerSelector.getSelection();
     const densityOutput = densityProducerSelector.getActive().getOutput();
     if (
       !force
       && qualityBindingsReady
       && qualityConsumerGeneration === selection.activeGeneration
+      && densityConsumerProducerGeneration === producerSelection.activeGeneration
       && (!bundle.usesDensityCache || densityConsumerGeneration === densityOutput.resourceGeneration)
     ) {
       return;
@@ -947,6 +967,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     });
     qualityBindingsReady = true;
     qualityConsumerGeneration = selection.activeGeneration;
+    densityConsumerProducerGeneration = producerSelection.activeGeneration;
     densityConsumerGeneration = bundle.usesDensityCache ? densityOutput.resourceGeneration : -1;
     shadowRevision++;
   }
@@ -1191,10 +1212,23 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityQualityPipelines: densityQualityPipelineManager.getStates(),
     densityProducerRequested: initialDensitySelection.requested,
     densityProducerActive: initialDensitySelection.active,
+    densityProducerActiveGeneration: initialDensitySelection.activeGeneration,
+    densityProducerCandidateLifecycle: initialDensitySelection.candidateLifecycle,
+    densityProducerCandidateReason: initialDensitySelection.candidateReason,
     densityProducerFallbackReason: initialDensitySelection.fallbackReason,
     densityProducerResourceGeneration: initialDensityStats.resourceGeneration,
     densityProducerContentRevision: initialDensityStats.contentRevision,
     densityProducerLifecycle: initialDensityStats.lifecycle,
+    densityProducerFailureReason: initialDensityStats.failureReason,
+    densityProducerCreateCpuMs: initialDensityStats.createCpuMs,
+    densityProducerRebuildCpuMs: initialDensityStats.rebuildCpuMs,
+    densityProducerShaderModuleCreateCpuMs: initialDensityStats.shaderModuleCreateCpuMs,
+    densityProducerPipelineCreateCpuMs: initialDensityStats.pipelineCreateCpuMs,
+    densityProducerSourceLength: initialDensityStats.sourceLength,
+    densityProducerRecordBytes: initialDensityStats.recordBytes,
+    densityProducerOutputBytes: initialDensityStats.outputBytes,
+    densityProducerDispatchWorkgroups: [...initialDensityStats.dispatchWorkgroups] as [number, number, number],
+    densityProducerEmptyDensity: initialDensityStats.emptyDensity,
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
@@ -1336,7 +1370,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   }
 
   function renderFrame(params: CloudParams, cam: CameraFrame, elapsed: number, sceneClock?: number): void {
-    if (rendererDestroyed || densityProducerSelector.getActive().getStats().lifecycle !== 'ready') return;
+    const activeProducerLifecycle = densityProducerSelector.getActive().getStats().lifecycle;
+    if (rendererDestroyed || (activeProducerLifecycle !== 'ready' && activeProducerLifecycle !== 'warming')) return;
     frameIndex++;
     const clock = sceneClock ?? elapsed;
 
@@ -1397,8 +1432,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       historyValid = false;
     }
 
-    const densityProducer = densityProducerSelector.request(requestedDensityProducer(params.densityProducerMode));
-    const densityPlan = densityProducer.prepareFrame({
+    const cacheRequired = activeQualityMode !== 2;
+    const densityProducer = densityProducerSelector.request(
+      requestedDensityProducer(params.densityProducerMode),
+      cacheRequired,
+    );
+    const densityFrameInput: DensityFrameInput = {
       frameIndex,
       elapsedSeconds: elapsed,
       sceneTimeSeconds: clock,
@@ -1407,10 +1446,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       bodyMods: currentMods,
       windSamples: currentWindSamples,
       sceneRevision: densitySceneRevision,
-    });
+    };
+    const densityPlan = densityProducer.prepareFrame(densityFrameInput);
+    densityProducerSelector.prepareTransition(densityFrameInput, cacheRequired);
+    const producerSelection = densityProducerSelector.getSelection();
+    const producerChanged = densityConsumerProducerGeneration !== producerSelection.activeGeneration;
+    if (producerChanged) {
+      groundShadowHistoryValid = false;
+      groundShadowPhaseIndex = 0;
+      groundShadowResetReason = 'producer';
+      historyValid = false;
+    }
     const densityResolution = densityProducer.getStats().resolution;
     const cacheWillRun = densityPlan.willEncode;
-    rebuildQualityBindings(qualityChanged);
+    rebuildQualityBindings(qualityChanged || producerChanged);
 
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
@@ -1499,6 +1548,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
       : undefined);
     const cacheRan = cacheEncode.cacheRan;
+    densityProducerSelector.encodeTransition(commandEncoder);
 
     if (groundShadowWillRun) {
       shadowRan = true;
@@ -1724,10 +1774,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
 
     device.queue.submit([commandEncoder.finish()]);
+    densityProducerSelector.commitTransition();
 
     stats.width = canvas.width;
     stats.height = canvas.height;
-    const densityStats = densityProducer.getStats();
+    const densityStats = densityProducerSelector.getActive().getStats();
     const densitySelection = densityProducerSelector.getSelection();
     const currentQualitySelection = densityQualityPipelineManager.getSelection();
     stats.activeBodyCount = densityStats.activeBodyCount;
@@ -1742,10 +1793,23 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityQualityPipelines = densityQualityPipelineManager.getStates();
     stats.densityProducerRequested = densitySelection.requested;
     stats.densityProducerActive = densitySelection.active;
+    stats.densityProducerActiveGeneration = densitySelection.activeGeneration;
+    stats.densityProducerCandidateLifecycle = densitySelection.candidateLifecycle;
+    stats.densityProducerCandidateReason = densitySelection.candidateReason;
     stats.densityProducerFallbackReason = densitySelection.fallbackReason;
     stats.densityProducerResourceGeneration = densityStats.resourceGeneration;
     stats.densityProducerContentRevision = densityStats.contentRevision;
     stats.densityProducerLifecycle = densityStats.lifecycle;
+    stats.densityProducerFailureReason = densityStats.failureReason;
+    stats.densityProducerCreateCpuMs = densityStats.createCpuMs;
+    stats.densityProducerRebuildCpuMs = densityStats.rebuildCpuMs;
+    stats.densityProducerShaderModuleCreateCpuMs = densityStats.shaderModuleCreateCpuMs;
+    stats.densityProducerPipelineCreateCpuMs = densityStats.pipelineCreateCpuMs;
+    stats.densityProducerSourceLength = densityStats.sourceLength;
+    stats.densityProducerRecordBytes = densityStats.recordBytes;
+    stats.densityProducerOutputBytes = densityStats.outputBytes;
+    stats.densityProducerDispatchWorkgroups = [...densityStats.dispatchWorkgroups] as [number, number, number];
+    stats.densityProducerEmptyDensity = densityStats.emptyDensity;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;
