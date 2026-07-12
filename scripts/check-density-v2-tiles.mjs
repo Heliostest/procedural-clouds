@@ -30,7 +30,7 @@ for (const contract of [
   if (!mask.includes(contract)) throw new Error(`Density V2 tile-mask contract missing: ${contract}`);
 }
 for (const fixtureId of [
-  'default-grid', 'no-body', 'rotated-wind-cb', 'non-divisible-grid',
+  'default-grid', 'no-body', 'multi-body', 'rotated-wind-cb', 'non-divisible-grid',
   'invalid-before-valid', 'extreme-budget-fallback',
 ]) {
   if (!fixtures.includes(`'${fixtureId}'`)) throw new Error(`Density V2 tile fixture missing: ${fixtureId}`);

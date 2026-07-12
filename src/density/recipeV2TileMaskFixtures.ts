@@ -12,6 +12,7 @@ import {
 export const DENSITY_V2_TILE_FIXTURE_IDS = Object.freeze([
   'default-grid',
   'no-body',
+  'multi-body',
   'rotated-wind-cb',
   'non-divisible-grid',
   'invalid-before-valid',
@@ -34,6 +35,17 @@ export function verifyDensityV2TileMaskFixtures(): void {
     throw new Error('Density V2 no-body tile fixture failed');
   }
 
+  const multiPacked = packDensityV2Frame(densityV2FixtureInput([
+    densityV2FixtureBody('A', 'cumulus'),
+    { ...densityV2FixtureBody('B', 'stratus'), bounds: [2600, 2600, 4200, 4200] },
+  ]), 12);
+  const multiResult = buildDensityV2TileMask({ resolution: 12, workgroup: [4, 3, 2], packed: multiPacked });
+  if (multiPacked.activeBodyCount !== 2
+    || multiResult.candidateMemberships === 0
+    || multiResult.words.some((word) => (word & ~3) !== 0)) {
+    throw new Error('Density V2 multi-body tile fixture failed');
+  }
+
   const cb = densityV2FixtureBody('CB', 'cumulonimbus');
   cb.rot = [0.35, 0.6, -0.2];
   cb.feather = 900;
@@ -52,7 +64,9 @@ export function verifyDensityV2TileMaskFixtures(): void {
 
   const params = createDefaultParams();
   params.boxHalfExtent = 8000;
-  const edgeInput = { ...densityV2FixtureInput([densityV2FixtureBody('E', 'cirrus')]), params };
+  const edgeBody = densityV2FixtureBody('E', 'cirrus');
+  edgeBody.bounds = [7000, -9000, 9000, -7000];
+  const edgeInput = { ...densityV2FixtureInput([edgeBody]), params };
   const edgePacked = packDensityV2Frame(edgeInput, 10);
   const edgeOptions = { resolution: 10, workgroup: [4, 3, 6] as const, packed: edgePacked };
   const edgeResult = buildDensityV2TileMask(edgeOptions);
