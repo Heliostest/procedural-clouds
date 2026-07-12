@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "changeId": "add-density-v2-stratus-cumulus-spike",
+  "implementationRevision": "ceedbf9",
+  "baseline": {
+    "w5ArchiveRevision": "cf1e98a",
+    "w5ImplementationRevision": "b3595e2"
+  },
+  "fixedConfiguration": {
+    "densityResolution": 96,
+    "workgroup": [8, 8, 4],
+    "cacheWarmupsMinimum": 5,
+    "cacheTimestampSamplesMinimum": 30,
+    "primaryQuality": "cached",
+    "hybridRole": "visual-and-protocol-regression-only",
+    "timestampUnavailableBehavior": "unresolved"
+  },
+  "sourceClosure": {
+    "status": "pass",
+    "enabledGenera": ["cumulus", "stratus"],
+    "disabledGenera": [
+      "stratocumulus",
+      "cumulonimbus",
+      "altocumulus",
+      "altostratus",
+      "nimbostratus",
+      "cirrus",
+      "cirrostratus",
+      "cirrocumulus"
+    ],
+    "sampleLimits": {
+      "stratus": [2, 0, 0, 0],
+      "cumulus": [3, 1, 0, 0]
+    },
+    "newPersistentTextures": 0,
+    "newComputePassesPerCacheUpdate": 0,
+    "actualEvaluatorCalls": "unavailable",
+    "evaluatorCallEvidence": "tile-mask voxel-body upper bound"
+  },
+  "automatedValidation": {
+    "status": "pass",
+    "commands": [
+      "npm.cmd run test:density-v2-evaluators",
+      "npm.cmd run test:pipeline-isolation",
+      "npm.cmd run test:density-v2-layout",
+      "npm.cmd run test:density-v2-tiles",
+      "npm.cmd run test:density-v2-fields",
+      "npm.cmd run test:genus-dispatch",
+      "npm.cmd run typecheck",
+      "npm.cmd run build",
+      "openspec validate add-density-v2-stratus-cumulus-spike --strict --no-interactive"
+    ]
+  },
+  "performanceGates": {
+    "status": "unresolved",
+    "stratus": {
+      "scenes": ["single-stratus", "w6-stratus-multi"],
+      "medianV2OverLegacyMaximum": 0.8,
+      "p90V2OverLegacyMaximum": 1.0,
+      "result": "unresolved"
+    },
+    "cumulus": {
+      "scenes": ["single-cumulus", "w6-cumulus-multi"],
+      "medianV2OverLegacyMaximum": 1.1,
+      "p90V2OverLegacyMaximum": 1.2,
+      "result": "unresolved"
+    }
+  },
+  "visualAndSupportGates": {
+    "status": "unresolved",
+    "scenes": [
+      "single-stratus",
+      "w6-stratus-multi",
+      "single-cumulus",
+      "w6-cumulus-multi",
+      "w6-stratus-cumulus-overlap"
+    ],
+    "result": "unresolved"
+  },
+  "overall": "unresolved",
+  "archiveAllowed": false,
+  "nextWaveAllowed": false
+}
