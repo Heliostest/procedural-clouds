@@ -6,6 +6,11 @@ import {
   writeDensityV2F32,
   writeDensityV2U32,
 } from './recipeV2Layout';
+import {
+  DENSITY_V2_RECIPE_BANKS,
+  type DensityV2ParameterLaneName,
+  verifyDensityV2RecipeSemantics,
+} from './recipeV2RecipeSemantics';
 
 export const DENSITY_V2_VERTICAL_PROFILE = Object.freeze({
   thinSheet: 0,
@@ -32,6 +37,9 @@ export interface GenusRecipeDescriptor {
   readonly verticalProfile: number;
   readonly topologyFamily: number;
   readonly support: DensityV2SupportEnvelope;
+  readonly enabled: boolean;
+  readonly detailAttachmentCosts: readonly [number, number, number, number];
+  readonly sampleLimits: readonly [number, number, number, number];
 }
 
 export interface DensityV2SupportEnvelope {
@@ -72,6 +80,7 @@ const RECIPE_MODES: Readonly<Record<CloudGenus, readonly [number, number]>> = Ob
 export const GENUS_RECIPE_DESCRIPTORS: readonly GenusRecipeDescriptor[] = Object.freeze(
   CLOUD_GENERA.map((genus, genusId) => {
     const [verticalProfile, topologyFamily] = RECIPE_MODES[genus];
+    const bank = DENSITY_V2_RECIPE_BANKS[genus];
     return Object.freeze({
       genus,
       genusId,
@@ -81,6 +90,9 @@ export const GENUS_RECIPE_DESCRIPTORS: readonly GenusRecipeDescriptor[] = Object
       verticalProfile,
       topologyFamily,
       support: SUPPORT_ENVELOPES[genus],
+      enabled: bank.enabled,
+      detailAttachmentCosts: bank.detailAttachmentCosts,
+      sampleLimits: bank.sampleLimits,
     });
   }),
 );
@@ -101,29 +113,35 @@ export function packDensityRecipeV2Table(): ArrayBuffer {
   for (const recipe of GENUS_RECIPE_DESCRIPTORS) {
     writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'identityAndModes', [
       recipe.genusId,
-      0,
+      recipe.enabled ? 1 : 0,
       recipe.verticalProfile,
       recipe.topologyFamily,
     ]);
-    writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'detailAttachmentCosts', [0, 0, 0, 0]);
-    writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'sampleLimits', [0, 0, 0, 0]);
+    writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'detailAttachmentCosts', recipe.detailAttachmentCosts);
+    writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'sampleLimits', recipe.sampleLimits);
     writeDensityV2F32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'support0', [
       recipe.support.maxHorizontalScale,
       recipe.support.maxFeatherScale,
       recipe.support.maxLowerExtensionFraction,
       recipe.support.maxUpperExtensionFraction,
     ]);
+    const lanes = DENSITY_V2_RECIPE_BANKS[recipe.genus].lanes;
     for (const field of DENSITY_RECIPE_GPU_LAYOUT.fields) {
-      if (field.name === 'support0') continue;
-      if (field.kind === 'f32') {
-        writeDensityV2F32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, field.name, [0, 0, 0, 0]);
-      }
+      if (field.name === 'support0' || field.kind !== 'f32') continue;
+      writeDensityV2F32(
+        buffer,
+        DENSITY_RECIPE_GPU_LAYOUT,
+        recipe.densityRecipeId,
+        field.name,
+        lanes[field.name as DensityV2ParameterLaneName],
+      );
     }
   }
   return buffer;
 }
 
 export function verifyDensityRecipeV2Table(): void {
+  verifyDensityV2RecipeSemantics();
   if (GENUS_RECIPE_DESCRIPTORS.length !== DENSITY_V2_RECIPE_COUNT) {
     throw new Error(`Density V2 recipe count mismatch: ${GENUS_RECIPE_DESCRIPTORS.length}`);
   }
@@ -136,6 +154,9 @@ export function verifyDensityRecipeV2Table(): void {
     if (genera.has(recipe.genus)) throw new Error(`Density V2 duplicate genus: ${recipe.genus}`);
     if (!Number.isInteger(recipe.verticalProfile) || !Number.isInteger(recipe.topologyFamily)) {
       throw new Error(`Density V2 recipe modes must be integers: ${recipe.genus}`);
+    }
+    if (!recipe.enabled && [...recipe.sampleLimits, ...recipe.detailAttachmentCosts].some((value) => value !== 0)) {
+      throw new Error(`Density V2 disabled recipe has non-zero cost: ${recipe.genus}`);
     }
     const support = recipe.support;
     if (!Number.isFinite(support.maxHorizontalScale)

@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const layout = readFileSync(resolve(root, 'src/density/recipeV2Layout.ts'), 'utf8');
 const recipes = readFileSync(resolve(root, 'src/density/recipeV2Recipes.ts'), 'utf8');
+const semantics = readFileSync(resolve(root, 'src/density/recipeV2RecipeSemantics.ts'), 'utf8');
+const evaluatorMath = readFileSync(resolve(root, 'src/density/recipeV2EvaluatorMath.ts'), 'utf8');
 const packing = readFileSync(resolve(root, 'src/density/recipeV2Packing.ts'), 'utf8');
 const fixtures = readFileSync(resolve(root, 'src/density/recipeV2PackingFixtures.ts'), 'utf8');
 const params = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
@@ -45,15 +47,28 @@ for (const genus of genusNames) {
 }
 
 for (const forbidden of ['operatorCount', 'bytecode', 'interpreter', 'cloudDensityTyped', 'evalBody']) {
-  if (layout.includes(forbidden) || recipes.includes(forbidden) || packing.includes(forbidden)) {
+  if (layout.includes(forbidden) || recipes.includes(forbidden) || semantics.includes(forbidden) || packing.includes(forbidden)) {
     throw new Error(`Density V2 data path contains forbidden interpreter/Legacy symbol: ${forbidden}`);
   }
 }
-if (!recipes.includes("'identityAndModes', [\n      recipe.genusId,\n      0,")) {
-  throw new Error('W3 recipes are not statically disabled');
+if (!recipes.includes('recipe.enabled ? 1 : 0')) {
+  throw new Error('W6 recipes do not pack the static enabled flag');
 }
-if (!recipes.includes("'sampleLimits', [0, 0, 0, 0]")) {
-  throw new Error('W3 recipe sample limits are not zero');
+for (const contract of [
+  "DENSITY_V2_ENABLED_GENERA = Object.freeze(['cumulus', 'stratus']",
+  'sampleLimits: lane(2, 0, 0, 0)',
+  'sampleLimits: lane(3, 1, 0, 0)',
+  'verifyDensityV2RecipeSemantics',
+]) {
+  if (!semantics.includes(contract)) throw new Error(`W6 recipe semantics missing: ${contract}`);
+}
+for (const contract of [
+  'densityV2InverseQuaternionRotate',
+  'densityV2FlatBaseDomeProfile',
+  'densityV2SoftCompose',
+  'verifyDensityV2EvaluatorMathFixtures',
+]) {
+  if (!evaluatorMath.includes(contract)) throw new Error(`W6 evaluator math fixture missing: ${contract}`);
 }
 if (!recipes.includes("'support0', [") || !recipes.includes('maxHorizontalScale')) {
   throw new Error('W4 support envelope packing is missing');
@@ -69,4 +84,4 @@ if (!fixtures.includes('verifyDensityV2PackingFixtures')) {
   throw new Error('Density V2 executable packing fixture verifier is missing');
 }
 
-console.log('Density V2 layouts and disabled ten-genus recipes are consistent');
+console.log('Density V2 layouts, W6 dual-genus recipes, and math fixtures are consistent');

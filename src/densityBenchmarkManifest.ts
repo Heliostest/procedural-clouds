@@ -8,7 +8,13 @@ export const DENSITY_BENCHMARK_BASELINE_ID = 'density-v2-w0-legacy-v1';
 
 export type BenchmarkQuality = 'cached' | 'hybrid' | 'realtime';
 export type BenchmarkView = 'normal' | 'density-debug';
-export type BenchmarkSceneId = `single-${CloudGenus}` | 'stress-all-genera' | 'stress-complex-cb';
+export type BenchmarkProducer = 'legacy' | 'recipe-v2';
+export type BenchmarkSceneId = `single-${CloudGenus}`
+  | 'stress-all-genera'
+  | 'stress-complex-cb'
+  | 'w6-stratus-multi'
+  | 'w6-cumulus-multi'
+  | 'w6-stratus-cumulus-overlap';
 export type BenchmarkCaseStatus = 'pending' | 'running' | 'complete' | 'invalid' | 'stale';
 
 type SerializableParamKey = {
@@ -55,6 +61,7 @@ export interface DensityBenchmarkCase {
   screenshotRequired: boolean;
   realtimeCompatibilityOnly: boolean;
   screenshotPath: string;
+  producer?: BenchmarkProducer;
 }
 
 export interface DensityBenchmarkManifest {
@@ -65,6 +72,7 @@ export interface DensityBenchmarkManifest {
   viewport: BenchmarkViewport;
   camera: BenchmarkCamera;
   warmupFrames: number;
+  minimumCacheWarmups: number;
   minimumGpuSamples: number;
   params: BenchmarkCloudParams;
   scenes: BenchmarkScene[];
@@ -118,6 +126,18 @@ function zeroWind(count: number): WindAdvectionSample[] {
   return Array.from({ length: count }, () => ({ offsetM: [0, 0], morphTime: 0 }));
 }
 
+function translatedBody(source: CloudBody, id: string, offsetX: number, offsetZ: number): CloudBody {
+  const body = cloneBody(source);
+  body.id = id;
+  body.bounds = [
+    source.bounds[0] + offsetX,
+    source.bounds[1] + offsetZ,
+    source.bounds[2] + offsetX,
+    source.bounds[3] + offsetZ,
+  ];
+  return body;
+}
+
 function createScenes(): BenchmarkScene[] {
   const singleScenes = CLOUD_GENERA.map((genus): BenchmarkScene => {
     const bodies = [centeredBody(genus)];
@@ -136,6 +156,22 @@ function createScenes(): BenchmarkScene[] {
   complexCb.bounds = [-5000, -5000, 5000, 5000];
   complexCb.coverage = Math.max(0.85, complexCb.coverage);
   complexCb.densityScale = 1.15;
+  const stratus = centeredBody('stratus');
+  const cumulus = centeredBody('cumulus');
+  const stratusMulti = [
+    translatedBody(stratus, 'w6-stratus-west', -2600, 0),
+    translatedBody(stratus, 'w6-stratus-center', 0, 0),
+    translatedBody(stratus, 'w6-stratus-east', 2600, 0),
+  ];
+  const cumulusMulti = [
+    translatedBody(cumulus, 'w6-cumulus-nw', -2200, -1700),
+    translatedBody(cumulus, 'w6-cumulus-center', 0, 0),
+    translatedBody(cumulus, 'w6-cumulus-se', 2200, 1700),
+  ];
+  const overlap = [
+    translatedBody(stratus, 'w6-overlap-stratus', 0, 0),
+    translatedBody(cumulus, 'w6-overlap-cumulus', 0, 0),
+  ];
 
   return [
     ...singleScenes,
@@ -152,6 +188,27 @@ function createScenes(): BenchmarkScene[] {
       sceneTimeSeconds: 12,
       bodies: [complexCb],
       windSamples: zeroWind(1),
+    },
+    {
+      id: 'w6-stratus-multi',
+      label: 'W6 Stratus multi-body',
+      sceneTimeSeconds: 12,
+      bodies: stratusMulti,
+      windSamples: zeroWind(stratusMulti.length),
+    },
+    {
+      id: 'w6-cumulus-multi',
+      label: 'W6 Cumulus multi-body',
+      sceneTimeSeconds: 12,
+      bodies: cumulusMulti,
+      windSamples: zeroWind(cumulusMulti.length),
+    },
+    {
+      id: 'w6-stratus-cumulus-overlap',
+      label: 'W6 Stratus + Cumulus overlap',
+      sceneTimeSeconds: 12,
+      bodies: overlap,
+      windSamples: zeroWind(overlap.length),
     },
   ];
 }
@@ -253,6 +310,34 @@ function createCases(): DensityBenchmarkCase[] {
     realtimeCompatibilityOnly: true,
     screenshotPath: '',
   });
+  const w6Scenes: readonly BenchmarkSceneId[] = [
+    'single-stratus',
+    'w6-stratus-multi',
+    'single-cumulus',
+    'w6-cumulus-multi',
+    'w6-stratus-cumulus-overlap',
+  ];
+  for (const sceneId of w6Scenes) {
+    for (const producer of ['legacy', 'recipe-v2'] as const) {
+      for (const quality of ['cached', 'hybrid'] as const) {
+        for (const view of ['normal', 'density-debug'] as const) {
+          const id = `w6--${sceneId}--${producer}--${quality}--${view}`;
+          cases.push({
+            id,
+            sceneId,
+            producer,
+            quality,
+            view,
+            gateRequired: quality === 'cached' && view === 'normal',
+            timingRequired: quality === 'cached' && view === 'normal',
+            screenshotRequired: true,
+            realtimeCompatibilityOnly: false,
+            screenshotPath: screenshotPath(id),
+          });
+        }
+      }
+    }
+  }
   return cases;
 }
 
@@ -311,6 +396,7 @@ export function createDensityBenchmarkManifest(
       far: 220,
     },
     warmupFrames: 60,
+    minimumCacheWarmups: 5,
     minimumGpuSamples: 60,
     params: benchmarkParams(),
     scenes: createScenes(),
@@ -349,6 +435,7 @@ export function caseParams(manifest: DensityBenchmarkManifest, benchmarkCase: De
     ...manifest.params,
     qualityMode: QUALITY_MODE[benchmarkCase.quality],
     debugView: VIEW_MODE[benchmarkCase.view],
+    densityProducerMode: benchmarkCase.producer === 'recipe-v2' ? 1 : 0,
   };
 }
 

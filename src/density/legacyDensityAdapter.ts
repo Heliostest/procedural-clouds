@@ -257,6 +257,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       emptyDensity: false,
       tileMask: null,
       sharedFields: null,
+      evaluator: null,
     };
   }
 

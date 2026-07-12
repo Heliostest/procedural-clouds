@@ -89,7 +89,19 @@ export interface DensityTileMaskStats {
   rebuildCount: number;
   rebuildCpuMs: number;
   rebuildReason: string;
-  evaluatorCalls: 0;
+  actualEvaluatorCalls: number | null;
+  evaluatorCallUpperBound: number;
+}
+
+export interface DensityV2EvaluatorStats {
+  enabledGenera: readonly ['cumulus', 'stratus'];
+  sampleLimits: Readonly<{
+    cumulus: readonly [3, 1, 0, 0];
+    stratus: readonly [2, 0, 0, 0];
+  }>;
+  unsupportedBodyCount: number;
+  actualEvaluatorCalls: number | null;
+  evaluatorCallUpperBound: number;
 }
 
 export interface DensitySharedFieldFormatEvidence {
@@ -162,6 +174,7 @@ export interface DensityProducerStats {
   emptyDensity: boolean;
   tileMask: DensityTileMaskStats | null;
   sharedFields: DensitySharedFieldStats | null;
+  evaluator: DensityV2EvaluatorStats | null;
 }
 
 export interface DensityProducerSelection {

@@ -24,6 +24,7 @@ const IDENTITY_MOD: BodyMod = { coverageMul: 1, densityScale: 1, morph: 0 };
 export interface BenchmarkPassStatistics {
   count: number;
   median: number;
+  p90: number;
   p95: number;
   min: number;
   max: number;
@@ -51,8 +52,20 @@ export interface DensityBenchmarkCaseResult {
   viewMode: DensityBenchmarkCase['view'];
   activeBodyCount: number;
   warmupFrames: number;
+  cacheWarmups: number;
   renderedFrames: number;
   gpuTiming: BenchmarkGpuTiming;
+  producerDiagnostics: {
+    requested: string;
+    active: string;
+    pipelineCreateCpuMs: number;
+    shaderModuleCreateCpuMs: number;
+    sourceLength: number;
+    recordBytes: number;
+    outputBytes: number;
+    evaluator: RenderStats['densityProducerEvaluator'];
+    sharedFields: RenderStats['densityProducerSharedFields'];
+  };
   startupTiming: RendererStartupTiming;
   deviceInfo: RendererDeviceInfo;
   screenshotPath: string;
@@ -111,6 +124,7 @@ interface RunningCase {
   expectedRuntimeSignature: string;
   frameOverride: { camera: CameraFrame; sceneClock: number };
   warmupFrames: number;
+  cacheWarmups: number;
   renderedFrames: number;
   lastGpuSampleId: number;
   lastCacheSampleId: number;
@@ -144,9 +158,28 @@ function passStatistics(values: readonly number[]): BenchmarkPassStatistics | un
   return {
     count: finite.length,
     median: percentile(finite, 0.5),
+    p90: percentile(finite, 0.9),
     p95: percentile(finite, 0.95),
     min: finite[0],
     max: finite[finite.length - 1],
+  };
+}
+
+function producerDiagnostics(stats: RenderStats): DensityBenchmarkCaseResult['producerDiagnostics'] {
+  return {
+    requested: stats.densityProducerRequested,
+    active: stats.densityProducerActive,
+    pipelineCreateCpuMs: stats.densityProducerPipelineCreateCpuMs,
+    shaderModuleCreateCpuMs: stats.densityProducerShaderModuleCreateCpuMs,
+    sourceLength: stats.densityProducerSourceLength,
+    recordBytes: stats.densityProducerRecordBytes,
+    outputBytes: stats.densityProducerOutputBytes,
+    evaluator: stats.densityProducerEvaluator
+      ? JSON.parse(JSON.stringify(stats.densityProducerEvaluator)) as RenderStats['densityProducerEvaluator']
+      : null,
+    sharedFields: stats.densityProducerSharedFields
+      ? JSON.parse(JSON.stringify(stats.densityProducerSharedFields)) as RenderStats['densityProducerSharedFields']
+      : null,
   };
 }
 
@@ -262,8 +295,10 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       viewMode: active.definition.view,
       activeBodyCount: stats.activeBodyCount,
       warmupFrames: active.warmupFrames,
+      cacheWarmups: active.cacheWarmups,
       renderedFrames: active.renderedFrames,
       gpuTiming,
+      producerDiagnostics: producerDiagnostics(stats),
       startupTiming: { ...stats.startupTiming },
       deviceInfo: JSON.parse(JSON.stringify(stats.deviceInfo)) as RendererDeviceInfo,
       screenshotPath: active.definition.screenshotPath,
@@ -303,8 +338,10 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       viewMode: active.definition.view,
       activeBodyCount: stats.activeBodyCount,
       warmupFrames: active.warmupFrames,
+      cacheWarmups: active.cacheWarmups,
       renderedFrames: active.renderedFrames,
       gpuTiming: { availability: 'unavailable', reason, unit: 'gpu-ms' },
+      producerDiagnostics: producerDiagnostics(stats),
       startupTiming: { ...stats.startupTiming },
       deviceInfo: JSON.parse(JSON.stringify(stats.deviceInfo)) as RendererDeviceInfo,
       screenshotPath: active.definition.screenshotPath,
@@ -349,6 +386,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       expectedRuntimeSignature: expectedRuntimeSignature(manifest, definition),
       frameOverride: { camera: cameraFrame(manifest), sceneClock: scene.sceneTimeSeconds },
       warmupFrames: 0,
+      cacheWarmups: 0,
       renderedFrames: 0,
       lastGpuSampleId: stats.gpuSampleId,
       lastCacheSampleId: stats.cacheSampleId,
@@ -379,9 +417,18 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       invalidate(`Render target drifted to ${stats.width}x${stats.height}.`);
       return;
     }
-    if (active.warmupFrames < manifest.warmupFrames) {
+    const expectedProducer = active.definition.producer ?? 'legacy';
+    if (stats.densityProducerRequested !== expectedProducer || stats.densityProducerActive !== expectedProducer) {
+      active.lastGpuSampleId = stats.gpuSampleId;
+      active.lastCacheSampleId = stats.cacheSampleId;
+      active.lastShadowSampleId = stats.shadowSampleId;
+      publish(statusFor(active, `Waiting for density producer ${expectedProducer}; active=${stats.densityProducerActive}.`));
+      return;
+    }
+    if (active.warmupFrames < manifest.warmupFrames || active.cacheWarmups < manifest.minimumCacheWarmups) {
       active.warmupFrames++;
       active.lastGpuSampleId = stats.gpuSampleId;
+      if (stats.cacheSampleId !== active.lastCacheSampleId && stats.cacheRan) active.cacheWarmups++;
       active.lastCacheSampleId = stats.cacheSampleId;
       active.lastShadowSampleId = stats.shadowSampleId;
       publish(statusFor(active, `Warming ${active.definition.id}.`));

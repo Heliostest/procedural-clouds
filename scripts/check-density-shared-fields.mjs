@@ -10,7 +10,7 @@ const adapter = readFileSync(resolve(root, 'src/density/recipeDensityV2Adapter.t
 const selector = readFileSync(resolve(root, 'src/density/densityProducerSelector.ts'), 'utf8');
 const renderer = readFileSync(resolve(root, 'src/renderer.ts'), 'utf8');
 const recipes = readFileSync(resolve(root, 'src/density/recipeV2Recipes.ts'), 'utf8');
-const cacheShader = readFileSync(resolve(root, 'shaders/density-v2-empty.wgsl'), 'utf8');
+const recipeSemantics = readFileSync(resolve(root, 'src/density/recipeV2RecipeSemantics.ts'), 'utf8');
 const bindings = readFileSync(resolve(root, 'shaders/density-shared-fields-bindings.wgsl'), 'utf8');
 const sampling = readFileSync(resolve(root, 'shaders/density-shared-sampling.wgsl'), 'utf8');
 const atlas = readFileSync(resolve(root, 'shaders/density-shared-atlas.wgsl'), 'utf8');
@@ -67,8 +67,8 @@ for (const token of [
 ]) {
   if (!bindings.includes(token)) throw new Error(`W5 sampling ABI missing: ${token}`);
 }
-if (bindings.includes('textureSample') || cacheShader.includes('textureSample')) {
-  throw new Error('W5 cache source reaches a shared-field sample');
+if (bindings.includes('textureSample')) {
+  throw new Error('W5 bindings source unexpectedly contains evaluator logic');
 }
 if ((sampling.match(/textureSampleLevel\(/g) ?? []).length !== 3
   || (sampling.match(/let warp =/g) ?? []).length !== 1) {
@@ -118,9 +118,11 @@ if (!renderer.includes('ensureDensitySharedDebugPipeline()')
   || !renderer.includes('active-producer-has-no-ready-shared-fields')) {
   throw new Error('W5 lazy debug fallback is incomplete');
 }
-if (!recipes.includes("'sampleLimits', [0, 0, 0, 0]")
-  || !recipes.includes("'identityAndModes', [\n      recipe.genusId,\n      0,")) {
-  throw new Error('W5 accidentally enabled a genus Recipe or sample budget');
+if (!recipes.includes('recipe.enabled ? 1 : 0')
+  || !recipeSemantics.includes("DENSITY_V2_ENABLED_GENERA = Object.freeze(['cumulus', 'stratus']")
+  || !recipeSemantics.includes('sampleLimits: lane(2, 0, 0, 0)')
+  || !recipeSemantics.includes('sampleLimits: lane(3, 1, 0, 0)')) {
+  throw new Error('W6 shared sampling consumers do not preserve the approved dual-genus budgets');
 }
 
 console.log('Density V2 shared-field budgets, bounded generators, lifecycle and diagnostics are isolated');

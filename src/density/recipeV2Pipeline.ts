@@ -1,5 +1,9 @@
-import emptyDensitySource from '../../shaders/density-v2-empty.wgsl?raw';
+import commonDensitySource from '../../shaders/density-v2-common.wgsl?raw';
+import cumulusDensitySource from '../../shaders/density-v2-cumulus.wgsl?raw';
+import spikeDensitySource from '../../shaders/density-v2-spike.wgsl?raw';
+import stratusDensitySource from '../../shaders/density-v2-stratus.wgsl?raw';
 import sharedFieldBindingsSource from '../../shaders/density-shared-fields-bindings.wgsl?raw';
+import sharedFieldSamplingSource from '../../shaders/density-shared-sampling.wgsl?raw';
 import {
   DENSITY_BODY_GPU_LAYOUT,
   DENSITY_FRAME_GPU_LAYOUT,
@@ -10,6 +14,7 @@ import {
   verifyDensityV2Layouts,
 } from './recipeV2Layout';
 import { verifyDensityV2PackingFixtures } from './recipeV2PackingFixtures';
+import { verifyDensityV2EvaluatorMathFixtures } from './recipeV2EvaluatorMath';
 import { verifyDensityRecipeV2Table } from './recipeV2Recipes';
 import { verifyDensityV2TileMaskFixtures } from './recipeV2TileMaskFixtures';
 
@@ -54,11 +59,11 @@ function descriptor(
   workgroup: readonly [number, number, number],
 ): GPUComputePipelineDescriptor {
   return {
-    label: 'recipe-density-v2-empty-compute',
+    label: 'recipe-density-v2-spike-compute',
     layout: pipelineLayout,
     compute: {
       module,
-      entryPoint: 'csDensityV2Empty',
+      entryPoint: 'csDensityV2Spike',
       constants: { wg_x: workgroup[0], wg_y: workgroup[1], wg_z: workgroup[2] },
     },
   };
@@ -72,8 +77,17 @@ export async function createRecipeV2PipelineResources(
   verifyDensityRecipeV2Table();
   verifyDensityV2PackingFixtures();
   verifyDensityV2TileMaskFixtures();
+  verifyDensityV2EvaluatorMathFixtures();
   const workgroup = clampDensityV2Workgroup(device.limits, requestedWorkgroup);
-  const source = `${buildDensityV2WgslAbi()}\n\n${sharedFieldBindingsSource}\n\n${emptyDensitySource}`;
+  const source = [
+    buildDensityV2WgslAbi(),
+    sharedFieldBindingsSource,
+    sharedFieldSamplingSource,
+    commonDensitySource,
+    stratusDensitySource,
+    cumulusDensitySource,
+    spikeDensitySource,
+  ].join('\n\n');
   const inputLayout = device.createBindGroupLayout({
     label: 'recipe-density-v2-input-layout',
     entries: [
@@ -139,7 +153,7 @@ export async function createRecipeV2PipelineResources(
     bindGroupLayouts: [inputLayout, outputLayout, sharedFieldLayout],
   });
   const moduleStarted = performance.now();
-  const module = device.createShaderModule({ label: 'recipe-density-v2-empty-module', code: source });
+  const module = device.createShaderModule({ label: 'recipe-density-v2-spike-module', code: source });
   const shaderModuleCreateCpuMs = performance.now() - moduleStarted;
   const pipelineStarted = performance.now();
   device.pushErrorScope('validation');

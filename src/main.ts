@@ -313,15 +313,20 @@ async function main(): Promise<void> {
     if (s.densityProducerRequested !== s.densityProducerActive || s.densityProducerCandidateReason) {
       lines.push(`density candidate: ${s.densityProducerCandidateLifecycle}${s.densityProducerCandidateReason ? ` (${s.densityProducerCandidateReason})` : ''}`);
     }
-    if (s.densityProducerEmptyDensity) {
+    if (s.densityProducerActive === 'recipe-v2') {
       const dispatch = s.densityProducerDispatchWorkgroups.join('x');
-      lines.push(`W5 empty-density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
+      lines.push(`W6 V2 density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
       lines.push(`V2 create: adapter=${s.densityProducerCreateCpuMs.toFixed(1)}ms shader=${s.densityProducerShaderModuleCreateCpuMs.toFixed(1)}ms pipeline=${s.densityProducerPipelineCreateCpuMs.toFixed(1)}ms rebuild=${s.densityProducerRebuildCpuMs.toFixed(1)}ms source=${s.densityProducerSourceLength}`);
+      const evaluator = s.densityProducerEvaluator;
+      if (evaluator) {
+        lines.push(`W6 evaluators: ${evaluator.enabledGenera.join('+')} samples Cu=${evaluator.sampleLimits.cumulus.join('/')} St=${evaluator.sampleLimits.stratus.join('/')} unsupportedBodies=${evaluator.unsupportedBodyCount}`);
+        lines.push(`evaluator calls: actual=${evaluator.actualEvaluatorCalls ?? 'unavailable'} upperBound=${evaluator.evaluatorCallUpperBound}`);
+      }
       const mask = s.densityProducerTileMask;
       if (mask) {
         const mode = mask.enabled ? 'enabled' : `dense-fallback:${mask.fallbackReason}`;
         lines.push(`W4 tile-mask: ${mode} grid=${mask.grid.join('x')} tiles=${mask.tileCount} bytes=${mask.allocatedBytes}/${mask.requiredBytes}`);
-        lines.push(`tile candidates: empty=${mask.emptyTileCount} occupied=${mask.occupiedTileCount} avg=${mask.averageCandidates.toFixed(2)} max=${mask.maxCandidates} culled=${(mask.culledRatio * 100).toFixed(1)}% evaluatorCalls=${mask.evaluatorCalls}`);
+        lines.push(`tile candidates: empty=${mask.emptyTileCount} occupied=${mask.occupiedTileCount} avg=${mask.averageCandidates.toFixed(2)} max=${mask.maxCandidates} culled=${(mask.culledRatio * 100).toFixed(1)}% evaluatorUpper=${mask.evaluatorCallUpperBound}`);
         lines.push(`tile rebuild: gen=${mask.generation}/${mask.revision} count=${mask.rebuildCount} cpu=${mask.rebuildCpuMs.toFixed(2)}ms reason=${mask.rebuildReason}`);
       }
       const shared = s.densityProducerSharedFields;

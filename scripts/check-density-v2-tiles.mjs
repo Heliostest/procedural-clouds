@@ -5,7 +5,7 @@ const root = resolve(import.meta.dirname, '..');
 const mask = readFileSync(resolve(root, 'src/density/recipeV2TileMask.ts'), 'utf8');
 const fixtures = readFileSync(resolve(root, 'src/density/recipeV2TileMaskFixtures.ts'), 'utf8');
 const packing = readFileSync(resolve(root, 'src/density/recipeV2Packing.ts'), 'utf8');
-const shader = readFileSync(resolve(root, 'shaders/density-v2-empty.wgsl'), 'utf8');
+const shader = readFileSync(resolve(root, 'shaders/density-v2-spike.wgsl'), 'utf8');
 const pipeline = readFileSync(resolve(root, 'src/density/recipeV2Pipeline.ts'), 'utf8');
 
 const defaultGrid = [Math.ceil(96 / 8), Math.ceil(96 / 8), Math.ceil(96 / 4)];
@@ -43,13 +43,13 @@ if (!packing.includes('supportAabbMin')
 if (!shader.includes('@builtin(workgroup_id) tileId')
   || !shader.includes('densityTileMasks[tileIndex]')
   || (shader.match(/textureStore\(/g) ?? []).length !== 1) {
-  throw new Error('Density V2 W4 shader does not gate candidates with one final zero store');
+  throw new Error('Density V2 shader does not gate candidates with one final store');
 }
 if (!pipeline.includes('DENSITY_V2_INPUT_BINDINGS.tileMask')
   || !pipeline.includes("type: 'read-only-storage'")) {
   throw new Error('Density V2 explicit pipeline is missing the read-only mask binding');
 }
-for (const forbidden of ['textureSample', 'textureLoad', 'textureGather', 'atomic', 'var<workgroup>', 'dispatchWorkgroupsIndirect']) {
+for (const forbidden of ['textureLoad', 'textureGather', 'atomic', 'var<workgroup>', 'dispatchWorkgroupsIndirect']) {
   if (shader.includes(forbidden)) throw new Error(`Density V2 W4 shader contains forbidden operation: ${forbidden}`);
 }
 

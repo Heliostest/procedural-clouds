@@ -26,6 +26,7 @@ import {
   type DensityProducerKind,
   type DensitySharedFieldStats,
   type DensityTileMaskStats,
+  type DensityV2EvaluatorStats,
 } from './density/contracts';
 import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
 import {
@@ -464,6 +465,7 @@ export interface RenderStats {
   densityProducerEmptyDensity: boolean;
   densityProducerTileMask: DensityTileMaskStats | null;
   densityProducerSharedFields: DensitySharedFieldStats | null;
+  densityProducerEvaluator: DensityV2EvaluatorStats | null;
   densitySharedFieldDebugReason: string;
   shadowMapResolution: number;
   shadowUpdated: boolean;
@@ -1266,6 +1268,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityProducerEmptyDensity: initialDensityStats.emptyDensity,
     densityProducerTileMask: initialDensityStats.tileMask,
     densityProducerSharedFields: initialDensityStats.sharedFields,
+    densityProducerEvaluator: initialDensityStats.evaluator,
     densitySharedFieldDebugReason: '',
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
@@ -1908,6 +1911,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityProducerEmptyDensity = densityStats.emptyDensity;
     stats.densityProducerTileMask = densityStats.tileMask;
     stats.densityProducerSharedFields = densityStats.sharedFields;
+    stats.densityProducerEvaluator = densityStats.evaluator;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;

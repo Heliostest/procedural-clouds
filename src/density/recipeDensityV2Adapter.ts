@@ -87,6 +87,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
   private pendingEncode = false;
   private forceRefresh = true;
   private activeBodyCount = 0;
+  private unsupportedBodyCount = 0;
   private lifecycle: DensityProducerLifecycle = 'warming';
   private failureReason = '';
   private cacheRan = false;
@@ -114,9 +115,9 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.sampler = this.device.createSampler({
       magFilter: 'linear',
       minFilter: 'linear',
-      addressModeU: 'clamp-to-edge',
-      addressModeV: 'clamp-to-edge',
-      addressModeW: 'clamp-to-edge',
+      addressModeU: 'repeat',
+      addressModeV: 'repeat',
+      addressModeW: 'repeat',
     });
     this.frameBuffer = this.device.createBuffer({
       label: 'recipe-density-v2-frame-buffer',
@@ -167,6 +168,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       && (this.forceRefresh || scheduledUpdate || this.windMovedPastVoxel(input));
     const packed = packDensityV2Frame(input, this.resolution);
     this.activeBodyCount = packed.activeBodyCount;
+    this.unsupportedBodyCount = packed.activeBodies.filter((body) => body.genusId !== 0 && body.genusId !== 1).length;
     if (willEncode) {
       const maskOptions = {
         resolution: this.resolution,
@@ -345,9 +347,16 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
         Math.ceil(this.resolution / this.workgroup[1]),
         Math.ceil(this.resolution / this.workgroup[2]),
       ],
-      emptyDensity: true,
+      emptyDensity: false,
       tileMask: this.tileMaskStats(),
       sharedFields: this.sharedFields.getStats(),
+      evaluator: {
+        enabledGenera: ['cumulus', 'stratus'],
+        sampleLimits: { cumulus: [3, 1, 0, 0], stratus: [2, 0, 0, 0] },
+        unsupportedBodyCount: this.unsupportedBodyCount,
+        actualEvaluatorCalls: null,
+        evaluatorCallUpperBound: this.tileMaskResult?.maskedVoxelBodyUpperBound ?? 0,
+      },
     };
   }
 
@@ -483,7 +492,8 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       rebuildCount: this.tileMaskRebuildCount,
       rebuildCpuMs: this.tileMaskRebuildCpuMs,
       rebuildReason: this.tileMaskRebuildReason,
-      evaluatorCalls: 0,
+      actualEvaluatorCalls: null,
+      evaluatorCallUpperBound: mask?.maskedVoxelBodyUpperBound ?? 0,
     };
   }
 
