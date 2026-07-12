@@ -78,13 +78,25 @@ export class DensityProducerSelector {
 
   encodeTransition(encoder: GPUCommandEncoder, context: DensityEncodeContext = {}): DensityEncodeResult | null {
     if (!this.transitionPrepared || !this.transitionTarget) return null;
-    const result = this.transitionTarget.encode(encoder, context);
-    if (result.status === 'encoded' && this.transitionTarget.getOutput().valid) {
-      this.transitionEncoded = true;
+    try {
+      const result = this.transitionTarget.encode(encoder, context);
+      if (result.status === 'encoded' && this.transitionTarget.getOutput().valid) {
+        this.transitionEncoded = true;
+        return result;
+      }
+      this.rejectTransition(this.transitionTarget, new Error(result.reason || result.status));
       return result;
+    } catch (error: unknown) {
+      const target = this.transitionTarget;
+      const reason = error instanceof Error ? error.message : String(error);
+      this.rejectTransition(target, error);
+      return {
+        status: 'rejected',
+        cacheRan: false,
+        contentRevision: target.getStats().contentRevision,
+        reason,
+      };
     }
-    this.rejectTransition(this.transitionTarget, new Error(result.reason || result.status));
-    return result;
   }
 
   commitTransition(): boolean {
@@ -123,6 +135,14 @@ export class DensityProducerSelector {
 
   getRecipeV2Stats(): DensityProducerStats | null {
     return this.recipeV2?.getStats() ?? null;
+  }
+
+  getRecipeV2Diagnostics() {
+    return this.recipeV2?.getSharedFieldDiagnostics() ?? null;
+  }
+
+  recordRecipeV2SharedFieldGpuTiming(atlasMs: number | null, macroMs: number | null, error = ''): void {
+    this.recipeV2?.recordSharedFieldGpuTiming(atlasMs, macroMs, error);
   }
 
   setResolution(resolution: number): void {

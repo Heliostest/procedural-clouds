@@ -1,4 +1,5 @@
 import groundShadowResolveSource from '../shaders/ground-shadow-resolve.wgsl?raw';
+import densitySharedDebugSource from '../shaders/density-shared-debug.wgsl?raw';
 import {
   packParams,
   packBodies,
@@ -19,7 +20,13 @@ import type { WindAdvectionSample } from './wind';
 import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
 import { DensityProducerSelector } from './density/densityProducerSelector';
 import { createRecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
-import { DENSITY_PRODUCER_MODE, type DensityFrameInput, type DensityProducerKind, type DensityTileMaskStats } from './density/contracts';
+import {
+  DENSITY_PRODUCER_MODE,
+  type DensityFrameInput,
+  type DensityProducerKind,
+  type DensitySharedFieldStats,
+  type DensityTileMaskStats,
+} from './density/contracts';
 import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
 import {
   createDensityQualityBindings,
@@ -456,6 +463,8 @@ export interface RenderStats {
   densityProducerDispatchWorkgroups: [number, number, number];
   densityProducerEmptyDensity: boolean;
   densityProducerTileMask: DensityTileMaskStats | null;
+  densityProducerSharedFields: DensitySharedFieldStats | null;
+  densitySharedFieldDebugReason: string;
   shadowMapResolution: number;
   shadowUpdated: boolean;
   shadowHistoryResetReason: string;
@@ -610,6 +619,31 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const postData = new Float32Array(12);
+  let densitySharedDebugPipeline: GPURenderPipeline | null = null;
+  let densitySharedDebugUniformBuffer: GPUBuffer | null = null;
+  let densitySharedDebugFailureReason = '';
+
+  function ensureDensitySharedDebugPipeline(): GPURenderPipeline | null {
+    if (densitySharedDebugPipeline || densitySharedDebugFailureReason) return densitySharedDebugPipeline;
+    try {
+      const module = createShaderModuleTimed({ label: 'density-shared-debug-module', code: densitySharedDebugSource });
+      densitySharedDebugPipeline = createRenderPipelineTimed({
+        label: 'density-shared-debug-pipeline',
+        layout: 'auto',
+        vertex: { module, entryPoint: 'vsDensitySharedDebug' },
+        fragment: { module, entryPoint: 'fsDensitySharedDebug', targets: [{ format }] },
+        primitive: { topology: 'triangle-list' },
+      });
+      densitySharedDebugUniformBuffer = device.createBuffer({
+        label: 'density-shared-debug-uniform',
+        size: 32,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+    } catch (error: unknown) {
+      densitySharedDebugFailureReason = error instanceof Error ? error.message : String(error);
+    }
+    return densitySharedDebugPipeline;
+  }
 
   const bloomModule = createShaderModuleTimed({ code: bloomShaderSource });
   const bloomExtractPipeline = createRenderPipelineTimed({
@@ -1178,7 +1212,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let prevSceneTime = 0.0;
   let rendererDestroyed = false;
 
-  const TS_COUNT = 12; // cache, shadow integration, shadow horizontal filter, shadow resolve, cloud render, post
+  const TS_COUNT = 16; // + W5 one-shot shared atlas and macro generation
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -1231,6 +1265,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityProducerDispatchWorkgroups: [...initialDensityStats.dispatchWorkgroups] as [number, number, number],
     densityProducerEmptyDensity: initialDensityStats.emptyDensity,
     densityProducerTileMask: initialDensityStats.tileMask,
+    densityProducerSharedFields: initialDensityStats.sharedFields,
+    densitySharedFieldDebugReason: '',
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
@@ -1550,7 +1586,23 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
       : undefined);
     const cacheRan = cacheEncode.cacheRan;
-    densityProducerSelector.encodeTransition(commandEncoder);
+    densityProducerSelector.encodeTransition(commandEncoder, timestampEnabled && tsQuerySet
+      ? {
+          sharedFieldAtlasTimestampWrites: {
+            querySet: tsQuerySet,
+            beginningOfPassWriteIndex: 12,
+            endOfPassWriteIndex: 13,
+          },
+          sharedFieldMacroTimestampWrites: {
+            querySet: tsQuerySet,
+            beginningOfPassWriteIndex: 14,
+            endOfPassWriteIndex: 15,
+          },
+        }
+      : {});
+    const transitionSharedStats = densityProducerSelector.getRecipeV2Stats()?.sharedFields;
+    const sharedAtlasRan = transitionSharedStats?.atlasRan === true;
+    const sharedMacroRan = transitionSharedStats?.macroRan === true;
 
     if (groundShadowWillRun) {
       shadowRan = true;
@@ -1734,6 +1786,43 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ],
     });
 
+    const sharedDebugRequested = params.debugView >= 7 && params.debugView <= 9;
+    let sharedDebugBindGroup: GPUBindGroup | null = null;
+    if (sharedDebugRequested) {
+      const diagnostics = densityProducerSelector.getActive().getSharedFieldDiagnostics();
+      const debugPipeline = diagnostics ? ensureDensitySharedDebugPipeline() : null;
+      if (diagnostics && debugPipeline && densitySharedDebugUniformBuffer) {
+        const data = new ArrayBuffer(32);
+        const uints = new Uint32Array(data);
+        const floats = new Float32Array(data);
+        uints[0] = Math.max(0, Math.min(2, Math.round(params.debugView - 7)));
+        uints[1] = Math.max(0, Math.min(3, Math.round(params.sharedFieldDebugChannel)));
+        uints[2] = params.sharedFieldDebugSeams ? 1 : 0;
+        floats[4] = Math.max(0, Math.min(1, params.sharedFieldDebugSlice));
+        floats[5] = Number.isFinite(params.sharedFieldDebugPhase) ? params.sharedFieldDebugPhase : 0;
+        floats[6] = 2;
+        device.queue.writeBuffer(densitySharedDebugUniformBuffer, 0, data);
+        sharedDebugBindGroup = device.createBindGroup({
+          label: 'density-shared-debug-bindings',
+          layout: debugPipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: diagnostics.sampler },
+            { binding: 1, resource: diagnostics.baseView },
+            { binding: 2, resource: diagnostics.detailView },
+            { binding: 3, resource: diagnostics.macroView },
+            { binding: 4, resource: { buffer: densitySharedDebugUniformBuffer } },
+          ],
+        });
+        stats.densitySharedFieldDebugReason = '';
+      } else {
+        stats.densitySharedFieldDebugReason = diagnostics
+          ? densitySharedDebugFailureReason || 'debug-pipeline-unavailable'
+          : 'active-producer-has-no-ready-shared-fields';
+      }
+    } else {
+      stats.densitySharedFieldDebugReason = '';
+    }
+
     const textureView = context!.getCurrentTexture().createView();
     const postPass = commandEncoder.beginRenderPass({
       colorAttachments: [
@@ -1746,8 +1835,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       ],
       ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 10, endOfPassWriteIndex: 11 } } : {}),
     });
-    postPass.setPipeline(postPipeline);
-    postPass.setBindGroup(0, postBindGroup);
+    if (sharedDebugBindGroup && densitySharedDebugPipeline) {
+      postPass.setPipeline(densitySharedDebugPipeline);
+      postPass.setBindGroup(0, sharedDebugBindGroup);
+    } else {
+      postPass.setPipeline(postPipeline);
+      postPass.setBindGroup(0, postBindGroup);
+    }
     postPass.draw(3);
     postPass.end();
 
@@ -1813,6 +1907,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityProducerDispatchWorkgroups = [...densityStats.dispatchWorkgroups] as [number, number, number];
     stats.densityProducerEmptyDensity = densityStats.emptyDensity;
     stats.densityProducerTileMask = densityStats.tileMask;
+    stats.densityProducerSharedFields = densityStats.sharedFields;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;
@@ -1840,6 +1935,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           if (integrationNs >= 0 && filterNs >= 0 && resolveNs >= 0) stats.shadowMs = (integrationNs + filterNs + resolveNs) / 1e6;
           stats.shadowSampleId++;
         }
+        if (sharedAtlasRan || sharedMacroRan) {
+          const atlasNs = sharedAtlasRan ? Number(ts[13] - ts[12]) : -1;
+          const macroNs = sharedMacroRan ? Number(ts[15] - ts[14]) : -1;
+          densityProducerSelector.recordRecipeV2SharedFieldGpuTiming(
+            atlasNs >= 0 ? atlasNs / 1e6 : null,
+            macroNs >= 0 ? macroNs / 1e6 : null,
+          );
+        }
         stats.cacheRan = cacheRan;
         stats.shadowRan = shadowRan;
         stats.gpuSampleId++;
@@ -1862,6 +1965,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     rendererDestroyed = true;
     densityQualityPipelineManager.destroy();
     densityProducerSelector.destroy();
+    densitySharedDebugUniformBuffer?.destroy();
     device.destroy();
   }
 

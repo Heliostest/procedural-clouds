@@ -256,7 +256,16 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       ],
       emptyDensity: false,
       tileMask: null,
+      sharedFields: null,
     };
+  }
+
+  getSharedFieldDiagnostics(): null {
+    return null;
+  }
+
+  recordSharedFieldGpuTiming(_atlasMs: number | null, _macroMs: number | null, _error = ''): void {
+    // Legacy owns no W5 shared-field resources.
   }
 
   handleDeviceLost(reason: GPUDeviceLostInfo): void {

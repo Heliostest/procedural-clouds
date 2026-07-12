@@ -43,6 +43,8 @@ export interface DensityFramePlan {
 
 export interface DensityEncodeContext {
   timestampWrites?: GPUComputePassTimestampWrites;
+  sharedFieldAtlasTimestampWrites?: GPUComputePassTimestampWrites;
+  sharedFieldMacroTimestampWrites?: GPUComputePassTimestampWrites;
 }
 
 export interface DensityEncodeResult {
@@ -90,6 +92,53 @@ export interface DensityTileMaskStats {
   evaluatorCalls: 0;
 }
 
+export interface DensitySharedFieldFormatEvidence {
+  format: 'rgba8unorm' | 'r16float' | 'rgba16float';
+  storageWritable: boolean;
+  filterSampled: boolean;
+  bytes: number;
+  channelCount: number;
+  reason: string;
+}
+
+export interface DensitySharedFieldStats {
+  status: 'creating' | 'pending-generation' | 'ready' | 'failed' | 'destroyed';
+  format: 'rgba8unorm';
+  atlasDimension: 64;
+  macroDimension: 256;
+  payloadBytes: number;
+  peakBudgetBytes: number;
+  resourceCount: number;
+  generation: number;
+  atlasGeneration: number;
+  macroGeneration: number;
+  atlasBuildCount: number;
+  macroBuildCount: number;
+  atlasBuildReason: string;
+  macroBuildReason: string;
+  atlasRan: boolean;
+  macroRan: boolean;
+  createCpuMs: number;
+  buildEncodeCpuMs: number;
+  atlasGpuMs: number | null;
+  macroGpuMs: number | null;
+  gpuTimingError: string;
+  failureReason: string;
+  formatEvidence: readonly DensitySharedFieldFormatEvidence[];
+}
+
+export interface DensitySharedFieldDiagnostics {
+  available: boolean;
+  format: 'rgba8unorm';
+  atlasDimension: 64;
+  macroDimension: 256;
+  generation: number;
+  sampler: GPUSampler;
+  baseView: GPUTextureView;
+  detailView: GPUTextureView;
+  macroView: GPUTextureView;
+}
+
 export interface DensityProducerStats {
   kind: DensityProducerKind;
   availability: DensityProducerAvailability;
@@ -112,6 +161,7 @@ export interface DensityProducerStats {
   dispatchWorkgroups: readonly [number, number, number];
   emptyDensity: boolean;
   tileMask: DensityTileMaskStats | null;
+  sharedFields: DensitySharedFieldStats | null;
 }
 
 export interface DensityProducerSelection {
@@ -138,6 +188,8 @@ export interface DensityCacheProducer {
   setWorkgroup(size: readonly [number, number, number]): void;
   invalidate(reason: string): void;
   getStats(): DensityProducerStats;
+  getSharedFieldDiagnostics(): DensitySharedFieldDiagnostics | null;
+  recordSharedFieldGpuTiming(atlasMs: number | null, macroMs: number | null, error?: string): void;
   handleDeviceLost(reason: GPUDeviceLostInfo): void;
   destroy(): void;
 }

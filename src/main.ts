@@ -315,7 +315,7 @@ async function main(): Promise<void> {
     }
     if (s.densityProducerEmptyDensity) {
       const dispatch = s.densityProducerDispatchWorkgroups.join('x');
-      lines.push(`W3 empty-density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
+      lines.push(`W5 empty-density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
       lines.push(`V2 create: adapter=${s.densityProducerCreateCpuMs.toFixed(1)}ms shader=${s.densityProducerShaderModuleCreateCpuMs.toFixed(1)}ms pipeline=${s.densityProducerPipelineCreateCpuMs.toFixed(1)}ms rebuild=${s.densityProducerRebuildCpuMs.toFixed(1)}ms source=${s.densityProducerSourceLength}`);
       const mask = s.densityProducerTileMask;
       if (mask) {
@@ -324,8 +324,17 @@ async function main(): Promise<void> {
         lines.push(`tile candidates: empty=${mask.emptyTileCount} occupied=${mask.occupiedTileCount} avg=${mask.averageCandidates.toFixed(2)} max=${mask.maxCandidates} culled=${(mask.culledRatio * 100).toFixed(1)}% evaluatorCalls=${mask.evaluatorCalls}`);
         lines.push(`tile rebuild: gen=${mask.generation}/${mask.revision} count=${mask.rebuildCount} cpu=${mask.rebuildCpuMs.toFixed(2)}ms reason=${mask.rebuildReason}`);
       }
+      const shared = s.densityProducerSharedFields;
+      if (shared) {
+        const atlasGpu = shared.atlasGpuMs === null ? 'n/a' : `${shared.atlasGpuMs.toFixed(2)}ms`;
+        const macroGpu = shared.macroGpuMs === null ? 'n/a' : `${shared.macroGpuMs.toFixed(2)}ms`;
+        lines.push(`W5 shared-fields: ${shared.status} ${shared.format} atlas=${shared.atlasDimension}³ macro=${shared.macroDimension}² resources=${shared.resourceCount} bytes=${(shared.payloadBytes / 1048576).toFixed(2)}/${(shared.peakBudgetBytes / 1048576).toFixed(0)}MiB`);
+        lines.push(`field builds: atlas=${shared.atlasBuildCount}/gen${shared.atlasGeneration}/${atlasGpu} macro=${shared.macroBuildCount}/gen${shared.macroGeneration}/${macroGpu} encodeCPU=${shared.buildEncodeCpuMs.toFixed(2)}ms`);
+        lines.push(`field formats: ${shared.formatEvidence.map((item) => `${item.format}:${item.storageWritable && item.filterSampled ? 'ok' : 'unavailable'}/${(item.bytes / 1048576).toFixed(2)}MiB/${item.channelCount}ch`).join(' ')}`);
+      }
     }
     if (s.densityProducerFailureReason) lines.push(`density failure: ${s.densityProducerFailureReason}`);
+    if (s.densitySharedFieldDebugReason) lines.push(`W5 debug unavailable: ${s.densitySharedFieldDebugReason}`);
     lines.push(`ground shadow: ${GROUND_SHADOW_NAMES[params.groundShadowMode] ?? params.groundShadowMode} ~${estimatedGroundShadowSteps()}/${params.groundShadowMaxSteps} samples`);
     if (params.groundShadowMode === 2) {
       lines.push(`shadow map: ${s.shadowMapResolution}² ${s.shadowUpdated ? 'updated' : 'reused'} history-reset:${s.shadowHistoryResetReason}`);

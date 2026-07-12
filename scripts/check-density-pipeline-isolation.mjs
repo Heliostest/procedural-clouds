@@ -13,6 +13,10 @@ const recipeV2PipelineSource = readFileSync(resolve(root, 'src/density/recipeV2P
 const recipeV2AdapterSource = readFileSync(resolve(root, 'src/density/recipeDensityV2Adapter.ts'), 'utf8');
 const producerSelectorSource = readFileSync(resolve(root, 'src/density/densityProducerSelector.ts'), 'utf8');
 const recipeV2TileMaskSource = readFileSync(resolve(root, 'src/density/recipeV2TileMask.ts'), 'utf8');
+const sharedOwnerSource = readFileSync(resolve(root, 'src/density/densitySharedFields.ts'), 'utf8');
+const sharedAtlasSource = readFileSync(resolve(root, 'shaders/density-shared-atlas.wgsl'), 'utf8');
+const sharedMacroSource = readFileSync(resolve(root, 'shaders/density-shared-macro.wgsl'), 'utf8');
+const sharedBindingsSource = readFileSync(resolve(root, 'shaders/density-shared-fields-bindings.wgsl'), 'utf8');
 const genusNames = [
   'common', 'cumulus', 'stratus', 'stratocumulus', 'cumulonimbus',
   'altocumulus', 'altostratus', 'nimbostratus', 'cirrus', 'cirrostratus',
@@ -139,6 +143,21 @@ if ((recipeV2Source.match(/@compute\b/g) ?? []).length !== 1
 if (!recipeV2PipelineSource.includes('createBindGroupLayout')
   || recipeV2PipelineSource.includes("layout: 'auto'")) {
   throw new Error('Recipe V2 pipeline does not use explicit layouts');
+}
+if (!recipeV2PipelineSource.includes('sharedFieldLayout')
+  || !recipeV2PipelineSource.includes('bindGroupLayouts: [inputLayout, outputLayout, sharedFieldLayout]')
+  || sharedBindingsSource.includes('textureSample')) {
+  throw new Error('Recipe V2 W5 sampled bindings are not explicit and evaluator-free');
+}
+for (const source of [sharedAtlasSource, sharedMacroSource]) {
+  for (const forbiddenSymbol of ['cloudDensityTyped', 'evalBody', 'node_tex_voronoi', 'atomic', 'var<workgroup>']) {
+    if (source.includes(forbiddenSymbol)) {
+      throw new Error(`W5 generator contains forbidden Legacy/unbounded symbol: ${forbiddenSymbol}`);
+    }
+  }
+}
+if (sharedOwnerSource.includes('CloudBody') || sharedOwnerSource.includes('activeBodyCount')) {
+  throw new Error('W5 shared atlas owner allocates or rebuilds from per-body state');
 }
 if (rendererSource.includes('new RecipeDensityV2Adapter(')
   || !rendererSource.includes('createRecipeV2: () => createRecipeDensityV2Adapter({')) {

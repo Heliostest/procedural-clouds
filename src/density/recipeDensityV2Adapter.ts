@@ -9,8 +9,10 @@ import {
   type DensityFramePlan,
   type DensityProducerLifecycle,
   type DensityProducerStats,
+  type DensitySharedFieldDiagnostics,
   type DensityTileMaskStats,
 } from './contracts';
+import { createDensitySharedFields, type DensitySharedFields } from './densitySharedFields';
 import {
   DENSITY_BODY_GPU_LAYOUT,
   DENSITY_FRAME_GPU_LAYOUT,
@@ -36,6 +38,7 @@ export interface RecipeDensityV2AdapterOptions {
   initialResolution: number;
   initialWorkgroup: readonly [number, number, number];
   pipelineResources: RecipeV2PipelineResources;
+  sharedFields: DensitySharedFields;
   forceDenseTileMask?: boolean;
 }
 
@@ -55,6 +58,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
 
   private readonly device: GPUDevice;
   private readonly pipelineResources: RecipeV2PipelineResources;
+  private readonly sharedFields: DensitySharedFields;
   private readonly sampler: GPUSampler;
   private readonly frameBuffer: GPUBuffer;
   private readonly bodyBuffer: GPUBuffer;
@@ -102,6 +106,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     const started = performance.now();
     this.device = options.device;
     this.pipelineResources = options.pipelineResources;
+    this.sharedFields = options.sharedFields;
     this.forceDenseTileMask = options.forceDenseTileMask === true;
     this.pipeline = options.pipelineResources.pipeline;
     this.resolution = normalizedResolution(options.initialResolution);
@@ -242,11 +247,16 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       };
     }
     const outputBindGroups = this.requireOutputBindGroups();
+    this.sharedFields.encodePending(encoder, {
+      atlasTimestampWrites: context.sharedFieldAtlasTimestampWrites,
+      macroTimestampWrites: context.sharedFieldMacroTimestampWrites,
+    });
     const descriptor = context.timestampWrites ? { timestampWrites: context.timestampWrites } : undefined;
     const pass = encoder.beginComputePass(descriptor);
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, this.inputBindGroup);
     pass.setBindGroup(1, outputBindGroups[this.cacheIndex]);
+    pass.setBindGroup(2, this.sharedFields.getSamplingBindGroup());
     pass.dispatchWorkgroups(
       Math.ceil(this.resolution / this.workgroup[0]),
       Math.ceil(this.resolution / this.workgroup[1]),
@@ -337,7 +347,16 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       ],
       emptyDensity: true,
       tileMask: this.tileMaskStats(),
+      sharedFields: this.sharedFields.getStats(),
     };
+  }
+
+  getSharedFieldDiagnostics(): DensitySharedFieldDiagnostics | null {
+    return this.sharedFields.getDiagnostics();
+  }
+
+  recordSharedFieldGpuTiming(atlasMs: number | null, macroMs: number | null, error = ''): void {
+    this.sharedFields.recordGpuTiming(atlasMs, macroMs, error);
   }
 
   handleDeviceLost(reason: GPUDeviceLostInfo): void {
@@ -347,6 +366,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.pendingEncode = false;
     this.destroyTextures();
     this.destroyMaskBuffer();
+    this.sharedFields.markDeviceLost(this.failureReason);
   }
 
   destroy(): void {
@@ -356,6 +376,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.bodyBuffer.destroy();
     this.recipeBuffer.destroy();
     this.destroyMaskBuffer();
+    this.sharedFields.destroy();
     this.lifecycle = 'destroyed';
     this.failureReason = 'producer-destroyed';
     this.pendingEncode = false;
@@ -498,5 +519,6 @@ export async function createRecipeDensityV2Adapter(
   options: CreateRecipeDensityV2AdapterOptions,
 ): Promise<RecipeDensityV2Adapter> {
   const pipelineResources = await createRecipeV2PipelineResources(options.device, options.initialWorkgroup);
-  return new RecipeDensityV2Adapter({ ...options, pipelineResources });
+  const sharedFields = await createDensitySharedFields(options.device, pipelineResources.sharedFieldLayout);
+  return new RecipeDensityV2Adapter({ ...options, pipelineResources, sharedFields });
 }

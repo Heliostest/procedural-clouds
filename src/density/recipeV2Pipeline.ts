@@ -1,4 +1,5 @@
 import emptyDensitySource from '../../shaders/density-v2-empty.wgsl?raw';
+import sharedFieldBindingsSource from '../../shaders/density-shared-fields-bindings.wgsl?raw';
 import {
   DENSITY_BODY_GPU_LAYOUT,
   DENSITY_FRAME_GPU_LAYOUT,
@@ -22,6 +23,7 @@ export interface RecipeV2PipelineResources {
   readonly module: GPUShaderModule;
   readonly inputLayout: GPUBindGroupLayout;
   readonly outputLayout: GPUBindGroupLayout;
+  readonly sharedFieldLayout: GPUBindGroupLayout;
   readonly pipelineLayout: GPUPipelineLayout;
   readonly pipeline: GPUComputePipeline;
   readonly source: string;
@@ -71,7 +73,7 @@ export async function createRecipeV2PipelineResources(
   verifyDensityV2PackingFixtures();
   verifyDensityV2TileMaskFixtures();
   const workgroup = clampDensityV2Workgroup(device.limits, requestedWorkgroup);
-  const source = `${buildDensityV2WgslAbi()}\n\n${emptyDensitySource}`;
+  const source = `${buildDensityV2WgslAbi()}\n\n${sharedFieldBindingsSource}\n\n${emptyDensitySource}`;
   const inputLayout = device.createBindGroupLayout({
     label: 'recipe-density-v2-input-layout',
     entries: [
@@ -111,9 +113,30 @@ export async function createRecipeV2PipelineResources(
       storageTexture: { access: 'write-only', format: 'rgba16float', viewDimension: '3d' },
     }],
   });
+  const sharedFieldLayout = device.createBindGroupLayout({
+    label: 'recipe-density-v2-shared-field-layout',
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, sampler: { type: 'filtering' } },
+      {
+        binding: 1,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: 'float', viewDimension: '3d' },
+      },
+      {
+        binding: 2,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: 'float', viewDimension: '3d' },
+      },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.COMPUTE,
+        texture: { sampleType: 'float', viewDimension: '2d' },
+      },
+    ],
+  });
   const pipelineLayout = device.createPipelineLayout({
     label: 'recipe-density-v2-pipeline-layout',
-    bindGroupLayouts: [inputLayout, outputLayout],
+    bindGroupLayouts: [inputLayout, outputLayout, sharedFieldLayout],
   });
   const moduleStarted = performance.now();
   const module = device.createShaderModule({ label: 'recipe-density-v2-empty-module', code: source });
@@ -139,6 +162,7 @@ export async function createRecipeV2PipelineResources(
     module,
     inputLayout,
     outputLayout,
+    sharedFieldLayout,
     pipelineLayout,
     pipeline,
     source,

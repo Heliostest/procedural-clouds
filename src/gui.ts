@@ -622,7 +622,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     }), 'cacheRes');
     tipKey(cacheFolder.add(params, 'cacheUpdateRate', 1, 8, 1).name(t('cacheUpdate')), 'cacheUpdate');
     tipKey(cacheFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
-    tipKey(cacheFolder.add(params, 'densityProducerMode', { Legacy: 0, 'Recipe V2 (W3 empty)': 1 }).name(t('densityProducerMode')), 'densityProducerMode');
+    tipKey(cacheFolder.add(params, 'densityProducerMode', { Legacy: 0, 'Recipe V2 (W5 fields / empty)': 1 }).name(t('densityProducerMode')), 'densityProducerMode');
     tipKey(cacheFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
     tipKey(cacheFolder.add(params, 'detailFreq', 0.5, 16.0, 0.1).name(t('detailFreq')), 'detailFreq');
     tipKey(cacheFolder.add(params, 'detailStrength', 0.0, 4.0, 0.01).name(t('detailStrength')), 'detailStrength');
@@ -671,7 +671,14 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugWeatherCoverage')] = 4;
     debugOptions[t('debugRegionBounds')] = 5;
     debugOptions[t('debugCloudDepth')] = 6;
+    debugOptions[t('debugSharedBase')] = 7;
+    debugOptions[t('debugSharedDetail')] = 8;
+    debugOptions[t('debugSharedMacro')] = 9;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
+    tipKey(debugFolder.add(params, 'sharedFieldDebugSlice', 0, 1, 0.001).name(t('sharedFieldDebugSlice')), 'sharedFieldDebugSlice');
+    tipKey(debugFolder.add(params, 'sharedFieldDebugChannel', { R: 0, G: 1, B: 2, A: 3 }).name(t('sharedFieldDebugChannel')), 'sharedFieldDebugChannel');
+    tipKey(debugFolder.add(params, 'sharedFieldDebugPhase', 0, 4, 0.001).name(t('sharedFieldDebugPhase')), 'sharedFieldDebugPhase');
+    tipKey(debugFolder.add(params, 'sharedFieldDebugSeams').name(t('sharedFieldDebugSeams')), 'sharedFieldDebugSeams');
     tipKey(debugFolder.add(params, 'measureLightShare').name(t('measureLight')), 'measureLight');
 
     gui.foldersRecursive().forEach((f) => f.close());

@@ -296,6 +296,10 @@ export interface CloudParams {
   cacheWorkgroupY: number;
   cacheWorkgroupZ: number;
   debugView: number;
+  sharedFieldDebugSlice: number;
+  sharedFieldDebugChannel: number;
+  sharedFieldDebugPhase: number;
+  sharedFieldDebugSeams: boolean;
   tonemapMode: number;
   exposure: number;
   edgeCurveWidth: number;
@@ -445,6 +449,10 @@ export function createDefaultParams(): CloudParams {
     cacheWorkgroupY: 8,
     cacheWorkgroupZ: 4,
     debugView: 0,
+    sharedFieldDebugSlice: 0.5,
+    sharedFieldDebugChannel: 0,
+    sharedFieldDebugPhase: 0,
+    sharedFieldDebugSeams: true,
     tonemapMode: 1,
     exposure: 0.1,
     edgeCurveWidth: 0.5,
