@@ -60,14 +60,20 @@
 
 ## 7. Manual WebGPU acceptance
 
-- [ ] 7.1 Legacy Cached/Hybrid 与 W3 基线无视觉差异；Realtime 仍有云内容
-- [ ] 7.2 V2 Cached/Hybrid 继续保留天空/地面且云与云影为空；HUD 显示 mask enabled 和有限统计
-- [ ] 7.3 快速移动、三轴旋转与风平流场景无 validation error、黑屏或资源悬空
-- [ ] 7.4 改变 resolution/workgroup，确认 grid/mask 重建正确；超预算配置显示 dense fallback 且不分配巨型 buffer
-- [ ] 7.5 记录默认 mask bytes、candidate reduction 与 rebuild CPU timing；不表述为形态质量或 steady-state GPU 加速证据
+- [x] 7.1 Legacy Cached/Hybrid 与 W3 基线无视觉差异；Realtime 仍有云内容
+- [x] 7.2 V2 Cached/Hybrid 继续保留天空/地面且云与云影为空；HUD 显示 mask enabled 和有限统计
+- [x] 7.3 快速移动、三轴旋转与风平流场景无 validation error、黑屏或资源悬空
+- [x] 7.4 改变 resolution/workgroup，确认 grid/mask 重建正确；超预算配置显示 dense fallback 且不分配巨型 buffer
+- [x] 7.5 记录默认 mask bytes、candidate reduction 与 rebuild CPU timing；不表述为形态质量或 steady-state GPU 加速证据
+
+### W4 项目所有者验收（2026-07-12）
+
+- 项目所有者确认已完成 W4 GUI/WebGPU 验收并批准归档。
+- 默认 `96³/8×8×4` 的 grid、3,456 tiles、13.5 KiB mask、候选剔除与 rebuild CPU timing 由 HUD 暴露；极端配置使用明确 dense fallback。
+- 本验收只确认空密度 seam、mask 生命周期、资源安全和候选统计语义，不构成非零形态质量或 steady-state GPU 加速结论。
 
 ## 8. OpenSpec and handoff gate
 
 - [x] 8.1 运行 `openspec validate add-density-v2-tile-culling --strict --no-interactive`
 - [x] 8.2 W4 完成前不得创建或实施 W5/W6 change
-- [ ] 8.3 只有 1–7 完成且项目所有者确认 W4 空输出与 mask 统计语义后，才能归档并开始 W5 proposal
+- [x] 8.3 只有 1–7 完成且项目所有者确认 W4 空输出与 mask 统计语义后，才能归档并开始 W5 proposal
