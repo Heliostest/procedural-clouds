@@ -42,6 +42,9 @@ export class DensityProducerSelector {
     return {
       requested: this.requested,
       active: 'legacy',
+      activeGeneration: 1,
+      candidateLifecycle: 'idle',
+      candidateReason: this.recipeV2.reason,
       fallbackReason: this.fallbackReason,
     };
   }

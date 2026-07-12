@@ -7,17 +7,17 @@
 
 ## 1. V2 contracts and canonical layout
 
-- [ ] 1.1 扩展 Producer candidate/lifecycle/selection contract，加入 idle/creating/warming/ready/failed 与 selector `activeGeneration`；保持 `densityProducerMode` 数值不变；单独提交
-- [ ] 1.2 建立 `DensityFrameGPU=64B`、`DensityBodyGPU=128B`、`DensityRecipeGPU=256B` 的集中 layout descriptor、version、offset、stride 和 enum 定义；不修改 Legacy `PARAM_OFFSETS/BODY_BASE`
-- [ ] 1.3 实现基于同一 descriptor 的 CPU `ArrayBuffer` packer 与 WGSL struct/prefix 生成或逐字段机器对照；浮点、u32、alignment、reserved-zero 和 byte-size 失败必须有限报错；单独提交
-- [ ] 1.4 增加 `test:density-v2-layout` 静态检查，覆盖 CPU/WGSL field 顺序、stride、minBindingSize、MAX_BODIES=12、Recipe count=10 与 layout version
+- [x] 1.1 扩展 Producer candidate/lifecycle/selection contract，加入 idle/creating/warming/ready/failed 与 selector `activeGeneration`；保持 `densityProducerMode` 数值不变；单独提交
+- [x] 1.2 建立 `DensityFrameGPU=64B`、`DensityBodyGPU=128B`、`DensityRecipeGPU=256B` 的集中 layout descriptor、version、offset、stride 和 enum 定义；不修改 Legacy `PARAM_OFFSETS/BODY_BASE`
+- [x] 1.3 实现基于同一 descriptor 的 CPU `ArrayBuffer` packer 与 WGSL struct/prefix 生成或逐字段机器对照；浮点、u32、alignment、reserved-zero 和 byte-size 失败必须有限报错；单独提交
+- [x] 1.4 增加 `test:density-v2-layout` 静态检查，覆盖 CPU/WGSL field 顺序、stride、minBindingSize、MAX_BODIES=12、Recipe count=10 与 layout version
 
 ## 2. Orthogonal profiles and static ten-genus table
 
-- [ ] 2.1 定义 CPU `GenusRecipeDescriptor`，分别引用 placement、density recipe 与 optical profile identity；三套 payload 不合并
-- [ ] 2.2 建立十属完整静态表与稳定 genus/recipe ID；W3 所有 Recipe `enabled=0`，参数有限且 reserved lane 为零
-- [ ] 2.3 为 topology/profile 模式和 `maxBaseSamples/maxDetailSamples/maxOctaves` 建立有界枚举/上限；W3 上限为零，不允许变长 operator list、bytecode 或 interpreter
-- [ ] 2.4 增加 no-cloud、single-body、multi-body、invalid-genus packing fixtures；无效 genus 必须禁用 body 且不越界；单独提交
+- [x] 2.1 定义 CPU `GenusRecipeDescriptor`，分别引用 placement、density recipe 与 optical profile identity；三套 payload 不合并
+- [x] 2.2 建立十属完整静态表与稳定 genus/recipe ID；W3 所有 Recipe `enabled=0`，参数有限且 reserved lane 为零
+- [x] 2.3 为 topology/profile 模式和 `maxBaseSamples/maxDetailSamples/maxOctaves` 建立有界枚举/上限；W3 上限为零，不允许变长 operator list、bytecode 或 interpreter
+- [x] 2.4 增加 no-cloud、single-body、multi-body、invalid-genus packing fixtures；无效 genus 必须禁用 body 且不越界；单独提交
 
 ## 3. Dedicated empty-density shader and pipeline
 

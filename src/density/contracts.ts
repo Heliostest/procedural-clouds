@@ -18,7 +18,7 @@ export const DENSITY_PRODUCER_MODE = Object.freeze({
 } as const);
 
 export type DensityProducerKind = 'legacy' | 'recipe-v2';
-export type DensityProducerLifecycle = 'ready' | 'failed' | 'device-lost' | 'destroyed';
+export type DensityProducerLifecycle = 'idle' | 'creating' | 'warming' | 'ready' | 'failed' | 'device-lost' | 'destroyed';
 export type DensityProducerAvailability = 'available' | 'unavailable' | 'invalid';
 
 export interface DensityFrameInput {
@@ -86,6 +86,9 @@ export interface DensityProducerStats {
 export interface DensityProducerSelection {
   requested: DensityProducerKind;
   active: DensityProducerKind;
+  activeGeneration: number;
+  candidateLifecycle: DensityProducerLifecycle;
+  candidateReason: string;
   fallbackReason: string;
 }
 
