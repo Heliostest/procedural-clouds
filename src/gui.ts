@@ -635,7 +635,16 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
       params.cacheWorkgroupX = wgProxy.x;
       params.cacheWorkgroupY = wgProxy.y;
       params.cacheWorkgroupZ = wgProxy.z;
-      hooks.onCacheWorkgroup(wgProxy.x, wgProxy.y, wgProxy.z);
+      const x = wgProxy.x;
+      const y = wgProxy.y;
+      const z = wgProxy.z;
+      queueMicrotask(() => {
+        try {
+          hooks.onCacheWorkgroup(x, y, z);
+        } catch (error) {
+          console.error(error);
+        }
+      });
     };
     tipKey(cacheFolder.add(wgProxy, 'x', 1, 32, 1).name(t('cacheWgX')).onFinishChange(applyWg), 'cacheWgX');
     tipKey(cacheFolder.add(wgProxy, 'y', 1, 32, 1).name(t('cacheWgY')).onFinishChange(applyWg), 'cacheWgY');

@@ -20,6 +20,7 @@ import {
 } from './recipeV2Layout';
 import { packDensityV2Frame, setDensityV2TileMaskFlag } from './recipeV2Packing';
 import {
+  clampDensityV2Workgroup,
   createRecipeV2PipelineResources,
   type RecipeV2PipelineResources,
 } from './recipeV2Pipeline';
@@ -293,10 +294,11 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
 
   setWorkgroup(size: readonly [number, number, number]): void {
     this.assertUsable('setWorkgroup');
-    if (size.every((value, index) => Math.round(value) === this.workgroup[index])) return;
+    const next = clampDensityV2Workgroup(this.device.limits, size);
+    if (next.every((value, index) => value === this.workgroup[index])) return;
     const started = performance.now();
-    this.pipeline = this.pipelineResources.createPipeline(size);
-    this.workgroup = size.map((value) => Math.round(value)) as [number, number, number];
+    this.pipeline = this.pipelineResources.createPipeline(next);
+    this.workgroup = next;
     this.invalidateTileMask('workgroup');
     this.forceRefresh = true;
     this.rebuildCpuMs += performance.now() - started;

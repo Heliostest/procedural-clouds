@@ -29,22 +29,21 @@ export interface RecipeV2PipelineResources {
   createPipeline(workgroup: readonly [number, number, number]): GPUComputePipeline;
 }
 
-function validateWorkgroup(
+export function clampDensityV2Workgroup(
   limits: GPUSupportedLimits,
   requested: readonly [number, number, number],
 ): [number, number, number] {
-  const workgroup = requested.map((value) => Math.round(value)) as [number, number, number];
-  const [x, y, z] = workgroup;
-  if (x < 1 || y < 1 || z < 1) throw new Error(`Density V2 workgroup must be positive: ${workgroup.join('x')}`);
-  if (x > limits.maxComputeWorkgroupSizeX
-    || y > limits.maxComputeWorkgroupSizeY
-    || z > limits.maxComputeWorkgroupSizeZ) {
-    throw new Error(`Density V2 workgroup dimension exceeds device limits: ${workgroup.join('x')}`);
+  let x = Math.max(1, Math.min(limits.maxComputeWorkgroupSizeX, Math.round(requested[0])));
+  let y = Math.max(1, Math.min(limits.maxComputeWorkgroupSizeY, Math.round(requested[1])));
+  let z = Math.max(1, Math.min(limits.maxComputeWorkgroupSizeZ, Math.round(requested[2])));
+  const maxInvocations = Math.max(1, limits.maxComputeInvocationsPerWorkgroup);
+  while (x * y * z > maxInvocations) {
+    if (x >= y && x >= z && x > 1) x -= 1;
+    else if (y >= z && y > 1) y -= 1;
+    else if (z > 1) z -= 1;
+    else break;
   }
-  if (x * y * z > limits.maxComputeInvocationsPerWorkgroup) {
-    throw new Error(`Density V2 workgroup invocation product exceeds device limit: ${x * y * z}`);
-  }
-  return workgroup;
+  return [x, y, z];
 }
 
 function descriptor(
@@ -71,7 +70,7 @@ export async function createRecipeV2PipelineResources(
   verifyDensityRecipeV2Table();
   verifyDensityV2PackingFixtures();
   verifyDensityV2TileMaskFixtures();
-  const workgroup = validateWorkgroup(device.limits, requestedWorkgroup);
+  const workgroup = clampDensityV2Workgroup(device.limits, requestedWorkgroup);
   const source = `${buildDensityV2WgslAbi()}\n\n${emptyDensitySource}`;
   const inputLayout = device.createBindGroupLayout({
     label: 'recipe-density-v2-input-layout',
@@ -145,7 +144,7 @@ export async function createRecipeV2PipelineResources(
     source,
     creation: { shaderModuleCreateCpuMs, pipelineCreateCpuMs, sourceLength: source.length },
     createPipeline(nextWorkgroup) {
-      const validated = validateWorkgroup(device.limits, nextWorkgroup);
+      const validated = clampDensityV2Workgroup(device.limits, nextWorkgroup);
       return device.createComputePipeline(descriptor(pipelineLayout, module, validated));
     },
   };

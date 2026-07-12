@@ -233,7 +233,7 @@ async function main(): Promise<void> {
   document.body.appendChild(stats.dom);
 
   const dbg = document.createElement('pre');
-  dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;margin:0;padding:8px 10px;font:11px/1.45 monospace;color:#9feaff;background:rgba(0,0,0,0.6);white-space:pre;pointer-events:none;z-index:9999;border-radius:4px;max-width:52ch';
+  dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;margin:0;padding:8px 10px;font:11px/1.45 monospace;color:#9feaff;background:rgba(0,0,0,0.6);white-space:pre;pointer-events:none;z-index:9999;border-radius:4px;max-width:min(120ch, calc(100vw - 16px))';
   document.body.appendChild(dbg);
 
   let emaCpuMs = 0;
