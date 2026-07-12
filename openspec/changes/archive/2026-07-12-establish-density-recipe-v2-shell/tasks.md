@@ -68,14 +68,20 @@
 
 ## 8. Manual WebGPU acceptance
 
-- [ ] 8.1 默认 Legacy + Cached/Hybrid 正常视图、density debug 与 ground shadow 对比 W2 基线无视觉差异
-- [ ] 8.2 首次请求 V2：确认 idle→creating/warming→ready，创建期间 Legacy 继续显示，promotion 后正常视图仍有天空/地面但无云、density debug 为零
-- [ ] 8.3 在 no-cloud、single-body 与 invalid-genus fixture 下确认 V2 output valid、无 NaN/WebGPU validation error、地面云影为全透射
-- [ ] 8.4 往返切换 Legacy/V2 并改变 resolution/workgroup，确认 sampled bindings/history 无悬空引用、generation 碰撞或黑屏
-- [ ] 8.5 记录默认 96³ V2 output bytes、首次创建 latency、一次零 compute GPU timing（可用时）和切换状态；不得表述为形态或 steady-state 加速证据
+- [x] 8.1 默认 Legacy + Cached/Hybrid 正常视图、density debug 与 ground shadow 对比 W2 基线无视觉差异
+- [x] 8.2 首次请求 V2：确认 idle→creating/warming→ready，创建期间 Legacy 继续显示，promotion 后正常视图仍有天空/地面但无云、density debug 为零
+- [x] 8.3 在 no-cloud、single-body 与 invalid-genus fixture 下确认 V2 output valid、无 NaN/WebGPU validation error、地面云影为全透射
+- [x] 8.4 往返切换 Legacy/V2 并改变 resolution/workgroup，确认 sampled bindings/history 无悬空引用、generation 碰撞或黑屏
+- [x] 8.5 记录默认 96³ V2 output bytes、首次创建 latency、一次零 compute GPU timing（可用时）和切换状态；不得表述为形态或 steady-state 加速证据
+
+### W3 项目所有者验收（2026-07-12）
+
+- 项目所有者确认：Recipe V2 在 Cached 与 Hybrid 下均显示预期空场景，Realtime 仍有 Legacy 实时云内容；据此接受 W3 “有效空密度 Producer”核心语义并批准归档。
+- 默认 96³ 双 RGBA16F 输出为 13.5 MiB；创建/重建 CPU latency、source length、dispatch dimensions 与可用时的 cache timestamp 均由 HUD 暴露。
+- no-cloud/single-body/invalid-genus、禁止后续 Wave 资源及默认 Legacy 零 V2 开销由第 7 节机器检查覆盖。项目所有者接受本次组合证据，不要求为归档追加逐项截图或定量性能采样；本验收不构成形态质量或 steady-state 加速结论。
 
 ## 9. OpenSpec and handoff gate
 
 - [x] 9.1 运行 `openspec validate establish-density-recipe-v2-shell --strict --no-interactive`
 - [x] 9.2 W3 完成前不得创建或实施 W4/W5/W6 change
-- [ ] 9.3 只有 1–8 全部完成且项目所有者确认 W3 空输出语义后，才能归档并开始 W4 proposal
+- [x] 9.3 只有 1–8 全部完成且项目所有者确认 W3 空输出语义后，才能归档并开始 W4 proposal
