@@ -9,6 +9,7 @@
     "test:genus-dispatch": "node scripts/check-genus-dispatch.mjs",
     "test:pipeline-isolation": "node scripts/check-density-pipeline-isolation.mjs",
     "test:density-v2-layout": "node scripts/check-density-v2-layout.mjs",
+    "test:density-v2-tiles": "node scripts/check-density-v2-tiles.mjs",
     "test:ground-shadow-hash": "node scripts/check-ground-shadow-hash.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",

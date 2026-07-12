@@ -3,7 +3,7 @@ import type { BodyMod } from '../lifecycle';
 import { createDefaultParams } from '../params';
 import type { WindAdvectionSample } from '../wind';
 import type { DensityFrameInput } from './contracts';
-import { DENSITY_BODY_GPU_LAYOUT, densityV2LayoutField } from './recipeV2Layout';
+import { DENSITY_BODY_GPU_LAYOUT } from './recipeV2Layout';
 import { packDensityV2Frame } from './recipeV2Packing';
 
 export const DENSITY_V2_PACKING_FIXTURE_IDS = Object.freeze([
@@ -11,9 +11,11 @@ export const DENSITY_V2_PACKING_FIXTURE_IDS = Object.freeze([
   'single-body',
   'multi-body',
   'invalid-genus',
+  'invalid-before-valid',
+  'zero-coverage-before-valid',
 ] as const);
 
-function body(id: string, type: string): CloudBody {
+export function densityV2FixtureBody(id: string, type: string): CloudBody {
   return {
     id,
     shape: 'rect',
@@ -33,40 +35,49 @@ function body(id: string, type: string): CloudBody {
   };
 }
 
-const MOD: BodyMod = Object.freeze({ coverageMul: 1, densityScale: 1, morph: 0 });
-const WIND: WindAdvectionSample = Object.freeze({ offsetM: [0, 0] as const, morphTime: 0 });
+export const DENSITY_V2_FIXTURE_MOD: BodyMod = Object.freeze({ coverageMul: 1, densityScale: 1, morph: 0 });
+export const DENSITY_V2_FIXTURE_WIND: WindAdvectionSample = Object.freeze({ offsetM: [0, 0] as const, morphTime: 0 });
 
-function input(bodies: readonly CloudBody[]): DensityFrameInput {
+export function densityV2FixtureInput(bodies: readonly CloudBody[]): DensityFrameInput {
   return {
     frameIndex: 1,
     elapsedSeconds: 1,
     sceneTimeSeconds: 1,
     params: createDefaultParams(),
     bodies,
-    bodyMods: bodies.map(() => MOD),
-    windSamples: bodies.map(() => WIND),
+    bodyMods: bodies.map(() => DENSITY_V2_FIXTURE_MOD),
+    windSamples: bodies.map(() => DENSITY_V2_FIXTURE_WIND),
     sceneRevision: 1,
   };
 }
 
+function assertZeroTail(buffer: ArrayBuffer, activeBodyCount: number): void {
+  const bytes = new Uint8Array(buffer);
+  const start = activeBodyCount * DENSITY_BODY_GPU_LAYOUT.stride;
+  if (bytes.slice(start).some((value) => value !== 0)) {
+    throw new Error('Density V2 inactive Body tail is not zero');
+  }
+}
+
 export function verifyDensityV2PackingFixtures(): void {
+  const invalid = densityV2FixtureBody('X', 'not-a-genus');
+  const zeroCoverage = { ...densityV2FixtureBody('Z', 'stratus'), coverage: 0 };
   const cases = [
-    { id: 'no-cloud', frame: input([]), active: 0, invalid: 0 },
-    { id: 'single-body', frame: input([body('A', 'cumulus')]), active: 1, invalid: 0 },
-    { id: 'multi-body', frame: input([body('A', 'cumulus'), body('B', 'cirrus')]), active: 2, invalid: 0 },
-    { id: 'invalid-genus', frame: input([body('X', 'not-a-genus')]), active: 0, invalid: 1 },
+    { id: 'no-cloud', frame: densityV2FixtureInput([]), active: 0, invalid: 0, sources: [] },
+    { id: 'single-body', frame: densityV2FixtureInput([densityV2FixtureBody('A', 'cumulus')]), active: 1, invalid: 0, sources: [0] },
+    { id: 'multi-body', frame: densityV2FixtureInput([densityV2FixtureBody('A', 'cumulus'), densityV2FixtureBody('B', 'cirrus')]), active: 2, invalid: 0, sources: [0, 1] },
+    { id: 'invalid-genus', frame: densityV2FixtureInput([invalid]), active: 0, invalid: 1, sources: [] },
+    { id: 'invalid-before-valid', frame: densityV2FixtureInput([invalid, densityV2FixtureBody('A', 'cumulus')]), active: 1, invalid: 1, sources: [1] },
+    { id: 'zero-coverage-before-valid', frame: densityV2FixtureInput([zeroCoverage, densityV2FixtureBody('B', 'cirrus')]), active: 1, invalid: 0, sources: [1] },
   ] as const;
   for (const fixture of cases) {
     const packed = packDensityV2Frame(fixture.frame, 96);
     if (packed.activeBodyCount !== fixture.active || packed.invalidGenusCount !== fixture.invalid) {
       throw new Error(`Density V2 packing fixture failed: ${fixture.id}`);
     }
-    if (fixture.id === 'invalid-genus') {
-      const ids = densityV2LayoutField(DENSITY_BODY_GPU_LAYOUT, 'ids');
-      const packedIds = new Uint32Array(packed.bodies, ids.byteOffset, 4);
-      if (packedIds[2] !== 0 || packedIds[3] !== 1) {
-        throw new Error('Density V2 invalid genus fixture did not disable the body');
-      }
+    if (packed.sourceIndices.join(',') !== fixture.sources.join(',')) {
+      throw new Error(`Density V2 active prefix source order failed: ${fixture.id}`);
     }
+    assertZeroTail(packed.bodies, packed.activeBodyCount);
   }
 }

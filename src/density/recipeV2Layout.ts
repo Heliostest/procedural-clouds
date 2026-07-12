@@ -1,10 +1,23 @@
 import { MAX_BODIES } from '../params';
 
-export const DENSITY_V2_LAYOUT_VERSION = 1;
+export const DENSITY_V2_LAYOUT_VERSION = 2;
 export const DENSITY_V2_RECIPE_COUNT = 10;
 export const DENSITY_FRAME_GPU_SIZE = 64;
 export const DENSITY_BODY_GPU_SIZE = 128;
 export const DENSITY_RECIPE_GPU_SIZE = 256;
+export const DENSITY_V2_TILE_MASK_WORD_BYTES = 4;
+
+export const DENSITY_V2_FRAME_FLAGS = Object.freeze({
+  invalidGenus: 1 << 0,
+  tileMaskEnabled: 1 << 1,
+} as const);
+
+export const DENSITY_V2_INPUT_BINDINGS = Object.freeze({
+  frame: 0,
+  bodies: 1,
+  recipes: 2,
+  tileMask: 3,
+} as const);
 
 export type DensityV2ScalarKind = 'f32' | 'u32';
 

@@ -31,7 +31,30 @@ export interface GenusRecipeDescriptor {
   readonly opticalProfileId: string;
   readonly verticalProfile: number;
   readonly topologyFamily: number;
+  readonly support: DensityV2SupportEnvelope;
 }
+
+export interface DensityV2SupportEnvelope {
+  readonly maxHorizontalScale: number;
+  readonly maxFeatherScale: number;
+  readonly maxLowerExtensionFraction: number;
+  readonly maxUpperExtensionFraction: number;
+}
+
+export const DENSITY_V2_SUPPORT_VERSION = 1;
+
+const SUPPORT_ENVELOPES: Readonly<Record<CloudGenus, DensityV2SupportEnvelope>> = Object.freeze({
+  cumulus: Object.freeze({ maxHorizontalScale: 1.25, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.05 }),
+  stratus: Object.freeze({ maxHorizontalScale: 1, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0 }),
+  stratocumulus: Object.freeze({ maxHorizontalScale: 1.25, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.05 }),
+  cumulonimbus: Object.freeze({ maxHorizontalScale: 1.5, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.1 }),
+  altocumulus: Object.freeze({ maxHorizontalScale: 1.25, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.05 }),
+  altostratus: Object.freeze({ maxHorizontalScale: 1.05, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0 }),
+  nimbostratus: Object.freeze({ maxHorizontalScale: 1.1, maxFeatherScale: 1, maxLowerExtensionFraction: 0.05, maxUpperExtensionFraction: 0.05 }),
+  cirrus: Object.freeze({ maxHorizontalScale: 1.5, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.1 }),
+  cirrostratus: Object.freeze({ maxHorizontalScale: 1.1, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0 }),
+  cirrocumulus: Object.freeze({ maxHorizontalScale: 1.25, maxFeatherScale: 1, maxLowerExtensionFraction: 0, maxUpperExtensionFraction: 0.05 }),
+});
 
 const RECIPE_MODES: Readonly<Record<CloudGenus, readonly [number, number]>> = Object.freeze({
   cumulus: [DENSITY_V2_VERTICAL_PROFILE.flatBaseDome, DENSITY_V2_TOPOLOGY_FAMILY.billow],
@@ -57,12 +80,19 @@ export const GENUS_RECIPE_DESCRIPTORS: readonly GenusRecipeDescriptor[] = Object
       opticalProfileId: genus,
       verticalProfile,
       topologyFamily,
+      support: SUPPORT_ENVELOPES[genus],
     });
   }),
 );
 
 export function densityV2GenusId(value: string): number {
   return CLOUD_GENERA.indexOf(value as CloudGenus);
+}
+
+export function densityV2RecipeSupport(genusId: number): DensityV2SupportEnvelope {
+  const recipe = GENUS_RECIPE_DESCRIPTORS[genusId];
+  if (!recipe) throw new Error(`Density V2 support recipe out of range: ${genusId}`);
+  return recipe.support;
 }
 
 export function packDensityRecipeV2Table(): ArrayBuffer {
@@ -77,7 +107,14 @@ export function packDensityRecipeV2Table(): ArrayBuffer {
     ]);
     writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'detailAttachmentCosts', [0, 0, 0, 0]);
     writeDensityV2U32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'sampleLimits', [0, 0, 0, 0]);
+    writeDensityV2F32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, 'support0', [
+      recipe.support.maxHorizontalScale,
+      recipe.support.maxFeatherScale,
+      recipe.support.maxLowerExtensionFraction,
+      recipe.support.maxUpperExtensionFraction,
+    ]);
     for (const field of DENSITY_RECIPE_GPU_LAYOUT.fields) {
+      if (field.name === 'support0') continue;
       if (field.kind === 'f32') {
         writeDensityV2F32(buffer, DENSITY_RECIPE_GPU_LAYOUT, recipe.densityRecipeId, field.name, [0, 0, 0, 0]);
       }
@@ -99,6 +136,17 @@ export function verifyDensityRecipeV2Table(): void {
     if (genera.has(recipe.genus)) throw new Error(`Density V2 duplicate genus: ${recipe.genus}`);
     if (!Number.isInteger(recipe.verticalProfile) || !Number.isInteger(recipe.topologyFamily)) {
       throw new Error(`Density V2 recipe modes must be integers: ${recipe.genus}`);
+    }
+    const support = recipe.support;
+    if (!Number.isFinite(support.maxHorizontalScale)
+      || !Number.isFinite(support.maxFeatherScale)
+      || !Number.isFinite(support.maxLowerExtensionFraction)
+      || !Number.isFinite(support.maxUpperExtensionFraction)
+      || support.maxHorizontalScale < 1 || support.maxHorizontalScale > 4
+      || support.maxFeatherScale < 1 || support.maxFeatherScale > 4
+      || support.maxLowerExtensionFraction < 0 || support.maxLowerExtensionFraction > 1
+      || support.maxUpperExtensionFraction < 0 || support.maxUpperExtensionFraction > 1) {
+      throw new Error(`Density V2 support envelope out of range: ${recipe.genus}`);
     }
     ids.add(recipe.genusId);
     genera.add(recipe.genus);

@@ -10,7 +10,7 @@ const params = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
 const genusProfile = readFileSync(resolve(root, 'src/genusProfile.ts'), 'utf8');
 
 for (const contract of [
-  'DENSITY_V2_LAYOUT_VERSION = 1',
+  'DENSITY_V2_LAYOUT_VERSION = 2',
   'DENSITY_FRAME_GPU_SIZE = 64',
   'DENSITY_BODY_GPU_SIZE = 128',
   'DENSITY_RECIPE_GPU_SIZE = 256',
@@ -19,6 +19,8 @@ for (const contract of [
   "record('DensityRecipeGPU'",
   'buildDensityV2WgslAbi',
   'verifyDensityV2Layouts',
+  'tileMaskEnabled: 1 << 1',
+  'tileMask: 3',
 ]) {
   if (!layout.includes(contract)) throw new Error(`missing Density V2 layout contract: ${contract}`);
 }
@@ -53,10 +55,14 @@ if (!recipes.includes("'identityAndModes', [\n      recipe.genusId,\n      0,"))
 if (!recipes.includes("'sampleLimits', [0, 0, 0, 0]")) {
   throw new Error('W3 recipe sample limits are not zero');
 }
-if (!packing.includes('validGenus ? 0 : 1')) {
-  throw new Error('invalid genus packing guard is missing');
+if (!recipes.includes("'support0', [") || !recipes.includes('maxHorizontalScale')) {
+  throw new Error('W4 support envelope packing is missing');
 }
-for (const fixtureId of ['no-cloud', 'single-body', 'multi-body', 'invalid-genus']) {
+if (!packing.includes('compactIndex = activeBodies.length')
+  || !packing.includes('sourceIndices.push(sourceIndex)')) {
+  throw new Error('Density V2 active-prefix packing guard is missing');
+}
+for (const fixtureId of ['no-cloud', 'single-body', 'multi-body', 'invalid-genus', 'invalid-before-valid', 'zero-coverage-before-valid']) {
   if (!fixtures.includes(`'${fixtureId}'`)) throw new Error(`Density V2 packing fixture missing: ${fixtureId}`);
 }
 if (!fixtures.includes('verifyDensityV2PackingFixtures')) {
