@@ -28,35 +28,43 @@
 
 ## 4. RecipeDensityV2Adapter resources and frame semantics
 
-- [ ] 4.1 实现 V2 Adapter 惰性 construction，拥有 Frame/Body/Recipe buffers、双 RGBA16F 3D textures、sampled/storage views、sampler、bind groups 与 pipeline
-- [ ] 4.2 实现 prepare/encode/getOutput，保持 update-rate、wind threshold、ping-pong、transition/cacheBlend、revision 与同一 command encoder pass 顺序；W3 每个有效体素始终写 RGBA 零
-- [ ] 4.3 实现 resolution/workgroup rebuild、resource generation、强制 activation refresh、active body/record packing 与 output byte 统计
-- [ ] 4.4 实现 structured failure、device loss、幂等 destroy 和销毁后有限拒绝；不得公开 writable texture、storage bind group 或 pipeline
-- [ ] 4.5 代码分析确认默认 Legacy 未请求 V2 时不创建任何 V2 GPU 对象或 pass；单独提交
+- [x] 4.1 实现 V2 Adapter 惰性 construction，拥有 Frame/Body/Recipe buffers、双 RGBA16F 3D textures、sampled/storage views、sampler、bind groups 与 pipeline
+- [x] 4.2 实现 prepare/encode/getOutput，保持 update-rate、wind threshold、ping-pong、transition/cacheBlend、revision 与同一 command encoder pass 顺序；W3 每个有效体素始终写 RGBA 零
+- [x] 4.3 实现 resolution/workgroup rebuild、resource generation、强制 activation refresh、active body/record packing 与 output byte 统计
+- [x] 4.4 实现 structured failure、device loss、幂等 destroy 和销毁后有限拒绝；不得公开 writable texture、storage bind group 或 pipeline
+- [x] 4.5 代码分析确认默认 Legacy 未请求 V2 时不创建任何 V2 GPU 对象或 pass；单独提交
 
 ## 5. Lazy candidate selection and atomic promotion
 
-- [ ] 5.1 将 selector 的 V2 unavailable 槽位替换为 async lazy factory；创建期间 requested=Recipe V2、active=Legacy、fallback/creation reason 可见
-- [ ] 5.2 候选用当前 frame input prepare；候选 encode 成功并使 output valid 后才 promotion，encode 前拒绝或创建失败时继续当前 Legacy plan
-- [ ] 5.3 Producer promotion/回退/切回递增 selector `activeGeneration`；consumer binding key 使用 activeGeneration + output resourceGeneration
-- [ ] 5.4 切换 Producer 时重建 Cached/Hybrid density bindings并硬失效 ground-shadow/TAA history；不得因两个 Adapter 的局部 generation 相同而保留旧 view
-- [ ] 5.5 selector 保存并向 active/candidate 同步最新 resolution/workgroup；切回长期 inactive Producer 前强制用当前 frame input 刷新
-- [ ] 5.6 active quality=Realtime 时 V2 request 不创建/编码无人消费的 cache；回到 Cached/Hybrid 时再启动或刷新候选；V2 active 时不要求后台更新 Legacy；单独提交
+- [x] 5.1 将 selector 的 V2 unavailable 槽位替换为 async lazy factory；创建期间 requested=Recipe V2、active=Legacy、fallback/creation reason 可见
+- [x] 5.2 候选用当前 frame input prepare；候选 encode 成功并使 output valid 后才 promotion，encode 前拒绝或创建失败时继续当前 Legacy plan
+- [x] 5.3 Producer promotion/回退/切回递增 selector `activeGeneration`；consumer binding key 使用 activeGeneration + output resourceGeneration
+- [x] 5.4 切换 Producer 时重建 Cached/Hybrid density bindings并硬失效 ground-shadow/TAA history；不得因两个 Adapter 的局部 generation 相同而保留旧 view
+- [x] 5.5 selector 保存并向 active/candidate 同步最新 resolution/workgroup；切回长期 inactive Producer 前强制用当前 frame input 刷新
+- [x] 5.6 active quality=Realtime 时 V2 request 不创建/编码无人消费的 cache；回到 Cached/Hybrid 时再启动或刷新候选；V2 active 时不要求后台更新 Legacy；单独提交
 
 ## 6. Diagnostics and explicit W3 semantics
 
-- [ ] 6.1 扩展 stats/HUD：requested/active Producer、candidate lifecycle、active generation、creation/rebuild latency、source length、record/output bytes、dispatch dimensions 与 failure reason
-- [ ] 6.2 HUD 在 V2 active 时明确显示 `W3 empty-density`；零云输出是 valid，不得显示为 fallback/failure
-- [ ] 6.3 timestamp query 可用时记录实际 V2 cache pass；不可用时显示 unavailable，CPU latency不得填入 GPU timing
-- [ ] 6.4 默认 Legacy 正常帧确认没有 V2 dispatch、额外 density texture 或额外 cloud/ground-shadow pass；单独提交
+- [x] 6.1 扩展 stats/HUD：requested/active Producer、candidate lifecycle、active generation、creation/rebuild latency、source length、record/output bytes、dispatch dimensions 与 failure reason
+- [x] 6.2 HUD 在 V2 active 时明确显示 `W3 empty-density`；零云输出是 valid，不得显示为 fallback/failure
+- [x] 6.3 timestamp query 可用时记录实际 V2 cache pass；不可用时显示 unavailable，CPU latency不得填入 GPU timing
+- [x] 6.4 默认 Legacy 正常帧确认没有 V2 dispatch、额外 density texture 或额外 cloud/ground-shadow pass；单独提交
 
 ## 7. Automated validation
 
-- [ ] 7.1 运行 `npm run test:density-v2-layout` 与扩展后的 `npm run test:pipeline-isolation`
-- [ ] 7.2 运行 `npm run test:genus-dispatch`，确认 Legacy 十属与 Realtime 路由未变
-- [ ] 7.3 运行 `npm run typecheck` 与 `npm run build`
-- [ ] 7.4 静态验证 V2 compute 每体素只有 bounds check + zero store，body attempts/noise samples/texture samples/atomics 均为零
-- [ ] 7.5 静态验证默认 Legacy 路径不构造 V2 factory resources，W4/W5/W6 符号和资源不存在
+- [x] 7.1 运行 `npm run test:density-v2-layout` 与扩展后的 `npm run test:pipeline-isolation`
+- [x] 7.2 运行 `npm run test:genus-dispatch`，确认 Legacy 十属与 Realtime 路由未变
+- [x] 7.3 运行 `npm run typecheck` 与 `npm run build`
+- [x] 7.4 静态验证 V2 compute 每体素只有 bounds check + zero store，body attempts/noise samples/texture samples/atomics 均为零
+- [x] 7.5 静态验证默认 Legacy 路径不构造 V2 factory resources，W4/W5/W6 符号和资源不存在
+
+### W3 自动验证记录（2026-07-12）
+
+- 实现提交：`54c97e2`（lazy V2 Adapter、selector 原子切换、consumer generation、HUD 与静态隔离检查）。
+- `npm.cmd run test:density-v2-layout`：通过，三类 record、十属 disabled table 与 packing fixtures 一致。
+- `npm.cmd run test:pipeline-isolation`：通过，V2 仅一个 bounds-check/zero-store entry；默认 renderer 仅保留惰性 factory，未发现 W4/W5/W6 资源。
+- `npm.cmd run test:genus-dispatch`：通过，Legacy 十属 preset 顺序未变。
+- `npm.cmd run typecheck` 与 `npm.cmd run build`：通过；Vite 生产构建成功。
 
 ## 8. Manual WebGPU acceptance
 
@@ -68,6 +76,6 @@
 
 ## 9. OpenSpec and handoff gate
 
-- [ ] 9.1 运行 `openspec validate establish-density-recipe-v2-shell --strict --no-interactive`
-- [ ] 9.2 W3 完成前不得创建或实施 W4/W5/W6 change
+- [x] 9.1 运行 `openspec validate establish-density-recipe-v2-shell --strict --no-interactive`
+- [x] 9.2 W3 完成前不得创建或实施 W4/W5/W6 change
 - [ ] 9.3 只有 1–8 全部完成且项目所有者确认 W3 空输出语义后，才能归档并开始 W4 proposal
