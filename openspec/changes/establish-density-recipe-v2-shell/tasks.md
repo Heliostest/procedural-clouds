@@ -21,10 +21,10 @@
 
 ## 3. Dedicated empty-density shader and pipeline
 
-- [ ] 3.1 新增 V2 专用 WGSL source，只包含 generated V2 ABI、gid bounds check 与一次 `textureStore(vec4f(0))`
-- [ ] 3.2 建立显式 group 0（Frame/Body/Recipe）与 group 1（storage output）bind-group layouts、pipeline layout 和 async compute pipeline factory
-- [ ] 3.3 支持合法 workgroup override，并同时校验 device X/Y/Z 与 invocation product limits；W3 不寻找最优 workgroup
-- [ ] 3.4 扩展 source-closure 检查：V2 禁止 Legacy evaluator、genus modules、4D Voronoi/fBm、body/recipe loop、texture sample、atomics、workgroup storage 和额外 entry；单独提交
+- [x] 3.1 新增 V2 专用 WGSL source，只包含 generated V2 ABI、gid bounds check 与一次 `textureStore(vec4f(0))`
+- [x] 3.2 建立显式 group 0（Frame/Body/Recipe）与 group 1（storage output）bind-group layouts、pipeline layout 和 async compute pipeline factory
+- [x] 3.3 支持合法 workgroup override，并同时校验 device X/Y/Z 与 invocation product limits；W3 不寻找最优 workgroup
+- [x] 3.4 扩展 source-closure 检查：V2 禁止 Legacy evaluator、genus modules、4D Voronoi/fBm、body/recipe loop、texture sample、atomics、workgroup storage 和额外 entry；单独提交
 
 ## 4. RecipeDensityV2Adapter resources and frame semantics
 

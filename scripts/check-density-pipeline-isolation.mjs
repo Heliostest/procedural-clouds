@@ -8,6 +8,8 @@ const manifestSource = readFileSync(resolve(root, 'src/rendering/densityShaderSo
 const rendererSource = readFileSync(resolve(root, 'src/renderer.ts'), 'utf8');
 const managerSource = readFileSync(resolve(root, 'src/rendering/densityQualityPipelines.ts'), 'utf8');
 const paramsSource = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
+const recipeV2Source = readFileSync(resolve(root, 'shaders/density-v2-empty.wgsl'), 'utf8');
+const recipeV2PipelineSource = readFileSync(resolve(root, 'src/density/recipeV2Pipeline.ts'), 'utf8');
 const genusNames = [
   'common', 'cumulus', 'stratus', 'stratocumulus', 'cumulonimbus',
   'altocumulus', 'altostratus', 'nimbostratus', 'cirrus', 'cirrostratus',
@@ -110,6 +112,23 @@ if (realtime.includes('textureDimensions(densityTex0')) {
 }
 if (!realtime.includes('params.g.densityResolution') || !paramsSource.includes('densityResolution: 59')) {
   throw new Error('Ground-shadow density resolution uniform contract is incomplete');
+}
+const recipeV2Forbidden = [
+  'cloudDensityTyped', 'evalBody', 'node_tex_voronoi', 'noise_fbm',
+  'textureSample', 'atomic', 'var<workgroup>', 'operatorCount', 'indirect',
+];
+for (const symbol of recipeV2Forbidden) {
+  if (recipeV2Source.includes(symbol)) throw new Error(`Recipe V2 empty compute contains forbidden symbol: ${symbol}`);
+}
+if ((recipeV2Source.match(/textureStore\(/g) ?? []).length !== 1) {
+  throw new Error('Recipe V2 empty compute must contain exactly one textureStore');
+}
+if (!recipeV2Source.includes('csDensityV2Empty') || !recipeV2Source.includes('vec4f(0.0)')) {
+  throw new Error('Recipe V2 empty compute entry is incomplete');
+}
+if (!recipeV2PipelineSource.includes('createBindGroupLayout')
+  || recipeV2PipelineSource.includes("layout: 'auto'")) {
+  throw new Error('Recipe V2 pipeline does not use explicit layouts');
 }
 
 console.log('density pipeline source closures are isolated');
