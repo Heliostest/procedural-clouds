@@ -3,11 +3,14 @@ import {
   DENSITY_BODY_GPU_LAYOUT,
   DENSITY_FRAME_GPU_LAYOUT,
   DENSITY_RECIPE_GPU_LAYOUT,
+  DENSITY_V2_INPUT_BINDINGS,
+  DENSITY_V2_TILE_MASK_WORD_BYTES,
   buildDensityV2WgslAbi,
   verifyDensityV2Layouts,
 } from './recipeV2Layout';
 import { verifyDensityV2PackingFixtures } from './recipeV2PackingFixtures';
 import { verifyDensityRecipeV2Table } from './recipeV2Recipes';
+import { verifyDensityV2TileMaskFixtures } from './recipeV2TileMaskFixtures';
 
 export interface RecipeV2PipelineCreationStats {
   shaderModuleCreateCpuMs: number;
@@ -67,18 +70,19 @@ export async function createRecipeV2PipelineResources(
   verifyDensityV2Layouts();
   verifyDensityRecipeV2Table();
   verifyDensityV2PackingFixtures();
+  verifyDensityV2TileMaskFixtures();
   const workgroup = validateWorkgroup(device.limits, requestedWorkgroup);
   const source = `${buildDensityV2WgslAbi()}\n\n${emptyDensitySource}`;
   const inputLayout = device.createBindGroupLayout({
     label: 'recipe-density-v2-input-layout',
     entries: [
       {
-        binding: 0,
+        binding: DENSITY_V2_INPUT_BINDINGS.frame,
         visibility: GPUShaderStage.COMPUTE,
         buffer: { type: 'uniform', minBindingSize: DENSITY_FRAME_GPU_LAYOUT.stride },
       },
       {
-        binding: 1,
+        binding: DENSITY_V2_INPUT_BINDINGS.bodies,
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
           type: 'read-only-storage',
@@ -86,12 +90,17 @@ export async function createRecipeV2PipelineResources(
         },
       },
       {
-        binding: 2,
+        binding: DENSITY_V2_INPUT_BINDINGS.recipes,
         visibility: GPUShaderStage.COMPUTE,
         buffer: {
           type: 'read-only-storage',
           minBindingSize: DENSITY_RECIPE_GPU_LAYOUT.stride * DENSITY_RECIPE_GPU_LAYOUT.count,
         },
+      },
+      {
+        binding: DENSITY_V2_INPUT_BINDINGS.tileMask,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: 'read-only-storage', minBindingSize: DENSITY_V2_TILE_MASK_WORD_BYTES },
       },
     ],
   });

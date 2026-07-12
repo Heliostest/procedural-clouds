@@ -9,31 +9,40 @@ import {
   type DensityFramePlan,
   type DensityProducerLifecycle,
   type DensityProducerStats,
+  type DensityTileMaskStats,
 } from './contracts';
 import {
   DENSITY_BODY_GPU_LAYOUT,
   DENSITY_FRAME_GPU_LAYOUT,
   DENSITY_RECIPE_GPU_LAYOUT,
   DENSITY_V2_RECORD_BYTES,
+  DENSITY_V2_INPUT_BINDINGS,
 } from './recipeV2Layout';
-import { packDensityV2Frame } from './recipeV2Packing';
+import { packDensityV2Frame, setDensityV2TileMaskFlag } from './recipeV2Packing';
 import {
   createRecipeV2PipelineResources,
   type RecipeV2PipelineResources,
 } from './recipeV2Pipeline';
 import { packDensityRecipeV2Table } from './recipeV2Recipes';
+import {
+  buildDensityV2TileMask,
+  densityV2TileMaskSignature,
+  type DensityV2TileMaskResult,
+} from './recipeV2TileMask';
 
 export interface RecipeDensityV2AdapterOptions {
   device: GPUDevice;
   initialResolution: number;
   initialWorkgroup: readonly [number, number, number];
   pipelineResources: RecipeV2PipelineResources;
+  forceDenseTileMask?: boolean;
 }
 
 export interface CreateRecipeDensityV2AdapterOptions {
   device: GPUDevice;
   initialResolution: number;
   initialWorkgroup: readonly [number, number, number];
+  forceDenseTileMask?: boolean;
 }
 
 function normalizedResolution(value: number): number {
@@ -49,7 +58,10 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
   private readonly frameBuffer: GPUBuffer;
   private readonly bodyBuffer: GPUBuffer;
   private readonly recipeBuffer: GPUBuffer;
-  private readonly inputBindGroup: GPUBindGroup;
+  private readonly forceDenseTileMask: boolean;
+  private maskBuffer: GPUBuffer;
+  private maskBufferBytes = 4;
+  private inputBindGroup: GPUBindGroup;
   private textures: [GPUTexture, GPUTexture] | null = null;
   private sampledViews: [GPUTextureView, GPUTextureView] | null = null;
   private outputBindGroups: [GPUBindGroup, GPUBindGroup] | null = null;
@@ -76,11 +88,20 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
   private cacheSampleId = 0;
   private readonly createCpuMs: number;
   private rebuildCpuMs = 0;
+  private tileMaskResult: DensityV2TileMaskResult | null = null;
+  private tileMaskSignature = '';
+  private tileMaskGeneration = 1;
+  private tileMaskRevision = 0;
+  private tileMaskRebuildCount = 0;
+  private tileMaskRebuildCpuMs = 0;
+  private tileMaskRebuildReason = 'initial';
+  private pendingTileMaskReason = 'initial';
 
   constructor(options: RecipeDensityV2AdapterOptions) {
     const started = performance.now();
     this.device = options.device;
     this.pipelineResources = options.pipelineResources;
+    this.forceDenseTileMask = options.forceDenseTileMask === true;
     this.pipeline = options.pipelineResources.pipeline;
     this.resolution = normalizedResolution(options.initialResolution);
     this.workgroup = [...options.initialWorkgroup] as [number, number, number];
@@ -107,17 +128,23 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.device.queue.writeBuffer(this.recipeBuffer, 0, packDensityRecipeV2Table());
-    this.inputBindGroup = this.device.createBindGroup({
+    this.maskBuffer = this.createMaskBuffer(4);
+    this.inputBindGroup = this.createInputBindGroup();
+    this.rebuildTextures();
+    this.createCpuMs = performance.now() - started;
+  }
+
+  private createInputBindGroup(): GPUBindGroup {
+    return this.device.createBindGroup({
       label: 'recipe-density-v2-inputs',
       layout: this.pipelineResources.inputLayout,
       entries: [
-        { binding: 0, resource: { buffer: this.frameBuffer } },
-        { binding: 1, resource: { buffer: this.bodyBuffer } },
-        { binding: 2, resource: { buffer: this.recipeBuffer } },
+        { binding: DENSITY_V2_INPUT_BINDINGS.frame, resource: { buffer: this.frameBuffer } },
+        { binding: DENSITY_V2_INPUT_BINDINGS.bodies, resource: { buffer: this.bodyBuffer } },
+        { binding: DENSITY_V2_INPUT_BINDINGS.recipes, resource: { buffer: this.recipeBuffer } },
+        { binding: DENSITY_V2_INPUT_BINDINGS.tileMask, resource: { buffer: this.maskBuffer } },
       ],
     });
-    this.rebuildTextures();
-    this.createCpuMs = performance.now() - started;
   }
 
   prepareFrame(input: DensityFrameInput): DensityFramePlan {
@@ -128,15 +155,40 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.preparedFrame = input.frameIndex;
     this.pendingEncode = false;
     this.cacheRan = false;
-    const packed = packDensityV2Frame(input, this.resolution);
-    this.activeBodyCount = packed.activeBodyCount;
-    this.device.queue.writeBuffer(this.frameBuffer, 0, packed.frame);
-    this.device.queue.writeBuffer(this.bodyBuffer, 0, packed.bodies);
-
     const updateRate = Math.max(1, Math.round(input.params.cacheUpdateRate));
     const scheduledUpdate = input.frameIndex % updateRate === 0;
     const willEncode = input.params.qualityMode !== 2
       && (this.forceRefresh || scheduledUpdate || this.windMovedPastVoxel(input));
+    const packed = packDensityV2Frame(input, this.resolution);
+    this.activeBodyCount = packed.activeBodyCount;
+    if (willEncode) {
+      const maskOptions = {
+        resolution: this.resolution,
+        workgroup: this.workgroup,
+        packed,
+        deviceLimits: {
+          maxStorageBufferBindingSize: this.device.limits.maxStorageBufferBindingSize,
+          maxBufferSize: this.device.limits.maxBufferSize,
+        },
+        forceDenseFallback: this.forceDenseTileMask,
+      } as const;
+      const signature = densityV2TileMaskSignature(maskOptions);
+      if (signature !== this.tileMaskSignature) {
+        const mask = buildDensityV2TileMask(maskOptions);
+        this.ensureMaskBuffer(mask.enabled ? mask.words.byteLength : 4);
+        this.device.queue.writeBuffer(this.maskBuffer, 0, mask.words);
+        this.tileMaskResult = mask;
+        this.tileMaskSignature = mask.signature;
+        this.tileMaskRevision++;
+        this.tileMaskRebuildCount++;
+        this.tileMaskRebuildCpuMs += mask.buildCpuMs;
+        this.tileMaskRebuildReason = this.pendingTileMaskReason || 'body-support';
+        this.pendingTileMaskReason = '';
+      }
+    }
+    setDensityV2TileMaskFlag(packed.frame, this.tileMaskResult?.enabled === true);
+    this.device.queue.writeBuffer(this.frameBuffer, 0, packed.frame);
+    this.device.queue.writeBuffer(this.bodyBuffer, 0, packed.bodies);
     if (willEncode) {
       const interval = this.lastCacheUpdateElapsed > 0
         ? input.elapsedSeconds - this.lastCacheUpdateElapsed
@@ -235,6 +287,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     const next = normalizedResolution(resolution);
     if (next === this.resolution && this.textures) return;
     this.resolution = next;
+    this.invalidateTileMask('resolution');
     this.rebuildTextures();
   }
 
@@ -244,6 +297,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     const started = performance.now();
     this.pipeline = this.pipelineResources.createPipeline(size);
     this.workgroup = size.map((value) => Math.round(value)) as [number, number, number];
+    this.invalidateTileMask('workgroup');
     this.forceRefresh = true;
     this.rebuildCpuMs += performance.now() - started;
   }
@@ -251,6 +305,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
   invalidate(_reason: string): void {
     this.forceRefresh = true;
     this.lastCachedWindOffsets = [];
+    this.invalidateTileMask('producer-activation');
   }
 
   getStats(): DensityProducerStats {
@@ -279,6 +334,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
         Math.ceil(this.resolution / this.workgroup[2]),
       ],
       emptyDensity: true,
+      tileMask: this.tileMaskStats(),
     };
   }
 
@@ -288,6 +344,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.failureReason = reason.message || String(reason.reason);
     this.pendingEncode = false;
     this.destroyTextures();
+    this.destroyMaskBuffer();
   }
 
   destroy(): void {
@@ -296,6 +353,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.frameBuffer.destroy();
     this.bodyBuffer.destroy();
     this.recipeBuffer.destroy();
+    this.destroyMaskBuffer();
     this.lifecycle = 'destroyed';
     this.failureReason = 'producer-destroyed';
     this.pendingEncode = false;
@@ -340,6 +398,70 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.lifecycle = 'warming';
     this.resourceGeneration++;
     this.rebuildCpuMs += performance.now() - started;
+  }
+
+  private createMaskBuffer(bytes: number): GPUBuffer {
+    return this.device.createBuffer({
+      label: 'recipe-density-v2-tile-mask',
+      size: Math.max(4, bytes),
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+  }
+
+  private ensureMaskBuffer(bytes: number): void {
+    const required = Math.max(4, bytes);
+    if (required === this.maskBufferBytes) return;
+    this.maskBuffer.destroy();
+    this.maskBuffer = this.createMaskBuffer(required);
+    this.maskBufferBytes = required;
+    this.inputBindGroup = this.createInputBindGroup();
+    this.tileMaskGeneration++;
+  }
+
+  private destroyMaskBuffer(): void {
+    if (this.maskBufferBytes <= 0) return;
+    this.maskBuffer.destroy();
+    this.maskBufferBytes = 0;
+  }
+
+  private invalidateTileMask(reason: string): void {
+    this.tileMaskSignature = '';
+    this.pendingTileMaskReason = reason;
+  }
+
+  private tileMaskStats(): DensityTileMaskStats {
+    const mask = this.tileMaskResult;
+    const grid = mask?.grid ?? [
+      Math.ceil(this.resolution / this.workgroup[0]),
+      Math.ceil(this.resolution / this.workgroup[1]),
+      Math.ceil(this.resolution / this.workgroup[2]),
+    ];
+    const tileCount = mask?.tileCount ?? grid[0] * grid[1] * grid[2];
+    return {
+      enabled: mask?.enabled ?? false,
+      fallbackReason: mask?.fallbackReason ?? 'not-built',
+      grid,
+      tileCount,
+      requiredBytes: mask?.requiredMaskBytes ?? tileCount * 4,
+      allocatedBytes: this.maskBufferBytes,
+      emptyTileCount: mask?.emptyTileCount ?? 0,
+      occupiedTileCount: mask?.occupiedTileCount ?? 0,
+      candidateMemberships: mask?.candidateMemberships ?? 0,
+      averageCandidates: mask?.averageCandidates ?? 0,
+      maxCandidates: mask?.maxCandidates ?? 0,
+      denseTileBodyPairs: mask?.denseTileBodyPairs ?? 0,
+      maskedTileBodyPairs: mask?.maskedTileBodyPairs ?? 0,
+      denseVoxelBodyUpperBound: mask?.denseVoxelBodyUpperBound ?? 0,
+      maskedVoxelBodyUpperBound: mask?.maskedVoxelBodyUpperBound ?? 0,
+      culledRatio: mask?.culledRatio ?? 0,
+      cpuBroadPhaseTests: mask?.cpuBroadPhaseTests ?? 0,
+      generation: this.tileMaskGeneration,
+      revision: this.tileMaskRevision,
+      rebuildCount: this.tileMaskRebuildCount,
+      rebuildCpuMs: this.tileMaskRebuildCpuMs,
+      rebuildReason: this.tileMaskRebuildReason,
+      evaluatorCalls: 0,
+    };
   }
 
   private destroyTextures(): void {

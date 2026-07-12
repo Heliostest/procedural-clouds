@@ -19,7 +19,7 @@ import type { WindAdvectionSample } from './wind';
 import { LegacyDensityAdapter } from './density/legacyDensityAdapter';
 import { DensityProducerSelector } from './density/densityProducerSelector';
 import { createRecipeDensityV2Adapter } from './density/recipeDensityV2Adapter';
-import { DENSITY_PRODUCER_MODE, type DensityFrameInput, type DensityProducerKind } from './density/contracts';
+import { DENSITY_PRODUCER_MODE, type DensityFrameInput, type DensityProducerKind, type DensityTileMaskStats } from './density/contracts';
 import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
 import {
   createDensityQualityBindings,
@@ -455,6 +455,7 @@ export interface RenderStats {
   densityProducerOutputBytes: number;
   densityProducerDispatchWorkgroups: [number, number, number];
   densityProducerEmptyDensity: boolean;
+  densityProducerTileMask: DensityTileMaskStats | null;
   shadowMapResolution: number;
   shadowUpdated: boolean;
   shadowHistoryResetReason: string;
@@ -1229,6 +1230,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityProducerOutputBytes: initialDensityStats.outputBytes,
     densityProducerDispatchWorkgroups: [...initialDensityStats.dispatchWorkgroups] as [number, number, number],
     densityProducerEmptyDensity: initialDensityStats.emptyDensity,
+    densityProducerTileMask: initialDensityStats.tileMask,
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
     shadowHistoryResetReason: groundShadowResetReason,
@@ -1810,6 +1812,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityProducerOutputBytes = densityStats.outputBytes;
     stats.densityProducerDispatchWorkgroups = [...densityStats.dispatchWorkgroups] as [number, number, number];
     stats.densityProducerEmptyDensity = densityStats.emptyDensity;
+    stats.densityProducerTileMask = densityStats.tileMask;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;

@@ -64,6 +64,32 @@ export interface DensityCacheOutput {
   valid: boolean;
 }
 
+export interface DensityTileMaskStats {
+  enabled: boolean;
+  fallbackReason: string;
+  grid: readonly [number, number, number];
+  tileCount: number;
+  requiredBytes: number;
+  allocatedBytes: number;
+  emptyTileCount: number;
+  occupiedTileCount: number;
+  candidateMemberships: number;
+  averageCandidates: number;
+  maxCandidates: number;
+  denseTileBodyPairs: number;
+  maskedTileBodyPairs: number;
+  denseVoxelBodyUpperBound: number;
+  maskedVoxelBodyUpperBound: number;
+  culledRatio: number;
+  cpuBroadPhaseTests: number;
+  generation: number;
+  revision: number;
+  rebuildCount: number;
+  rebuildCpuMs: number;
+  rebuildReason: string;
+  evaluatorCalls: 0;
+}
+
 export interface DensityProducerStats {
   kind: DensityProducerKind;
   availability: DensityProducerAvailability;
@@ -85,6 +111,7 @@ export interface DensityProducerStats {
   outputBytes: number;
   dispatchWorkgroups: readonly [number, number, number];
   emptyDensity: boolean;
+  tileMask: DensityTileMaskStats | null;
 }
 
 export interface DensityProducerSelection {

@@ -255,6 +255,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
         Math.ceil(this.resolution / this.workgroup[2]),
       ],
       emptyDensity: false,
+      tileMask: null,
     };
   }
 
