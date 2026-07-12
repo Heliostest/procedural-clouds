@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已完成并于 2026-07-11 归档；W2 代码与自动检查已完成，等待实际 WebGPU 页面完成 9.1–9.5 人工验收；W3–W12 尚未建立提案。
+> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 OpenSpec 提案已建立、等待评审；W4–W12 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
@@ -525,14 +525,21 @@ W1（已归档）：`openspec/changes/archive/2026-07-11-add-density-cache-produ
 - Tasks：`tasks.md`
 - Spec deltas：`density-cache-production`、`cloud-rendering`、`cloud-params`
 
-W2：`openspec/changes/isolate-density-quality-pipelines/`
+W2（已归档）：`openspec/changes/archive/2026-07-11-isolate-density-quality-pipelines/`
 
 - Proposal：`proposal.md`
 - Design：`design.md`
 - Tasks：`tasks.md`
 - Spec deltas：`cloud-rendering`、`density-cache-production`
 
-W1 已完成实施、视觉签核与归档；W2 已完成代码与自动检查，等待人工验收后归档；W3–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
+W3（等待评审）：`openspec/changes/establish-density-recipe-v2-shell/`
+
+- Proposal：`proposal.md`
+- Design：`design.md`
+- Tasks：`tasks.md`
+- Spec deltas：`density-recipe-schema`、`density-cache-production`
+
+W1/W2 已完成实施、视觉签核与归档；W3 已建立提案但尚未批准或实施；W4–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
 
 - V2 禁止完整 4D Voronoi 主路径和固定算子预算；
 - tile-body mask 的保守性要求；
