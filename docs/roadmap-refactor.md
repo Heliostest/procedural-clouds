@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 OpenSpec 提案已建立、等待评审；W6–W12 尚未建立提案。
+> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 已完成共享场验收并于 2026-07-12 归档（实现 `b3595e2`，归档 `cf1e98a`）；W6 OpenSpec 提案已建立、等待评审；W7–W12 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
@@ -546,14 +546,21 @@ W4（已归档）：`openspec/changes/archive/2026-07-12-add-density-v2-tile-cul
 - Tasks：`tasks.md`
 - Spec deltas：`density-recipe-schema`、`density-cache-production`
 
-W5（等待评审）：`openspec/changes/add-density-v2-shared-fields/`
+W5（已归档）：`openspec/changes/archive/2026-07-12-add-density-v2-shared-fields/`
 
 - Proposal：`proposal.md`
 - Design：`design.md`
 - Tasks：`tasks.md`
 - Spec deltas：`density-shared-fields`、`density-cache-production`
 
-W1–W4 已完成实施、视觉签核与归档；W5 已建立提案但尚未批准或实施；W6–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
+W6（等待评审）：`openspec/changes/add-density-v2-stratus-cumulus-spike/`
+
+- Proposal：`proposal.md`
+- Design：`design.md`
+- Tasks：`tasks.md`
+- Spec deltas：`density-v2-evaluators`、`density-recipe-schema`、`density-shared-fields`、`density-cache-production`
+
+W1–W5 已完成实施、视觉签核与归档；W6 已建立提案但尚未批准或实施；W7–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
 
 - V2 禁止完整 4D Voronoi 主路径和固定算子预算；
 - tile-body mask 的保守性要求；
