@@ -20,8 +20,8 @@ fn densityV2EvaluateCumulus(
   }
 
   // W6 Cumulus fixed cost: one Macro + Base-A + Base-B + one Detail sample.
-  let macro = densitySharedSampleMacro(densityV2MacroCoordinate(ctx, body, recipe));
-  let coverage = densityV2CoverageGate(macro.r, body.coverageLifecycle.x, recipe);
+  let macroSample = densitySharedSampleMacro(densityV2MacroCoordinate(ctx, body, recipe));
+  let coverage = densityV2CoverageGate(macroSample.r, body.coverageLifecycle.x, recipe);
   if (coverage <= 0.0) {
     return DensityV2Evaluation(0.0, body.ids.x);
   }

@@ -80,7 +80,8 @@ fn densityV2SamplingCoordinate(ctx : DensityV2Context, body : DensityBodyGPU, re
   let seed = ctx.bodyIndex * 37u + body.ids.x * 131u + seedDelta;
   var coordinate = ctx.normalized * vec3f(recipe.domain1.z, recipe.domain1.w, recipe.domain1.z) * frequency;
   coordinate += densitySharedPeriodicOffset(seed);
-  coordinate.xz += body.transport.xy * recipe.domain1.x;
+  let transport = body.transport.xy * recipe.domain1.x;
+  coordinate += vec3f(transport.x, 0.0, transport.y);
   return coordinate;
 }
 

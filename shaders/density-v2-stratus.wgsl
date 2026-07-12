@@ -9,8 +9,8 @@ fn densityV2EvaluateStratus(
   }
 
   // W6 Stratus fixed cost: exactly one Macro + one Base sample.
-  let macro = densitySharedSampleMacro(densityV2MacroCoordinate(ctx, body, recipe));
-  let thicknessVariation = (macro.g - 0.5) * recipe.vertical0.z;
+  let macroSample = densitySharedSampleMacro(densityV2MacroCoordinate(ctx, body, recipe));
+  let thicknessVariation = (macroSample.g - 0.5) * recipe.vertical0.z;
   let vertical = densityV2ThinSheetProfile(
     ctx.height01,
     recipe.vertical0.x,
@@ -20,7 +20,7 @@ fn densityV2EvaluateStratus(
   if (vertical <= 0.0) {
     return DensityV2Evaluation(0.0, body.ids.x);
   }
-  let coverage = densityV2CoverageGate(macro.r, body.coverageLifecycle.x, recipe);
+  let coverage = densityV2CoverageGate(macroSample.r, body.coverageLifecycle.x, recipe);
   if (coverage <= 0.0) {
     return DensityV2Evaluation(0.0, body.ids.x);
   }

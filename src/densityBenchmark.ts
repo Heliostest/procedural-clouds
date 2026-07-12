@@ -418,6 +418,11 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       return;
     }
     const expectedProducer = active.definition.producer ?? 'legacy';
+    if (expectedProducer === 'recipe-v2'
+      && (stats.densityProducerCandidateLifecycle === 'failed' || stats.densityProducerLifecycle === 'failed')) {
+      invalidate(`Density producer recipe-v2 failed: ${stats.densityProducerFallbackReason || stats.densityProducerFailureReason || 'unknown'}`);
+      return;
+    }
     if (stats.densityProducerRequested !== expectedProducer || stats.densityProducerActive !== expectedProducer) {
       active.lastGpuSampleId = stats.gpuSampleId;
       active.lastCacheSampleId = stats.cacheSampleId;
@@ -425,11 +430,16 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       publish(statusFor(active, `Waiting for density producer ${expectedProducer}; active=${stats.densityProducerActive}.`));
       return;
     }
-    if (active.warmupFrames < manifest.warmupFrames || active.cacheWarmups < manifest.minimumCacheWarmups) {
+    const warmupFramesDone = active.warmupFrames >= manifest.warmupFrames;
+    const cacheWarmupsDone = active.cacheWarmups >= manifest.minimumCacheWarmups
+      || !stats.gpuTiming;
+    if (!warmupFramesDone || !cacheWarmupsDone) {
       active.warmupFrames++;
       active.lastGpuSampleId = stats.gpuSampleId;
-      if (stats.cacheSampleId !== active.lastCacheSampleId && stats.cacheRan) active.cacheWarmups++;
-      active.lastCacheSampleId = stats.cacheSampleId;
+      if (stats.cacheSampleId !== active.lastCacheSampleId) {
+        active.cacheWarmups++;
+        active.lastCacheSampleId = stats.cacheSampleId;
+      }
       active.lastShadowSampleId = stats.shadowSampleId;
       publish(statusFor(active, `Warming ${active.definition.id}.`));
       return;
@@ -451,11 +461,11 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     }
     if (stats.cacheSampleId !== active.lastCacheSampleId) {
       active.lastCacheSampleId = stats.cacheSampleId;
-      if (stats.cacheRan) active.samples.cache.push(stats.cacheMs);
+      active.samples.cache.push(stats.cacheMs);
     }
     if (stats.shadowSampleId !== active.lastShadowSampleId) {
       active.lastShadowSampleId = stats.shadowSampleId;
-      if (stats.shadowRan) active.samples.shadow.push(stats.shadowMs);
+      active.samples.shadow.push(stats.shadowMs);
     }
     const enough = active.samples.cloud.length >= manifest.minimumGpuSamples
       && active.samples.cache.length >= manifest.minimumGpuSamples

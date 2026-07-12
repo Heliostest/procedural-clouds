@@ -15,7 +15,8 @@ fn densitySharedAdvectedCoordinate(
   warpStrength : f32,
 ) -> vec3f {
   var coordinate = localCoordinate * scale + densitySharedPeriodicOffset(seed);
-  coordinate.xz += accumulatedWind * frequency;
+  let windOffset = accumulatedWind * frequency;
+  coordinate += vec3f(windOffset.x, 0.0, windOffset.y);
   // Exactly one analytic low-frequency warp. No fourth noise dimension is evaluated.
   let warp = sin((coordinate.x + coordinate.z) * 6.28318530718) * clamp(warpStrength, 0.0, 0.25);
   coordinate += vec3f(warp, warp * 0.5, -warp);
