@@ -46,7 +46,7 @@
 
 - [x] 6.1 Stats/HUD 报告 format、dimensions、estimated/peak bytes、generation、build count/reason、CPU create/build encode timing
 - [x] 6.2 timestamp 可用时为首次 atlas/macro pass 分配不冲突 query range；不可用时 GPU timing 明确为 unavailable，不以 CPU 值替代
-- [ ] 6.3 受控比较 RGBA8、R16F、RGBA16F 的创建/采样兼容、内存、生成 timing、切片量化与 seam；不增加产品运行时格式开关（创建/采样兼容、内存和量化边界已完成；浮点完整生成 timing/slice 明确未采集）
+- [x] 6.3 受控比较 RGBA8、R16F、RGBA16F 的创建/采样兼容、内存、生成 timing、切片量化与 seam；不增加产品运行时格式开关（项目所有者接受浮点完整生成 timing/slice 未采集且不进入默认路径，2026-07-12）
 - [x] 6.4 记录默认选用 RGBA8 的预算/兼容性证据与已知量化风险；不得声称 W6 稳态 evaluator 已加速
 
 ## 7. Automated validation
@@ -59,17 +59,17 @@
 
 ## 8. Manual WebGPU acceptance
 
-- [ ] 8.1 检查 Base/Detail 多个 Z slice 与 Macro 四通道，确认信号非空、有限且无明显整块接缝
-- [ ] 8.2 慢速/快速移动 debug phase 跨越 repeat 边界，确认平流连续、无闪断和固定纹理锁定
-- [ ] 8.3 比较 RGBA8 与可用浮点诊断候选的量化、内存和 timing，记录截图/数值或明确无法采集项
-- [ ] 8.4 V2 Cached/Hybrid 正常视图继续为空；Legacy Cached/Hybrid、Realtime 与 W4 基线无回归
-- [ ] 8.5 确认首次 V2 之后普通帧 build count 不增长，资源总量不随 1–12 个 Body 增长
+- [x] 8.1 检查 Base/Detail 多个 Z slice 与 Macro 四通道，确认信号非空、有限且无明显整块接缝
+- [x] 8.2 慢速/快速移动 debug phase 跨越 repeat 边界，确认平流连续、无闪断和固定纹理锁定
+- [x] 8.3 比较 RGBA8 与可用浮点诊断候选的量化、内存和 timing，记录截图/数值或明确无法采集项
+- [x] 8.4 V2 Cached/Hybrid 正常视图继续为空；Legacy Cached/Hybrid、Realtime 与 W4 基线无回归
+- [x] 8.5 确认首次 V2 之后普通帧 build count 不增长，资源总量不随 1–12 个 Body 增长
 
 ## 9. OpenSpec and handoff gate
 
 - [x] 9.1 运行 `openspec validate add-density-v2-shared-fields --strict --no-interactive`
 - [x] 9.2 W5 完成前不得创建或实施 W6 change，不得启用 Stratus/Cumulus Recipe
-- [ ] 9.3 只有 0–8 完成且项目所有者确认 debug 周期/接缝/量化与 Legacy 隔离后，才能归档并开始 W6 proposal
+- [x] 9.3 只有 0–8 完成且项目所有者确认 debug 周期/接缝/量化与 Legacy 隔离后，才能归档并开始 W6 proposal
 
 ### W5 自动验证记录（2026-07-12）
 
@@ -77,4 +77,10 @@
 - `test:pipeline-isolation`、`test:density-v2-layout`、`test:density-v2-tiles`、`test:genus-dispatch`：全部通过。
 - `npm.cmd run typecheck` 与 `npm.cmd run build`：通过，Vite 生产构建成功。
 - `openspec validate add-density-v2-shared-fields --strict --no-interactive`：通过。
-- 格式、量化、周期和 GUI 验收口径记录于 `docs/w5-shared-field-format-evidence.md`；真实 WebGPU 视觉项 8.1–8.5 等待项目所有者确认。
+- 格式、量化、周期和 GUI 验收口径记录于 `docs/w5-shared-field-format-evidence.md`。
+
+### W5 项目所有者验收（2026-07-12）
+
+- 项目所有者确认 Base/Detail 的屏幕切片与二维 Macro debug 行为正常；旋转场景相机不改变 fullscreen slice 是预期设计，不要求增加 3D volume debug。
+- 项目所有者批准归档 W5，并接受浮点候选完整 generation timing/slice 未采集为非阻塞项；默认 RGBA8 路径、2.25 MiB 资源预算和 capability probe 证据保留。
+- 本验收只确认共享场资源、周期/平流、调试视图与 Legacy 隔离，不构成 W6 Stratus/Cumulus 非零 evaluator 的视觉或性能结论。
