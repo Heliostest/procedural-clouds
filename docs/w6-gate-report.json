@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "changeId": "add-density-v2-stratus-cumulus-spike",
   "implementationRevision": "ceedbf9",
+  "postImplementationFixRevision": "9a8d33a",
   "baseline": {
     "w5ArchiveRevision": "cf1e98a",
     "w5ImplementationRevision": "b3595e2"
@@ -52,22 +53,22 @@
     ]
   },
   "performanceGates": {
-    "status": "unresolved",
+    "status": "owner-waived",
     "stratus": {
       "scenes": ["single-stratus", "w6-stratus-multi"],
       "medianV2OverLegacyMaximum": 0.8,
       "p90V2OverLegacyMaximum": 1.0,
-      "result": "unresolved"
+      "result": "not-collected-owner-waived"
     },
     "cumulus": {
       "scenes": ["single-cumulus", "w6-cumulus-multi"],
       "medianV2OverLegacyMaximum": 1.1,
       "p90V2OverLegacyMaximum": 1.2,
-      "result": "unresolved"
+      "result": "not-collected-owner-waived"
     }
   },
   "visualAndSupportGates": {
-    "status": "unresolved",
+    "status": "owner-accepted-for-archive",
     "scenes": [
       "single-stratus",
       "w6-stratus-multi",
@@ -75,9 +76,15 @@
       "w6-cumulus-multi",
       "w6-stratus-cumulus-overlap"
     ],
-    "result": "unresolved"
+    "result": "not-itemized-owner-accepted"
   },
-  "overall": "unresolved",
-  "archiveAllowed": false,
-  "nextWaveAllowed": false
+  "ownerDecision": {
+    "date": "2026-07-12",
+    "decision": "continue",
+    "observation": "benchmark no longer shows material stalls after timestamp collection fix",
+    "waiver": "exact cache median/p90 thresholds and itemized visual matrix were not collected; they are not represented as pass"
+  },
+  "overall": "accepted-with-owner-waiver",
+  "archiveAllowed": true,
+  "nextWaveAllowed": true
 }

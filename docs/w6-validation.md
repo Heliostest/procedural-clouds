@@ -22,4 +22,8 @@ Benchmark 面板中以 `w6--` 开头的 case 覆盖：Stratus 单体/多体、Cu
 - 重叠场还必须确认密度有限、G/B 主次属与 A 权重稳定
 - 任意性能、形态、Support、metadata 或 source-maintainability 项未决，都不能标成通过，也不能归档或继续 W7
 
-机器可读状态见 `docs/w6-gate-report.json`。当前性能与人工视觉项有意保持 `unresolved`，等待项目所有者验收。
+机器可读状态见 `docs/w6-gate-report.json`。
+
+## 项目所有者归档决定
+
+2026-07-12，项目所有者确认修正后的 benchmark 已无明显卡顿，并批准归档 W6、继续 W7。精确 cache median/p90 比率与逐项视觉矩阵没有采集，因此报告将这些项目记为 `owner-waived` / `not-collected-owner-waived`，而不是伪装成性能通过。修正提交为 `9a8d33a`，主要解决异步 timestamp 样本收集与等待问题。

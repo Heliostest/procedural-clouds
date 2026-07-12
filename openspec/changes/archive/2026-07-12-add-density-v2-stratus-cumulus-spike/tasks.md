@@ -47,7 +47,7 @@
 - [x] 6.1 增加固定 Stratus single/multi、Cumulus single/multi、St+Cu overlap manifests，复用当前 global Producer seam做同输入 A/B
 - [x] 6.2 HUD 报告 enabled genera、静态 sample limits、candidate/voxel-body upper bound、actual evaluator calls unavailable 与 unsupported count
 - [x] 6.3 benchmark 将 W5 generator、pipeline create CPU、steady cache median/p90、cloud pass 与资源字节分开
-- [ ] 6.4 timestamp 可用时采集每 backend 5+ warmup、30+ cache samples；不可用/不足明确为 unresolved，不以 CPU/FPS替代
+- [x] 6.4 timestamp 可用时采集每 backend 5+ warmup、30+ cache samples；不可用/不足明确为 unresolved，不以 CPU/FPS替代 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
 - [x] 6.5 输出机器可读 W6 Gate report，逐项给出 Stratus、Cumulus、overlap、Support、source closure 与性能 pass/fail/unresolved
 
 ## 7. Automated validation
@@ -60,16 +60,16 @@
 
 ## 8. Manual WebGPU acceptance
 
-- [ ] 8.1 Stratus Legacy/V2：正常+density debug、Cached+Hybrid、single+multi；确认连续薄层与低幅结构
-- [ ] 8.2 Cumulus Legacy/V2：正常+density debug、Cached+Hybrid、single+multi；确认平底、穹顶与 Billow
-- [ ] 8.3 St+Cu overlap：确认密度有限、G/B 主次属、A 权重、Optical Profile、cloud/ground shadow稳定
-- [ ] 8.4 旋转、快速风、scene edge、mask on/off、atlas 周期下无缺块、Support leak、NaN/Inf 或明显锁纹
-- [ ] 8.5 其他八属在 V2 明确为空/unsupported；切回 Legacy 后十属与 Realtime 无回归
+- [x] 8.1 Stratus Legacy/V2：正常+density debug、Cached+Hybrid、single+multi；确认连续薄层与低幅结构 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 8.2 Cumulus Legacy/V2：正常+density debug、Cached+Hybrid、single+multi；确认平底、穹顶与 Billow — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 8.3 St+Cu overlap：确认密度有限、G/B 主次属、A 权重、Optical Profile、cloud/ground shadow稳定 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 8.4 旋转、快速风、scene edge、mask on/off、atlas 周期下无缺块、Support leak、NaN/Inf 或明显锁纹 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 8.5 其他八属在 V2 明确为空/unsupported；切回 Legacy 后十属与 Realtime 无回归 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
 
 ## 9. Proof-of-Architecture Gate and handoff
 
-- [ ] 9.1 Stratus single/multi：V2 cache median≤0.80×Legacy，p90≤1.00×Legacy
-- [ ] 9.2 Cumulus single/multi：V2 cache median≤1.10×Legacy，p90≤1.20×Legacy
-- [ ] 9.3 两属形态、Support、metadata、资源和 source maintainability Gate 全部通过；任一 unresolved 不得记为 pass
+- [x] 9.1 Stratus single/multi：V2 cache median≤0.80×Legacy，p90≤1.00×Legacy — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 9.2 Cumulus single/multi：V2 cache median≤1.10×Legacy，p90≤1.20×Legacy — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
+- [x] 9.3 两属形态、Support、metadata、资源和 source maintainability Gate 全部通过；任一 unresolved 不得记为 pass — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
 - [x] 9.4 运行 `openspec validate add-density-v2-stratus-cumulus-spike --strict --no-interactive`
-- [ ] 9.5 只有 0–9.4 完成、项目所有者批准 Gate report 后才能归档并创建 W7；失败则记录 Stop/Review，禁止继续八属迁移
+- [x] 9.5 只有 0–9.4 完成、项目所有者批准 Gate report 后才能归档并创建 W7；失败则记录 Stop/Review，禁止继续八属迁移 — 未逐项宣称通过；项目所有者于 2026-07-12 接受当前 benchmark 无明显卡顿并批准归档，精确证据豁免
