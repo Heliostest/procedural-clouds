@@ -168,7 +168,8 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       && (this.forceRefresh || scheduledUpdate || this.windMovedPastVoxel(input));
     const packed = packDensityV2Frame(input, this.resolution);
     this.activeBodyCount = packed.activeBodyCount;
-    this.unsupportedBodyCount = packed.activeBodies.filter((body) => body.genusId !== 0 && body.genusId !== 1).length;
+    const enabledGenusIds = new Set([0, 1, 5, 6, 8]);
+    this.unsupportedBodyCount = packed.activeBodies.filter((body) => !enabledGenusIds.has(body.genusId)).length;
     if (willEncode) {
       const maskOptions = {
         resolution: this.resolution,
@@ -351,8 +352,11 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       tileMask: this.tileMaskStats(),
       sharedFields: this.sharedFields.getStats(),
       evaluator: {
-        enabledGenera: ['cumulus', 'stratus'],
-        sampleLimits: { cumulus: [3, 1, 0, 0], stratus: [2, 0, 0, 0] },
+        enabledGenera: ['cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'],
+        sampleLimits: {
+          cumulus: [3, 1, 0, 0], stratus: [2, 0, 0, 0],
+          altostratus: [2, 0, 0, 0], nimbostratus: [2, 0, 0, 0], cirrostratus: [2, 0, 0, 0],
+        },
         unsupportedBodyCount: this.unsupportedBodyCount,
         actualEvaluatorCalls: null,
         evaluatorCallUpperBound: this.tileMaskResult?.maskedVoxelBodyUpperBound ?? 0,

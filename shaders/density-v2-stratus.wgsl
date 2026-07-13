@@ -1,4 +1,4 @@
-fn densityV2EvaluateStratus(
+fn densityV2EvaluateStratiform(
   ctx : DensityV2Context,
   body : DensityBodyGPU,
   recipe : DensityRecipeGPU,
@@ -8,15 +8,13 @@ fn densityV2EvaluateStratus(
     return DensityV2Evaluation(0.0, body.ids.x);
   }
 
-  // W6 Stratus fixed cost: exactly one Macro + one Base sample.
+  // W7 Stratiform fixed cost: exactly one Macro + one Base sample.
   let macroSample = densitySharedSampleMacro(densityV2MacroCoordinate(ctx, body, recipe));
   let thicknessVariation = (macroSample.g - 0.5) * recipe.vertical0.z;
-  let vertical = densityV2ThinSheetProfile(
-    ctx.height01,
-    recipe.vertical0.x,
-    recipe.vertical0.y,
-    thicknessVariation,
-  );
+  var vertical = densityV2ThinSheetProfile(ctx.height01, recipe.vertical0.x, recipe.vertical0.y, thicknessVariation);
+  if (recipe.identityAndModes.z == 1u) {
+    vertical = densityV2SoftLayerProfile(ctx.height01, recipe.vertical0.x, recipe.vertical0.y, thicknessVariation);
+  }
   if (vertical <= 0.0) {
     return DensityV2Evaluation(0.0, body.ids.x);
   }

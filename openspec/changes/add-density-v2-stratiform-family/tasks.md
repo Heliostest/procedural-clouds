@@ -1,9 +1,9 @@
 ## 0. Approval and archived baseline
 
-- [ ] 0.1 用户批准本 proposal、design、三个 spec delta 与 W7 Gate
-- [ ] 0.2 记录 W6 归档提交 `5615a71`、benchmark 修正 `9a8d33a` 与 owner-waived 证据分类
-- [ ] 0.3 确认 W7 只迁移 St/Cs/As/Ns，不实现 Cellular、Fiber、Convective、fractus、precipitation、attachment 或 Recipe-aware Hybrid
-- [ ] 0.4 确认工作区无与 Stratiform family 重叠的用户修改，固定 `96³`、`8×8×4` 与 A/B manifests
+- [x] 0.1 用户批准本 proposal、design、三个 spec delta 与 W7 Gate
+- [x] 0.2 记录 W6 归档提交 `5615a71`、benchmark 修正 `9a8d33a` 与 owner-waived 证据分类
+- [x] 0.3 确认 W7 只迁移 St/Cs/As/Ns，不实现 Cellular、Fiber、Convective、fractus、precipitation、attachment 或 Recipe-aware Hybrid
+- [x] 0.4 确认工作区无与 Stratiform family 重叠的用户修改，固定 `96³`、`8×8×4` 与 A/B manifests
 
 ## 1. Recipe banks and schema
 

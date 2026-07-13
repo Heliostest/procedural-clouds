@@ -54,6 +54,19 @@ export function densityV2ThinSheetProfile(
     * (1 - smoothstep(Math.max(0, top - topFade), top, height01));
 }
 
+export function densityV2SoftLayerProfile(
+  height01: number,
+  bottomFade: number,
+  topFade: number,
+  topVariation = 0,
+): number {
+  if (height01 <= 0 || height01 >= 1) return 0;
+  const top = Math.min(1, Math.max(0.72, 1 + topVariation));
+  if (height01 >= top) return 0;
+  return smoothstep(0, Math.max(bottomFade, 1e-4), height01)
+    * (1 - smoothstep(Math.max(0, top - topFade), top, height01));
+}
+
 export function densityV2DomeTop(radius01: number, falloff: number, exponent: number): number {
   const radial = Math.pow(clamp01(radius01), Math.max(exponent, 1e-4));
   return Math.max(0.08, 1 - clamp01(falloff) * radial);
@@ -141,6 +154,12 @@ export function verifyDensityV2EvaluatorMathFixtures(): void {
   if (sheetSamples.some((value) => !Number.isFinite(value) || value < 0 || value > 1)
     || sheetSamples[0] !== 0 || sheetSamples.at(-1) !== 0 || sheetSamples[3] <= 0) {
     throw new Error('Density V2 thin sheet profile fixture failed');
+  }
+  const softSamples = [-0.1, 0, 0.1, 0.5, 0.9, 1, 1.1]
+    .map((height) => densityV2SoftLayerProfile(height, 0.18, 0.2, -0.04));
+  if (softSamples.some((value) => !Number.isFinite(value) || value < 0 || value > 1)
+    || softSamples[0] !== 0 || softSamples.at(-1) !== 0 || softSamples[3] <= 0) {
+    throw new Error('Density V2 soft layer profile fixture failed');
   }
   let previousTop = Number.POSITIVE_INFINITY;
   for (const radius of [0, 0.25, 0.5, 0.75, 1]) {

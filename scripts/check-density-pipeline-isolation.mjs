@@ -155,7 +155,7 @@ if (cumulusSamples.join(',') !== 'densitySharedSampleMacro(,densitySharedSampleB
   throw new Error(`Cumulus static sample budget changed: ${cumulusSamples.join(',')}`);
 }
 const evaluatorFunctions = [...recipeV2Closure.matchAll(/fn\s+densityV2Evaluate([A-Za-z]+)\s*\(/g)].map((match) => match[1]).sort();
-if (evaluatorFunctions.join(',') !== 'Cumulus,Stratus') {
+if (evaluatorFunctions.join(',') !== 'Cumulus,Stratiform') {
   throw new Error(`Recipe V2 W6 evaluator set changed: ${evaluatorFunctions.join(',')}`);
 }
 if (!recipeV2PipelineSource.includes('createBindGroupLayout')

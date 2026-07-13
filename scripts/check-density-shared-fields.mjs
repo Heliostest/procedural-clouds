@@ -119,10 +119,11 @@ if (!renderer.includes('ensureDensitySharedDebugPipeline()')
   throw new Error('W5 lazy debug fallback is incomplete');
 }
 if (!recipes.includes('recipe.enabled ? 1 : 0')
-  || !recipeSemantics.includes("DENSITY_V2_ENABLED_GENERA = Object.freeze(['cumulus', 'stratus']")
+  || !recipeSemantics.includes('DENSITY_V2_ENABLED_GENERA = Object.freeze([')
+  || !recipeSemantics.includes("'cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'")
   || !recipeSemantics.includes('sampleLimits: lane(2, 0, 0, 0)')
   || !recipeSemantics.includes('sampleLimits: lane(3, 1, 0, 0)')) {
-  throw new Error('W6 shared sampling consumers do not preserve the approved dual-genus budgets');
+  throw new Error('W7 shared sampling consumers do not preserve the approved family budgets');
 }
 
 console.log('Density V2 shared-field budgets, bounded generators, lifecycle and diagnostics are isolated');

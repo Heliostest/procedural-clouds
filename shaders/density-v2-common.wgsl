@@ -53,6 +53,18 @@ fn densityV2ThinSheetProfile(height01 : f32, bottomFade : f32, topFade : f32, to
     * (1.0 - smoothstep(max(0.0, top - topFade), top, height01));
 }
 
+fn densityV2SoftLayerProfile(height01 : f32, bottomFade : f32, topFade : f32, topVariation : f32) -> f32 {
+  if (height01 <= 0.0 || height01 >= 1.0) {
+    return 0.0;
+  }
+  let top = clamp(1.0 + topVariation, 0.72, 1.0);
+  if (height01 >= top) {
+    return 0.0;
+  }
+  return smoothstep(0.0, max(bottomFade, 1e-4), height01)
+    * (1.0 - smoothstep(max(0.0, top - topFade), top, height01));
+}
+
 fn densityV2DomeTop(radius01 : f32, falloff : f32, exponent : f32) -> f32 {
   return max(0.08, 1.0 - clamp(falloff, 0.0, 1.0) * pow(clamp(radius01, 0.0, 1.0), max(exponent, 1e-4)));
 }

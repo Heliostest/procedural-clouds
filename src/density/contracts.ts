@@ -94,10 +94,13 @@ export interface DensityTileMaskStats {
 }
 
 export interface DensityV2EvaluatorStats {
-  enabledGenera: readonly ['cumulus', 'stratus'];
+  enabledGenera: readonly ['cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'];
   sampleLimits: Readonly<{
     cumulus: readonly [3, 1, 0, 0];
     stratus: readonly [2, 0, 0, 0];
+    altostratus: readonly [2, 0, 0, 0];
+    nimbostratus: readonly [2, 0, 0, 0];
+    cirrostratus: readonly [2, 0, 0, 0];
   }>;
   unsupportedBodyCount: number;
   actualEvaluatorCalls: number | null;

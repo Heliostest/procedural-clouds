@@ -26,7 +26,7 @@ const manifest = readFileSync(resolve(root, 'src/densityBenchmarkManifest.ts'), 
 
 const sampleCalls = (source) => [...source.matchAll(/densitySharedSample(Macro|Base|Detail)\(/g)].map((match) => match[1]);
 if (sampleCalls(stratus).join(',') !== 'Macro,Base') {
-  throw new Error(`Stratus must contain exactly Macro+Base samples, got ${sampleCalls(stratus).join(',')}`);
+  throw new Error(`Stratiform must contain exactly Macro+Base samples, got ${sampleCalls(stratus).join(',')}`);
 }
 if (sampleCalls(cumulus).join(',') !== 'Macro,Base,Base,Detail') {
   throw new Error(`Cumulus must contain exactly Macro+Base+Base+Detail samples, got ${sampleCalls(cumulus).join(',')}`);
@@ -35,6 +35,7 @@ for (const contract of [
   'densityV2InverseQuaternionRotate',
   'densityV2RoundedSheetFade',
   'densityV2EllipseFade',
+  'densityV2SoftLayerProfile',
   'densityV2Finalize',
 ]) {
   if (!common.includes(contract)) throw new Error(`W6 common evaluator contract missing: ${contract}`);
@@ -42,7 +43,8 @@ for (const contract of [
 for (const contract of [
   'bodyIndex < DENSITY_V2_MAX_BODIES',
   'recipe.identityAndModes.y == 0u',
-  'genusId != 0u && genusId != 1u',
+  'genusId != 0u && genusId != 1u && genusId != 5u && genusId != 6u && genusId != 8u',
+  'densityV2EvaluateStratiform',
   'textureStore(densityOutput',
 ]) {
   if (!spike.includes(contract)) throw new Error(`W6 dispatcher contract missing: ${contract}`);
@@ -53,6 +55,11 @@ for (const scene of [
   'single-cumulus',
   'w6-cumulus-multi',
   'w6-stratus-cumulus-overlap',
+  'single-cirrostratus',
+  'single-altostratus',
+  'single-nimbostratus',
+  'w7-stratiform-stack',
+  'w7-stratiform-overlap',
 ]) {
   if (!manifest.includes(`'${scene}'`)) throw new Error(`W6 benchmark scene missing: ${scene}`);
 }
@@ -60,4 +67,4 @@ if (!manifest.includes("for (const producer of ['legacy', 'recipe-v2'] as const)
   throw new Error('W6 benchmark cases do not use the global producer A/B seam');
 }
 
-console.log('Density V2 W6 recipe, math, source-budget, dispatch, and A/B fixtures passed');
+console.log('Density V2 W7 recipe, family math, source-budget, dispatch, and A/B fixtures passed');

@@ -55,12 +55,13 @@ if (!recipes.includes('recipe.enabled ? 1 : 0')) {
   throw new Error('W6 recipes do not pack the static enabled flag');
 }
 for (const contract of [
-  "DENSITY_V2_ENABLED_GENERA = Object.freeze(['cumulus', 'stratus']",
+  'DENSITY_V2_ENABLED_GENERA = Object.freeze([',
+  "'cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'",
   'sampleLimits: lane(2, 0, 0, 0)',
   'sampleLimits: lane(3, 1, 0, 0)',
   'verifyDensityV2RecipeSemantics',
 ]) {
-  if (!semantics.includes(contract)) throw new Error(`W6 recipe semantics missing: ${contract}`);
+  if (!semantics.includes(contract)) throw new Error(`W7 recipe semantics missing: ${contract}`);
 }
 for (const contract of [
   'densityV2InverseQuaternionRotate',
@@ -84,4 +85,4 @@ if (!fixtures.includes('verifyDensityV2PackingFixtures')) {
   throw new Error('Density V2 executable packing fixture verifier is missing');
 }
 
-console.log('Density V2 layouts, W6 dual-genus recipes, and math fixtures are consistent');
+console.log('Density V2 layouts, W7 five-genus recipes, and math fixtures are consistent');

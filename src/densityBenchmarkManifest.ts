@@ -14,7 +14,9 @@ export type BenchmarkSceneId = `single-${CloudGenus}`
   | 'stress-complex-cb'
   | 'w6-stratus-multi'
   | 'w6-cumulus-multi'
-  | 'w6-stratus-cumulus-overlap';
+  | 'w6-stratus-cumulus-overlap'
+  | 'w7-stratiform-stack'
+  | 'w7-stratiform-overlap';
 export type BenchmarkCaseStatus = 'pending' | 'running' | 'complete' | 'invalid' | 'stale';
 
 type SerializableParamKey = {
@@ -172,6 +174,21 @@ function createScenes(): BenchmarkScene[] {
     translatedBody(stratus, 'w6-overlap-stratus', 0, 0),
     translatedBody(cumulus, 'w6-overlap-cumulus', 0, 0),
   ];
+  const cirrostratus = centeredBody('cirrostratus');
+  const altostratus = centeredBody('altostratus');
+  const nimbostratus = centeredBody('nimbostratus');
+  const stratiformStack = [
+    translatedBody(stratus, 'w7-stack-stratus', -1800, 0),
+    translatedBody(altostratus, 'w7-stack-altostratus', 0, 0),
+    translatedBody(cirrostratus, 'w7-stack-cirrostratus', 1800, 0),
+    translatedBody(nimbostratus, 'w7-stack-nimbostratus', 0, 1600),
+  ];
+  const stratiformOverlap = [
+    translatedBody(stratus, 'w7-overlap-stratus', 0, 0),
+    translatedBody(cirrostratus, 'w7-overlap-cirrostratus', 0, 0),
+    translatedBody(altostratus, 'w7-overlap-altostratus', 0, 0),
+    translatedBody(nimbostratus, 'w7-overlap-nimbostratus', 0, 0),
+  ];
 
   return [
     ...singleScenes,
@@ -209,6 +226,20 @@ function createScenes(): BenchmarkScene[] {
       sceneTimeSeconds: 12,
       bodies: overlap,
       windSamples: zeroWind(overlap.length),
+    },
+    {
+      id: 'w7-stratiform-stack',
+      label: 'W7 Stratiform family stack',
+      sceneTimeSeconds: 12,
+      bodies: stratiformStack,
+      windSamples: zeroWind(stratiformStack.length),
+    },
+    {
+      id: 'w7-stratiform-overlap',
+      label: 'W7 Stratiform family overlap',
+      sceneTimeSeconds: 12,
+      bodies: stratiformOverlap,
+      windSamples: zeroWind(stratiformOverlap.length),
     },
   ];
 }
@@ -328,6 +359,27 @@ function createCases(): DensityBenchmarkCase[] {
             producer,
             quality,
             view,
+            gateRequired: quality === 'cached' && view === 'normal',
+            timingRequired: quality === 'cached' && view === 'normal',
+            screenshotRequired: true,
+            realtimeCompatibilityOnly: false,
+            screenshotPath: screenshotPath(id),
+          });
+        }
+      }
+    }
+  }
+  const w7Scenes: readonly BenchmarkSceneId[] = [
+    'single-stratus', 'single-cirrostratus', 'single-altostratus', 'single-nimbostratus',
+    'w7-stratiform-stack', 'w7-stratiform-overlap',
+  ];
+  for (const sceneId of w7Scenes) {
+    for (const producer of ['legacy', 'recipe-v2'] as const) {
+      for (const quality of ['cached', 'hybrid'] as const) {
+        for (const view of ['normal', 'density-debug'] as const) {
+          const id = `w7--${sceneId}--${producer}--${quality}--${view}`;
+          cases.push({
+            id, sceneId, producer, quality, view,
             gateRequired: quality === 'cached' && view === 'normal',
             timingRequired: quality === 'cached' && view === 'normal',
             screenshotRequired: true,
