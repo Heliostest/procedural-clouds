@@ -674,6 +674,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugSharedBase')] = 7;
     debugOptions[t('debugSharedDetail')] = 8;
     debugOptions[t('debugSharedMacro')] = 9;
+    debugOptions[t('debugDensityIntegral')] = 10;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
     tipKey(debugFolder.add(params, 'sharedFieldDebugSlice', 0, 1, 0.001).name(t('sharedFieldDebugSlice')), 'sharedFieldDebugSlice');
     tipKey(debugFolder.add(params, 'sharedFieldDebugChannel', { R: 0, G: 1, B: 2, A: 3 }).name(t('sharedFieldDebugChannel')), 'sharedFieldDebugChannel');

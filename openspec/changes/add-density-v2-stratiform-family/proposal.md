@@ -8,7 +8,7 @@ W6 已用 Stratus 与 Cumulus 证明同一 DensityCacheProducer seam、共享 At
 
 ## What Changes
 
-- 将 W6 Stratus-only evaluator 泛化为一个预编译、参数化的 Stratiform family evaluator；Stratus 数值行为保持回归锚点。
+- 将 W6 Stratus-only evaluator 泛化为一个预编译、参数化的 Stratiform family evaluator；Stratus 保持 Thin Sheet、ABI 与采样预算回归，但允许修正经固定 benchmark 证明已饱和的 W6 bank 数值。
 - 在 Recipe V2 中启用 Cirrostratus、Altostratus 与 Nimbostratus；保留 Cumulus 与 Stratus，总 enabled genus 集合变为五属。
 - Thin Sheet profile 服务 Stratus/Cirrostratus；Soft Layer profile 服务 Altostratus/Nimbostratus。
 - 四个 Stratiform Recipe 均保持固定成本：一次 Macro + 一次 Base，共最多 2 次 shared sample；Detail、warp、octave、attachment 与 Hybrid-specific detail 均为零。

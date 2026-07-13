@@ -47,6 +47,14 @@ fn densityV2EllipseFade(radius01 : f32, feather01 : f32) -> f32 {
   return 1.0 - smoothstep(1.0, 1.0 + max(feather01, 1e-4), radius01);
 }
 
+fn densityV2StratiformTop(macroThickness : f32, variationStrength : f32) -> f32 {
+  return clamp(1.0 + (macroThickness - 1.0) * variationStrength, 0.72, 1.0);
+}
+
+fn densityV2ProfileHeight(height01 : f32, start : f32, span : f32) -> f32 {
+  return (height01 - clamp(start, 0.0, 0.99)) / max(span, 1e-4);
+}
+
 fn densityV2ThinSheetProfile(height01 : f32, bottomFade : f32, topFade : f32, topVariation : f32) -> f32 {
   let top = clamp(1.0 + topVariation, 0.72, 1.0);
   return smoothstep(0.0, max(bottomFade, 1e-4), height01)

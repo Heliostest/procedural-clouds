@@ -34,6 +34,8 @@ W7 SHALL 在不改变 `DensityRecipeGPU` 256-byte stride、layout version 2 或�
 
 参数只可通过现有 Macro/Base frequency、wind phase、horizontal-vs-vertical anisotropy、bottom/top fade、thickness variation、coverage remap、low-amplitude Base modulation 与 finalize density lanes 区分。四属的 Detail、warp、octave、attachment、Hybrid detail 与 reserved lanes MUST 为零。Placement altitude/bounds 与 halo、sun disc、absorption、base darkening 等 Optical 参数 MUST NOT 写入 Density Recipe。
 
+四属 bank MUST 为 `vertical1.xy` 提供位于 Body local height 内的非零 `profileStart/profileSpan`。Macro 与 Base frequency/anisotropy 的组合 MUST 使固定 Body 横跨属级最低共享场坐标范围；coverage remap 与 Base amplitude MUST 通过 low/high probe 证明不是常数或全饱和。该校准不得通过增加 sample 数或提高全局 cache resolution 达成。
+
 #### Scenario: Thin Sheet 与 Soft Layer 映射
 
 - **WHEN** 检查 W7 四个 Stratiform Recipe modes
@@ -43,6 +45,11 @@ W7 SHALL 在不改变 `DensityRecipeGPU` 256-byte stride、layout version 2 或�
 
 - **WHEN** pack Cs/As/Ns/St Recipe banks
 - **THEN** 所有使用 lane SHALL 位于声明范围，未使用/attachment/reserved lane SHALL 为零，任一参数 MUST NOT 同时承担 density topology 与 optical/placement 语义
+
+#### Scenario: 共享场跨度与 profile 有效
+
+- **WHEN** 检查默认 St/Cs/As/Ns bank 的 Body-normalized Macro/Base 坐标跨度与 `vertical1.xy`
+- **THEN** 每属 SHALL 满足批准的最低坐标跨度，profile span SHALL 大于零且 `profileStart+profileSpan<=1`；固定 low/high probe SHALL 同时包含非饱和与填充响应
 
 #### Scenario: Nimbostratus 附件保持关闭
 

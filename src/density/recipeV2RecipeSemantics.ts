@@ -66,18 +66,19 @@ const STRATUS_BANK: DensityV2RecipeParameterBank = Object.freeze({
   sampleLimits: lane(2, 0, 0, 0),
   lanes: Object.freeze({
     // [macroFrequency, baseFrequency, detailFrequency, seedScale]
-    domain0: lane(0.72, 0.58, 0, 0.07),
+    domain0: lane(1.35, 1.15, 0, 0.07),
     // [windPhaseScale, warpStrength, horizontalAnisotropy, verticalAnisotropy]
     domain1: lane(0.018, 0, 1, 0.36),
-    // [bottomFade, topFade, thicknessVariation, domeFalloff]
-    vertical0: lane(0.06, 0.11, 0.12, 0),
-    vertical1: ZERO,
+    // [bottomFade, topFade, downwardThicknessVariation, domeFalloff]
+    vertical0: lane(0.10, 0.18, 0.28, 0),
+    // [profileStart, profileSpan, reserved, reserved]
+    vertical1: lane(0, 1, 0, 0),
     // [coverageThreshold, coverageSoftness, bodyCoverageGain, densitySoftness]
-    topology0: lane(0.48, 0.18, 0.82, 0),
+    topology0: lane(0.48, 0.18, 0.18, 0),
     // [baseRWeight, baseGWeight, secondBaseWeight, connectivityBias]
-    topology1: lane(1, 0, 0, 0.08),
-    // [baseAmplitude, secondBaseScale, macroCoverageBias, reserved]
-    topology2: lane(0.18, 0, 0.16, 0),
+    topology1: lane(1, 0, 0, 0.02),
+    // [basePeakAmplitude, secondBaseScale, macroCoverageBias, reserved]
+    topology2: lane(0.45, 0, 0.04, 0),
     detail0: ZERO,
     detail1: ZERO,
     attachment0: ZERO,
@@ -91,6 +92,7 @@ function stratiformBank(options: {
   domain0: DensityV2Lane;
   domain1: DensityV2Lane;
   vertical0: DensityV2Lane;
+  vertical1: DensityV2Lane;
   topology0: DensityV2Lane;
   topology1: DensityV2Lane;
   topology2: DensityV2Lane;
@@ -104,7 +106,7 @@ function stratiformBank(options: {
       domain0: options.domain0,
       domain1: options.domain1,
       vertical0: options.vertical0,
-      vertical1: ZERO,
+      vertical1: options.vertical1,
       topology0: options.topology0,
       topology1: options.topology1,
       topology2: options.topology2,
@@ -118,33 +120,36 @@ function stratiformBank(options: {
 }
 
 const CIRROSTRATUS_BANK = stratiformBank({
-  domain0: lane(0.38, 0.32, 0, 0.03),
+  domain0: lane(0.72, 0.62, 0, 0.03),
   domain1: lane(0.012, 0, 1.15, 0.24),
-  vertical0: lane(0.04, 0.07, 0.035, 0),
-  topology0: lane(0.34, 0.22, 1.05, 0),
-  topology1: lane(1, 0, 0, 0.12),
-  topology2: lane(0.07, 0, 0.22, 0),
-  finalize0: lane(0.58, 1, 4, 0),
+  vertical0: lane(0.08, 0.12, 0.04, 0),
+  vertical1: lane(0.35, 0.30, 0, 0),
+  topology0: lane(0.34, 0.22, 0.40, 0),
+  topology1: lane(1, 0, 0, 0.02),
+  topology2: lane(0.10, 0, 0.17, 0),
+  finalize0: lane(0.78, 1, 4, 0),
 });
 
 const ALTOSTRATUS_BANK = stratiformBank({
-  domain0: lane(0.52, 0.46, 0, 0.05),
+  domain0: lane(1.15, 0.90, 0, 0.05),
   domain1: lane(0.015, 0, 1.45, 0.3),
-  vertical0: lane(0.13, 0.18, 0.08, 0),
-  topology0: lane(0.40, 0.2, 0.96, 0),
-  topology1: lane(1, 0, 0, 0.1),
-  topology2: lane(0.12, 0, 0.2, 0),
-  finalize0: lane(0.9, 1, 6, 0),
+  vertical0: lane(0.16, 0.22, 0.22, 0),
+  vertical1: lane(0, 1, 0, 0),
+  topology0: lane(0.40, 0.20, 0.30, 0),
+  topology1: lane(1, 0, 0, 0.03),
+  topology2: lane(0.38, 0, 0.12, 0),
+  finalize0: lane(0.85, 1, 6, 0),
 });
 
 const NIMBOSTRATUS_BANK = stratiformBank({
-  domain0: lane(0.44, 0.4, 0, 0.05),
+  domain0: lane(0.95, 0.78, 0, 0.05),
   domain1: lane(0.012, 0, 1.25, 0.42),
-  vertical0: lane(0.18, 0.2, 0.1, 0),
-  topology0: lane(0.3, 0.2, 1.18, 0),
-  topology1: lane(1, 0, 0, 0.2),
-  topology2: lane(0.16, 0, 0.3, 0),
-  finalize0: lane(1.35, 1, 8, 0),
+  vertical0: lane(0.20, 0.24, 0.18, 0),
+  vertical1: lane(0, 1, 0, 0),
+  topology0: lane(0.30, 0.20, 0.35, 0),
+  topology1: lane(1, 0, 0, 0.08),
+  topology2: lane(0.34, 0, 0.12, 0),
+  finalize0: lane(0.95, 1, 8, 0),
 });
 
 const CUMULUS_BANK: DensityV2RecipeParameterBank = Object.freeze({
@@ -210,5 +215,16 @@ export function verifyDensityV2RecipeSemantics(): void {
     .some((bank) => bank.sampleLimits.join(',') !== '2,0,0,0')
     || CUMULUS_BANK.sampleLimits.join(',') !== '3,1,0,0') {
     throw new Error('Density V2 W7 static sample limits changed');
+  }
+  for (const [genus, bank] of Object.entries({
+    stratus: STRATUS_BANK,
+    cirrostratus: CIRROSTRATUS_BANK,
+    altostratus: ALTOSTRATUS_BANK,
+    nimbostratus: NIMBOSTRATUS_BANK,
+  })) {
+    const [profileStart, profileSpan] = bank.lanes.vertical1;
+    if (profileSpan <= 0 || profileStart + profileSpan > 1 + 1e-6) {
+      throw new Error(`Density V2 Stratiform profile is outside Body height: ${genus}`);
+    }
   }
 }

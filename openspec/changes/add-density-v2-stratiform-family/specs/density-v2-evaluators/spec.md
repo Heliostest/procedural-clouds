@@ -58,12 +58,12 @@ Stratus single/multi V2 median 目标为不高于对应 Legacy 的 0.80，p90 �
 
 W7 Stratiform kernel SHALL 由 rounded-sheet analytic footprint、Recipe-selected Thin Sheet/Soft Layer vertical profile、高 coverage Macro support、低幅 Macro thickness shift、一次低频 Base modulation 与公共 Finalize 产生主体密度。每次通过早退的 Body evaluation SHALL 至多执行 Macro=1、Base=1 共 2 次 shared sample；Detail、coordinate warp、Worley/cell loop、dynamic octave、attachment 与 Hybrid detail sample MUST 为零。
 
-Stratus SHALL 保持 W6 Thin Sheet 数值回归；Cirrostratus SHALL 使用极低幅/低频、近均匀 Thin Sheet；Altostratus SHALL 使用平缓 Soft Layer 与水平相对垂直的低频结构；Nimbostratus SHALL 使用高 coverage/高填充 Thick Soft Layer。family kernel MUST NOT 读取 halo、sun disc、absorption、base darkening、lightning 或 precipitation 参数。
+Stratus SHALL 保持 W6 Thin Sheet family、ABI 与 Macro=1/Base=1 预算回归；W6 bank 数值若被固定 benchmark 证明会使 coverage/Base/vertical 退化为饱和平板，MAY 由 W7 重新校准，但 MUST 以 coverage 非饱和、Base 调制跨度、共享场坐标跨度与可解析顶部起伏 fixture 约束。Cirrostratus SHALL 使用极低幅/低频、近均匀 Thin Sheet；Altostratus SHALL 使用平缓 Soft Layer 与水平相对垂直的低频结构；Nimbostratus SHALL 使用高 coverage/高填充 Thick Soft Layer。family kernel MUST NOT 读取 halo、sun disc、absorption、base darkening、lightning 或 precipitation 参数。
 
 #### Scenario: Stratus 回归
 
-- **WHEN** 对相同 W6 Stratus Recipe、Body、Macro/Base sample fixture 执行泛化前后 CPU/WGSL mirror
-- **THEN** density、profile boundary 与 sample-call 上限 SHALL 在约定容差内保持一致
+- **WHEN** 对相同 W6 Stratus Body 与 Macro/Base sample fixture 执行泛化前后 CPU/WGSL mirror
+- **THEN** family/profile/ABI 与 sample-call 上限 SHALL 保持一致；校准后的 density SHALL 满足显式非饱和与可解析结构不变量，而不是逐数值复刻已确认异常的 W6 bank 输出
 
 #### Scenario: Cirrostratus 极薄均匀幕
 
@@ -89,7 +89,14 @@ Stratus SHALL 保持 W6 Thin Sheet 数值回归；Cirrostratus SHALL 使用极�
 
 W7 SHALL 使用固定 St/Cs/As/Ns single、family stack/overlap manifests，对 Legacy/V2、Cached/Hybrid、normal/density-debug 进行视觉与协议验证。若 timestamp query 可用，每个 backend/case SHALL 先完成至少 5 个 cache warmup，再采集至少 30 个有效 cache timestamp；Cs/As/Ns 的 V2 cache median 目标 SHALL 不高于 Legacy `1.00×`，p90 SHALL 不高于 `1.20×`。
 
+W7 `density-debug` SHALL 显示沿视线的 raw density integral，不得混入 genus absorption、lighting 或 prior-frame TAA history。固定相机 SHALL 位于 Cirrostratus Body 外部。若 raw density 已有结构而 normal 仍异常，Gate report SHALL 将问题归入 Optical/lighting；若 raw density 本身为空、饱和或为矩形平板，SHALL 归入 Density Recipe/profile/Support。
+
 性能结果 MUST 分类为 `pass`、`fail`、`unresolved` 或 `owner-waived`。FPS、CPU timing、cloud pass、debug view 或 owner waiver MUST NOT 被标成 cache performance pass。source budget、Support false-negative、NaN/Inf、metadata 错误、Legacy/Cumulus/Stratus 回归或资源/pass 增长失败不可豁免。
+
+#### Scenario: Raw density 与 Optical 分层诊断
+
+- **WHEN** 对同一固定 case 切换 normal 与 density-debug
+- **THEN** density-debug SHALL 只反映缓存密度的路径积分并关闭 TAA history；Cirrostratus 的低 absorption MUST NOT 使 density-debug 消失，normal 与 density-debug 的差异 SHALL 可用于判定问题所属阶段
 
 #### Scenario: W7 正常继续
 

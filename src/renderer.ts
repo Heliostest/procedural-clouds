@@ -1526,7 +1526,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       uploadShapes();
     }
 
-    const taaOn = params.taaEnabled;
+    const taaOn = params.taaEnabled && params.debugView < 0.5;
     let jitterX = 0.0;
     let jitterY = 0.0;
     if (taaOn) {

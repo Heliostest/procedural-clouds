@@ -16,6 +16,35 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
   return t * t * (3 - 2 * t);
 }
 
+export function densityV2CoverageGate(
+  field: number,
+  bodyCoverage: number,
+  threshold: number,
+  softness: number,
+  bodyCoverageGain: number,
+  macroCoverageBias: number,
+): number {
+  const signal = field + (Math.min(1.5, Math.max(0, bodyCoverage)) - 0.5) * bodyCoverageGain + macroCoverageBias;
+  const width = Math.max(softness, 1e-4);
+  return smoothstep(threshold - width, threshold + width, signal);
+}
+
+export function densityV2StratiformLowAmplitude(
+  base: number,
+  amplitude: number,
+  connectivityBias: number,
+): number {
+  return Math.max(0, 1 + (base - 0.5) * 2 * amplitude + connectivityBias);
+}
+
+export function densityV2StratiformTop(macroThickness: number, variationStrength: number): number {
+  return Math.min(1, Math.max(0.72, 1 + (macroThickness - 1) * variationStrength));
+}
+
+export function densityV2ProfileHeight(height01: number, start: number, span: number): number {
+  return (height01 - Math.min(0.99, Math.max(0, start))) / Math.max(span, 1e-4);
+}
+
 export function densityV2InverseQuaternionRotate(
   point: DensityV2Vec3,
   quaternion: DensityV2Quaternion,
@@ -49,7 +78,7 @@ export function densityV2ThinSheetProfile(
   topFade: number,
   topVariation = 0,
 ): number {
-  const top = clamp01(1 + topVariation);
+  const top = Math.min(1, Math.max(0.72, 1 + topVariation));
   return smoothstep(0, Math.max(bottomFade, 1e-4), height01)
     * (1 - smoothstep(Math.max(0, top - topFade), top, height01));
 }
@@ -160,6 +189,20 @@ export function verifyDensityV2EvaluatorMathFixtures(): void {
   if (softSamples.some((value) => !Number.isFinite(value) || value < 0 || value > 1)
     || softSamples[0] !== 0 || softSamples.at(-1) !== 0 || softSamples[3] <= 0) {
     throw new Error('Density V2 soft layer profile fixture failed');
+  }
+  if (!approximatelyEqual(densityV2CoverageGate(0.4, 0.5, 0.5, 0.2, 0, 0), 0.15625)
+    || !approximatelyEqual(densityV2CoverageGate(0.5, 0.5, 0.5, 0.2, 0, 0), 0.5)
+    || !approximatelyEqual(densityV2CoverageGate(0.7, 0.5, 0.5, 0.2, 0, 0), 1)) {
+    throw new Error('Density V2 coverage-gate mirror fixture failed');
+  }
+  if (!approximatelyEqual(densityV2StratiformLowAmplitude(0, 0.2, 0.05), 0.85)
+    || !approximatelyEqual(densityV2StratiformLowAmplitude(1, 0.2, 0.05), 1.25)) {
+    throw new Error('Density V2 stratiform low-amplitude mirror fixture failed');
+  }
+  if (!approximatelyEqual(densityV2StratiformTop(0, 0.2), 0.8)
+    || densityV2StratiformTop(1, 0.2) !== 1
+    || !approximatelyEqual(densityV2ProfileHeight(0.5, 0.25, 0.5), 0.5)) {
+    throw new Error('Density V2 stratiform vertical mirror fixture failed');
   }
   let previousTop = Number.POSITIVE_INFINITY;
   for (const radius of [0, 0.25, 0.5, 0.75, 1]) {

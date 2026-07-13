@@ -186,6 +186,7 @@ const DICT: Dict = {
   debugSharedBase: { en: 'W5 Base Atlas', zh: 'W5 基础图集' },
   debugSharedDetail: { en: 'W5 Detail Atlas', zh: 'W5 细节图集' },
   debugSharedMacro: { en: 'W5 Macro Field', zh: 'W5 宏观场' },
+  debugDensityIntegral: { en: 'Density Integral', zh: '密度积分' },
   sharedFieldDebugSlice: { en: 'Atlas Slice', zh: '图集切片' },
   sharedFieldDebugChannel: { en: 'Field Channel', zh: '场通道' },
   sharedFieldDebugPhase: { en: 'Advection Phase', zh: '平流相位' },

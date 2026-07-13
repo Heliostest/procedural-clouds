@@ -3,7 +3,7 @@ import type { BodyMod } from '../lifecycle';
 import { createDefaultParams } from '../params';
 import type { WindAdvectionSample } from '../wind';
 import type { DensityFrameInput } from './contracts';
-import { DENSITY_BODY_GPU_LAYOUT } from './recipeV2Layout';
+import { DENSITY_BODY_GPU_LAYOUT, densityV2LayoutField } from './recipeV2Layout';
 import { packDensityV2Frame } from './recipeV2Packing';
 
 export const DENSITY_V2_PACKING_FIXTURE_IDS = Object.freeze([
@@ -79,5 +79,24 @@ export function verifyDensityV2PackingFixtures(): void {
       throw new Error(`Density V2 active prefix source order failed: ${fixture.id}`);
     }
     assertZeroTail(packed.bodies, packed.activeBodyCount);
+  }
+  const lifecycleBody = { ...densityV2FixtureBody('L', 'stratus'), densityScale: 1.4 };
+  const lifecycleInput = {
+    ...densityV2FixtureInput([lifecycleBody]),
+    bodyMods: [{ coverageMul: 0.8, densityScale: 0.5, morph: 0.25 }],
+  };
+  const lifecyclePacked = packDensityV2Frame(lifecycleInput, 96);
+  const heightDensity = new Float32Array(
+    lifecyclePacked.bodies,
+    densityV2LayoutField(DENSITY_BODY_GPU_LAYOUT, 'heightDensity').byteOffset,
+    4,
+  );
+  const coverageLifecycle = new Float32Array(
+    lifecyclePacked.bodies,
+    densityV2LayoutField(DENSITY_BODY_GPU_LAYOUT, 'coverageLifecycle').byteOffset,
+    4,
+  );
+  if (Math.abs(heightDensity[2] - 1.4) > 1e-6 || Math.abs(coverageLifecycle[1] - 0.5) > 1e-6) {
+    throw new Error('Density V2 lifecycle density must be packed exactly once');
   }
 }

@@ -1036,6 +1036,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   let blend = clamp01(params.g.typeLightingBlend);
 
   var transmittance = 1.0;
+  var rawDensityIntegral = 0.0;
   var color = vec3f(0.0);
   var iterCount = 0;
   var depthSum = 0.0;
@@ -1065,6 +1066,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let bmin = boxMin();
     let boxMax = getBoxMax();
     let adaptive = params.g.adaptiveMarch > 0.5;
+    let rawDensityDebug = i32(params.g.debugView) == 10;
     const ABS_K = 22.0;
 
     for (var i = 0u; i < RAYMARCH_MAX_STEPS; i++) {
@@ -1079,6 +1081,12 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
           t = t - baseStep * (mult - 1.0);
           mult = 1.0;
           empties = 0;
+          continue;
+        }
+        rawDensityIntegral += d * baseStep;
+        if (rawDensityDebug) {
+          empties = 0;
+          t = t + baseStep;
           continue;
         }
         let L = blendedLighting(dt.y, dt.z, dt.w);
@@ -1144,7 +1152,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         accFxW += w;
         transmittance *= step_trans;
         let cutoff = 0.01;
-        if (transmittance < cutoff) { break; }
+        if (transmittance < cutoff && !rawDensityDebug) { break; }
         empties = 0;
         t = t + baseStep;
       } else if (d > 0.002) {
@@ -1154,6 +1162,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
           empties = 0;
           continue;
         }
+        rawDensityIntegral += d * baseStep;
         empties = 0;
         t = t + baseStep;
       } else {
@@ -1208,6 +1217,10 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let dv = i32(params.g.debugView);
     if (dv == 1) { return vec4f(vec3f(transmittance), 1.0); }
     if (dv == 2) { return vec4f(color, 1.0); }
+    if (dv == 10) {
+      let rawDensity = rawDensityIntegral / (1.0 + rawDensityIntegral);
+      return vec4f(vec3f(rawDensity), 1.0);
+    }
     if (dv == 3) {
       if (!hit.hit) { return vec4f(0.0, 0.0, 0.0, 1.0); }
       let heat = f32(iterCount) / f32(numSteps);

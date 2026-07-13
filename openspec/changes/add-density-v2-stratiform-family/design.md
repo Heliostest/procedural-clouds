@@ -14,7 +14,7 @@ W6 source closure 当前包含 Common Context、Stratus Thin Sheet、Cumulus Bil
 ## Goals
 
 - 用一个参数化 family kernel 表达四个 Stratiform genus。
-- 保持 Stratus W6 行为和 Cumulus W6 行为可回归。
+- 保持 Stratus W6 Thin Sheet/ABI/采样预算与 Cumulus W6 行为可回归；不把已证实导致 coverage 饱和的 W6 Stratus bank 数值冻结为正确形态。
 - 将每个 Stratiform evaluation 固定在 Macro=1、Base=1、Detail=0。
 - 让四属在固定场景下通过高度、厚度、连续性和低频结构可辨。
 - 保持 Support、tile mask、metadata、cache 与 renderer 契约不变。
@@ -43,7 +43,7 @@ fn densityV2EvaluateStratiform(
 
 dispatcher 先检查 Recipe enabled，再按 topology family 将 Stratus、Cirrostratus、Altostratus、Nimbostratus 路由到这个 kernel；Cumulus 继续路由 Billow。不得为四属复制四套 sample 调用图。
 
-Stratus Recipe 应保持 W6 初始值和公式结果；泛化提交必须用 CPU mirror/source fixture 证明它没有因重命名或 profile 分支发生无意漂移。
+Stratus Recipe 应保持 W6 的 family、profile、ABI 与固定调用图；泛化提交必须用 CPU mirror/source fixture 证明它没有因重命名或 profile 分支发生无意漂移。若固定 benchmark 证明 W6 bank 的 coverage/Base/vertical calibration 已饱和，W7 可修改 bank 与公共 Stratiform 标量公式，但必须增加数值不变量并保留 Macro=1、Base=1 的预算。
 
 ### Decision 2: Vertical Profile 只有 Thin Sheet 与 Soft Layer 两条解析分支
 
@@ -167,9 +167,24 @@ HUD/report 至少包含 enabled/unsupported genera、每属静态 sample limits�
 
 ### Decision 9: Gate 区分测量结果与项目所有者豁免
 
-若 timestamp query 可用，每个 backend/case 至少 5 个 cache warmup、30 个有效 cache samples。每个新属 V2 cache median 目标不高于 Legacy `1.0×`，p90 不高于 `1.2×`。Stratus 只做 W6 回归，不重新宣称 W6 未采集阈值。
+若 timestamp query 可用，每个 backend/case 至少 5 个 cache warmup、30 个有效 cache samples。每个新属 V2 cache median 目标不高于 Legacy `1.0×`，p90 不高于 `1.2×`。Stratus 只做 family/profile/ABI/预算回归与 W7 形态校准验收，不重新宣称 W6 未采集阈值。
 
 若 timestamp 不可用或项目所有者决定以人工验收继续，report 可以记录 `owner-waived`，但不得写成 `pass`。任何 source budget、NaN/Inf、Support false-negative、metadata 错误或 Legacy 回退失败不可豁免。
+
+### Decision 10: 饱和平板修复同时约束 gate、调制、坐标跨度与诊断
+
+固定 W7 benchmark 证明旧 bank 存在四个相互叠加的问题：高 Body coverage 经 `bodyCoverageGain` 与 `macroCoverageBias` 把 coverage gate 顶满；Base amplitude 只使用半幅；Macro/Base 坐标在整个 Body 上不足一个或仅约一个共享场周期；顶部变化的正半区被 `clamp(...,1)` 吞掉。Cirrostratus 还把 5 km placement Body 全厚度当成 density profile，并且旧 density-debug 实际显示带 absorption 的 transmittance。
+
+W7 修复采用以下不变量：
+
+- coverage probe 必须区分 low/high Macro；St/As 的 low gate 不得接近全开，Cs/Ns 可保持高连通但不能成为常数；
+- Base 使用完整峰值幅度 `(base-0.5)*2*amplitude`，四属必须各自达到最低调制跨度；
+- Macro/Base 在 Body 上必须达到属级最低坐标跨度，避免固定 seed 只采到同一高值片区；
+- 顶部变化只向下削减，St/As/Ns 的固定 probe 起伏必须不小于默认 96³ 的一个垂直体素；
+- `vertical1.xy` 表示 profileStart/profileSpan；Cs 只占 placement Body 内的有限薄层；
+- raw-density debug 独立于 absorption/lighting，任何 debug view 禁用 TAA history，固定相机位于 Cs Body 外。
+
+这些修复只修改公共 Stratiform 标量公式、Recipe bank 与诊断，不增加 shared sample、纹理、buffer、bind group 或 pass。
 
 ## Cost Model
 
@@ -185,7 +200,7 @@ HUD/report 至少包含 enabled/unsupported genera、每属静态 sample limits�
 ## Migration and Rollback
 
 1. 扩展 Recipe banks/fixtures，但先保持新属 disabled。
-2. 泛化 Stratiform kernel，并证明 Stratus 回归。
+2. 泛化 Stratiform kernel，并证明 Stratus family/profile/ABI/预算回归与形态校准不变量。
 3. 逐个启用 Cirrostratus、Altostratus、Nimbostratus，每属独立校准/提交。
 4. 扩展 dispatcher、HUD/manifests 与 Gate report。
 5. 任一新属失败时可将该 Recipe 单独恢复 disabled；Cumulus/Stratus 与 Legacy Producer继续可用。

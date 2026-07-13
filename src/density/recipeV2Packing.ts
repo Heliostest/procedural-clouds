@@ -136,9 +136,11 @@ export function packDensityV2Frame(input: DensityFrameInput, resolution: number)
       && body.feather >= 0
       && body.rot.every(Number.isFinite);
     const coverage = source.coverage * mod.coverageMul;
-    const density = source.densityScale * mod.densityScale;
+    const density = source.densityScale;
+    const lifecycleDensity = mod.densityScale;
     const finiteStrength = Number.isFinite(coverage) && Number.isFinite(density)
-      && Number.isFinite(mod.morph) && coverage > 0 && density > 0;
+      && Number.isFinite(lifecycleDensity) && Number.isFinite(mod.morph)
+      && coverage > 0 && density > 0 && lifecycleDensity > 0;
     if (!validGenus || !finiteGeometry || !finiteStrength) continue;
     const minX = body.bounds[0]; const minZ = body.bounds[1];
     const maxX = body.bounds[2]; const maxZ = body.bounds[3];
@@ -193,7 +195,7 @@ export function packDensityV2Frame(input: DensityFrameInput, resolution: number)
       body.base, top, density, body.feather,
     ]);
     writeDensityV2F32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'coverageLifecycle', [
-      coverage, mod.densityScale, mod.morph, 1,
+      coverage, lifecycleDensity, mod.morph, 1,
     ]);
     writeDensityV2F32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'transport', [
       windX, windZ, Number.isFinite(wind.morphTime) ? wind.morphTime : 0, 0,

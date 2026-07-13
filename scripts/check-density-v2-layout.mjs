@@ -78,11 +78,19 @@ if (!packing.includes('compactIndex = activeBodies.length')
   || !packing.includes('sourceIndices.push(sourceIndex)')) {
   throw new Error('Density V2 active-prefix packing guard is missing');
 }
+if (!packing.includes('const density = source.densityScale;')
+  || !packing.includes('const lifecycleDensity = mod.densityScale;')
+  || !packing.includes('coverage, lifecycleDensity, mod.morph, 1,')) {
+  throw new Error('Density V2 source and lifecycle density scales must be packed separately');
+}
 for (const fixtureId of ['no-cloud', 'single-body', 'multi-body', 'invalid-genus', 'invalid-before-valid', 'zero-coverage-before-valid']) {
   if (!fixtures.includes(`'${fixtureId}'`)) throw new Error(`Density V2 packing fixture missing: ${fixtureId}`);
 }
 if (!fixtures.includes('verifyDensityV2PackingFixtures')) {
   throw new Error('Density V2 executable packing fixture verifier is missing');
+}
+if (!fixtures.includes('Density V2 lifecycle density must be packed exactly once')) {
+  throw new Error('Density V2 lifecycle density packing fixture is missing');
 }
 
 console.log('Density V2 layouts, W7 five-genus recipes, and math fixtures are consistent');

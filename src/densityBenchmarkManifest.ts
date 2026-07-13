@@ -3,7 +3,7 @@ import { CLOUD_GENERA, type CloudGenus } from './genusProfile';
 import { createDefaultParams, type CloudParams } from './params';
 import type { WindAdvectionSample } from './wind';
 
-export const DENSITY_BENCHMARK_SCHEMA_VERSION = 2 as const;
+export const DENSITY_BENCHMARK_SCHEMA_VERSION = 3 as const;
 export const DENSITY_BENCHMARK_BASELINE_ID = 'density-v2-w0-legacy-v1';
 
 export type BenchmarkQuality = 'cached' | 'hybrid' | 'realtime';
@@ -89,8 +89,8 @@ const QUALITY_MODE: Record<BenchmarkQuality, number> = {
 
 const VIEW_MODE: Record<BenchmarkView, number> = {
   normal: 0,
-  // The existing transmittance view is the closest non-invasive density diagnostic.
-  'density-debug': 1,
+  // Raw density-path integral: independent of genus optical absorption and lighting presets.
+  'density-debug': 10,
 };
 
 function cloneBody(body: CloudBody): CloudBody {
@@ -440,7 +440,7 @@ export function createDensityBenchmarkManifest(
     },
     viewport: { width: 1280, height: 720 },
     camera: {
-      eye: [10.5, 8.5, 10.5],
+      eye: [10.5, 13.5, 10.5],
       target: [0, 3.8, 0],
       up: [0, 1, 0],
       fovYRadians: Math.PI / 4,
@@ -487,6 +487,7 @@ export function caseParams(manifest: DensityBenchmarkManifest, benchmarkCase: De
     ...manifest.params,
     qualityMode: QUALITY_MODE[benchmarkCase.quality],
     debugView: VIEW_MODE[benchmarkCase.view],
+    taaEnabled: benchmarkCase.view === 'normal' && manifest.params.taaEnabled,
     densityProducerMode: benchmarkCase.producer === 'recipe-v2' ? 1 : 0,
   };
 }
