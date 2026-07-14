@@ -9,11 +9,14 @@ import {
   benchmarkScene,
   caseParams,
   cloneBenchmarkBodies,
+  cloneBenchmarkCamera,
   cloneBenchmarkWind,
   createDensityBenchmarkManifest,
   fingerprintValue,
+  resolveBenchmarkCamera,
   serializableCloudParams,
   stableStringify,
+  type BenchmarkCamera,
   type BenchmarkCaseStatus,
   type DensityBenchmarkCase,
   type DensityBenchmarkManifest,
@@ -108,6 +111,10 @@ export interface DensityBenchmarkController {
   readonly manifest: DensityBenchmarkManifest;
   isActive(): boolean;
   getFrameOverride(): { camera: CameraFrame; sceneClock: number } | null;
+  getCamera(): BenchmarkCamera;
+  setCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera;
+  followInteractiveCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera;
+  resetCamera(sceneId?: DensityBenchmarkCase['sceneId']): BenchmarkCamera;
   start(caseId: string): void;
   cancel(reason?: string): void;
   observe(stats: RenderStats): void;
@@ -121,6 +128,7 @@ export interface DensityBenchmarkController {
 
 interface RunningCase {
   definition: DensityBenchmarkCase;
+  camera: BenchmarkCamera;
   expectedRuntimeSignature: string;
   frameOverride: { camera: CameraFrame; sceneClock: number };
   warmupFrames: number;
@@ -183,8 +191,7 @@ function producerDiagnostics(stats: RenderStats): DensityBenchmarkCaseResult['pr
   };
 }
 
-function cameraFrame(manifest: DensityBenchmarkManifest): CameraFrame {
-  const camera = manifest.camera;
+function cameraFrame(manifest: DensityBenchmarkManifest, camera: BenchmarkCamera): CameraFrame {
   const aspect = manifest.viewport.width / manifest.viewport.height;
   const projection = mat4Perspective(camera.fovYRadians, aspect, camera.near, camera.far);
   const view = mat4LookAt(camera.eye, camera.target, camera.up);
@@ -193,6 +200,17 @@ function cameraFrame(manifest: DensityBenchmarkManifest): CameraFrame {
     eye: [...camera.eye],
     viewProj,
     invViewProj: mat4Invert(viewProj),
+  };
+}
+
+function mergeCamera(base: BenchmarkCamera, next: Partial<BenchmarkCamera>): BenchmarkCamera {
+  return {
+    eye: next.eye ? [...next.eye] : [...base.eye],
+    target: next.target ? [...next.target] : [...base.target],
+    up: next.up ? [...next.up] : [...base.up],
+    fovYRadians: next.fovYRadians ?? base.fovYRadians,
+    near: next.near ?? base.near,
+    far: next.far ?? base.far,
   };
 }
 
@@ -237,6 +255,8 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
   const results = new Map<string, DensityBenchmarkCaseResult>();
   let running: RunningCase | null = null;
   let displayedFrameOverride: { camera: CameraFrame; sceneClock: number } | null = null;
+  let activeCamera = cloneBenchmarkCamera(manifest.camera);
+  let cameraPinned = false;
   let status: DensityBenchmarkStatus = {
     state: 'idle',
     caseId: null,
@@ -247,6 +267,19 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     requiredGpuSamples: manifest.minimumGpuSamples,
     message: 'Benchmark controller is disabled.',
   };
+
+  function applyFrameCamera(camera: BenchmarkCamera, sceneClock?: number): void {
+    activeCamera = cloneBenchmarkCamera(camera);
+    if (!displayedFrameOverride) return;
+    displayedFrameOverride = {
+      camera: cameraFrame(manifest, activeCamera),
+      sceneClock: sceneClock ?? displayedFrameOverride.sceneClock,
+    };
+    if (running) {
+      running.camera = cloneBenchmarkCamera(activeCamera);
+      running.frameOverride = displayedFrameOverride;
+    }
+  }
 
   function publish(next: DensityBenchmarkStatus): void {
     status = next;
@@ -290,7 +323,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       manifestVersion: manifest.schemaVersion,
       sourceRevision: manifest.sourceRevision,
       capturedAt: new Date().toISOString(),
-      configFingerprint: benchmarkCaseFingerprint(manifest, active.definition),
+      configFingerprint: benchmarkCaseFingerprint(manifest, active.definition, active.camera),
       qualityMode: active.definition.quality,
       viewMode: active.definition.view,
       activeBodyCount: stats.activeBodyCount,
@@ -333,7 +366,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       manifestVersion: manifest.schemaVersion,
       sourceRevision: manifest.sourceRevision,
       capturedAt: new Date().toISOString(),
-      configFingerprint: benchmarkCaseFingerprint(manifest, active.definition),
+      configFingerprint: benchmarkCaseFingerprint(manifest, active.definition, active.camera),
       qualityMode: active.definition.quality,
       viewMode: active.definition.view,
       activeBodyCount: stats.activeBodyCount,
@@ -363,6 +396,32 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     });
   }
 
+  function getCamera(): BenchmarkCamera {
+    return cloneBenchmarkCamera(activeCamera);
+  }
+
+  function setCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera {
+    cameraPinned = true;
+    applyFrameCamera(mergeCamera(activeCamera, next));
+    return getCamera();
+  }
+
+  function followInteractiveCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera {
+    applyFrameCamera(mergeCamera(activeCamera, next));
+    return getCamera();
+  }
+
+  function resetCamera(sceneId?: DensityBenchmarkCase['sceneId']): BenchmarkCamera {
+    cameraPinned = false;
+    const resolved = sceneId
+      ? resolveBenchmarkCamera(manifest, sceneId)
+      : running
+        ? resolveBenchmarkCamera(manifest, running.definition.sceneId)
+        : cloneBenchmarkCamera(manifest.camera);
+    applyFrameCamera(resolved);
+    return getCamera();
+  }
+
   function start(caseId: string): void {
     const definition = benchmarkCase(manifest, caseId);
     const scene = benchmarkScene(manifest, definition.sceneId);
@@ -380,11 +439,17 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     renderer.setBodies(bodies);
     renderer.setBodyMods(bodies.map(() => ({ ...IDENTITY_MOD })));
     renderer.setWindSamples(cloneBenchmarkWind(scene));
+    if (!cameraPinned) activeCamera = resolveBenchmarkCamera(manifest, definition.sceneId);
+    const caseCamera = cloneBenchmarkCamera(activeCamera);
     const stats = renderer.getStats();
     running = {
       definition,
+      camera: caseCamera,
       expectedRuntimeSignature: expectedRuntimeSignature(manifest, definition),
-      frameOverride: { camera: cameraFrame(manifest), sceneClock: scene.sceneTimeSeconds },
+      frameOverride: {
+        camera: cameraFrame(manifest, caseCamera),
+        sceneClock: scene.sceneTimeSeconds,
+      },
       warmupFrames: 0,
       cacheWarmups: 0,
       renderedFrames: 0,
@@ -392,7 +457,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       lastCacheSampleId: stats.cacheSampleId,
       lastShadowSampleId: stats.shadowSampleId,
       samples: { cloud: [], cache: [], shadow: [], post: [] },
-      warnings: [],
+      warnings: cameraPinned ? ['camera override pinned via setCamera'] : [],
     };
     displayedFrameOverride = running.frameOverride;
     publish(statusFor(running, `Warming ${definition.id}.`));
@@ -560,6 +625,10 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     manifest,
     isActive: () => displayedFrameOverride !== null,
     getFrameOverride: () => displayedFrameOverride,
+    getCamera,
+    setCamera,
+    followInteractiveCamera,
+    resetCamera,
     start,
     cancel,
     observe,

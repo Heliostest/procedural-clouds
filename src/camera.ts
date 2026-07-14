@@ -12,6 +12,8 @@ export interface OrbitCameraOptions {
 
 export interface OrbitCamera {
   setSceneBounds(boxHalfExtentWorld: number, cloudHeightWorld: number): void;
+  setLookAt(eye: readonly [number, number, number], lookTarget: readonly [number, number, number]): void;
+  getTarget(): [number, number, number];
   update(deltaSeconds: number): void;
   computeFrame(aspect: number): CameraFrame;
 }
@@ -166,6 +168,29 @@ export function createOrbitCamera(canvas: HTMLCanvasElement, options: OrbitCamer
         clampTarget();
         targetDist = Math.max(minDist, Math.min(maxDist, targetDist));
       }
+    },
+    setLookAt(eye, lookTarget) {
+      target[0] = lookTarget[0];
+      target[1] = lookTarget[1];
+      target[2] = lookTarget[2];
+      clampTarget();
+      smoothTarget[0] = target[0];
+      smoothTarget[1] = target[1];
+      smoothTarget[2] = target[2];
+      const dx = eye[0] - target[0];
+      const dy = eye[1] - target[1];
+      const dz = eye[2] - target[2];
+      const dist = Math.max(1e-4, Math.hypot(dx, dy, dz));
+      camDist = Math.max(minDist, Math.min(maxDist, dist));
+      targetDist = camDist;
+      camTheta = Math.atan2(dx, dz);
+      targetTheta = camTheta;
+      const phi = Math.asin(Math.max(-1, Math.min(1, dy / dist)));
+      camPhi = clampPitch(phi, target[1], camDist);
+      targetPhi = camPhi;
+    },
+    getTarget() {
+      return [smoothTarget[0], smoothTarget[1], smoothTarget[2]];
     },
     update(deltaSeconds: number) {
       const dt = Math.max(0, Math.min(0.1, deltaSeconds));

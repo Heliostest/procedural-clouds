@@ -51,6 +51,7 @@ export interface BenchmarkScene {
   sceneTimeSeconds: number;
   bodies: CloudBody[];
   windSamples: WindAdvectionSample[];
+  camera?: BenchmarkCamera;
 }
 
 export interface DensityBenchmarkCase {
@@ -507,6 +508,7 @@ export function benchmarkCase(manifest: DensityBenchmarkManifest, id: string): D
 export function benchmarkCaseFingerprint(
   manifest: DensityBenchmarkManifest,
   candidate: DensityBenchmarkCase,
+  camera: BenchmarkCamera = resolveBenchmarkCamera(manifest, candidate.sceneId),
 ): string {
   return fingerprintValue({
     schemaVersion: manifest.schemaVersion,
@@ -514,7 +516,7 @@ export function benchmarkCaseFingerprint(
     sourceRevision: manifest.sourceRevision,
     activeChanges: manifest.activeChanges,
     viewport: manifest.viewport,
-    camera: manifest.camera,
+    camera,
     params: caseParams(manifest, candidate),
     scene: benchmarkScene(manifest, candidate.sceneId),
     case: candidate,
@@ -530,4 +532,23 @@ export function cloneBenchmarkWind(scene: BenchmarkScene): WindAdvectionSample[]
     offsetM: [sample.offsetM[0], sample.offsetM[1]],
     morphTime: sample.morphTime,
   }));
+}
+
+export function cloneBenchmarkCamera(camera: BenchmarkCamera): BenchmarkCamera {
+  return {
+    eye: [...camera.eye],
+    target: [...camera.target],
+    up: [...camera.up],
+    fovYRadians: camera.fovYRadians,
+    near: camera.near,
+    far: camera.far,
+  };
+}
+
+export function resolveBenchmarkCamera(
+  manifest: DensityBenchmarkManifest,
+  sceneId: BenchmarkSceneId,
+): BenchmarkCamera {
+  const scene = benchmarkScene(manifest, sceneId);
+  return cloneBenchmarkCamera(scene.camera ?? manifest.camera);
 }

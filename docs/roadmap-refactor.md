@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；待本文评审完成后，再根据最终决策建立新的 OpenSpec change。
 
-> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 已完成共享场验收并于 2026-07-12 归档（实现 `b3595e2`，归档 `cf1e98a`）；W6 已在 benchmark 修正 `9a8d33a` 后由项目所有者验收并归档（归档 `5615a71`，精确性能阈值记为 `owner-waived`）；W7 已完成实现与 Stratiform 饱和平板修复，等待外部视觉/性能 Gate 验收；W8–W12 尚未建立提案。
+> 状态：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`）；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 已完成共享场验收并于 2026-07-12 归档（实现 `b3595e2`，归档 `cf1e98a`）；W6 已在 benchmark 修正 `9a8d33a` 后由项目所有者验收并归档（归档 `5615a71`，精确性能阈值记为 `owner-waived`）；W7 已于 2026-07-14 由项目所有者归档（`openspec/changes/archive/2026-07-14-add-density-v2-stratiform-family/`，任务 35/47，视觉/性能 Gate 按 owner 决策归档）；W8–W12 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
@@ -347,7 +347,7 @@ OpenSpec change：`openspec/changes/establish-density-v2-baseline/`。该 change
 - 薄层在 Cached 下连续，不依靠默认提高 cache resolution；
 - 每属保留 Legacy 回退和独立 timing。
 
-当前 W7 实现与形态修复的固定验证步骤、case ID、raw-density 判据及 Gate 记录模板见 [`w7-stratiform-fix-validation.md`](w7-stratiform-fix-validation.md)。在该视觉 Gate 完成前，W7 不归档，也不创建 W8 提案。
+当前 W7 实现与形态修复的固定验证步骤、case ID、raw-density 判据及 Gate 记录模板见 [`w7-stratiform-fix-validation.md`](w7-stratiform-fix-validation.md)。W7 已归档；证据与未完成 Gate 项保留在 archive/tasks 与 docs/evidence/w7-stratiform-form*。
 
 ## 13. W8 — Cellular 与 Wave 家族迁移
 
@@ -562,14 +562,14 @@ W6（已归档）：`openspec/changes/archive/2026-07-12-add-density-v2-stratus-
 - Tasks：`tasks.md`
 - Spec deltas：`density-v2-evaluators`、`density-recipe-schema`、`density-shared-fields`、`density-cache-production`
 
-W7（实现完成，视觉/性能 Gate 待验收）：`openspec/changes/add-density-v2-stratiform-family/`
+W7（已归档）：`openspec/changes/archive/2026-07-14-add-density-v2-stratiform-family/`
 
 - Proposal：`proposal.md`
 - Design：`design.md`
 - Tasks：`tasks.md`
 - Spec deltas：`density-v2-evaluators`、`density-recipe-schema`、`density-cache-production`
 
-W1–W6 已完成实施、项目所有者签核与归档；W7 已批准并完成实现及形态异常修复，但尚未通过项目所有者视觉/性能 Gate，不能归档；W8–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
+W1–W7 已完成实施、项目所有者签核与归档；W8–W12 必须逐 Wave 建立并批准。后续提案仍需分别把以下决定写成规范性要求：
 
 - V2 禁止完整 4D Voronoi 主路径和固定算子预算；
 - tile-body mask 的保守性要求；

@@ -166,6 +166,22 @@ async function main(): Promise<void> {
   window.densityBenchmark = benchmark;
   const benchmarkQuery = new URLSearchParams(window.location.search);
   const requestedBenchmarkCase = benchmarkQuery.get('benchmarkCase');
+  const parseVec3 = (raw: string | null): [number, number, number] | null => {
+    if (!raw) return null;
+    const parts = raw.split(',').map(Number);
+    if (parts.length !== 3 || parts.some((v) => !Number.isFinite(v))) return null;
+    return [parts[0], parts[1], parts[2]];
+  };
+  const queryEye = parseVec3(benchmarkQuery.get('benchmarkEye'));
+  const queryTarget = parseVec3(benchmarkQuery.get('benchmarkTarget'));
+  if (queryEye || queryTarget) {
+    const next = benchmark.setCamera({
+      ...(queryEye ? { eye: queryEye } : {}),
+      ...(queryTarget ? { target: queryTarget } : {}),
+    });
+    camera.setLookAt(next.eye, next.target);
+  }
+  let benchmarkOrbitCaseId: string | null = null;
   if (benchmarkQuery.get('benchmark') === '1') {
     const panel = document.createElement('div');
     panel.id = 'density-benchmark-controls';
@@ -210,10 +226,48 @@ async function main(): Promise<void> {
       document.body.classList.add('density-benchmark-clean-capture');
       window.setTimeout(() => document.body.classList.remove('density-benchmark-clean-capture'), 1000);
     });
+    const cam = benchmark.getCamera();
+    const eyeInput = document.createElement('input');
+    eyeInput.dataset.testid = 'density-benchmark-eye';
+    eyeInput.style.width = '18ch';
+    eyeInput.value = cam.eye.join(',');
+    const targetInput = document.createElement('input');
+    targetInput.dataset.testid = 'density-benchmark-target';
+    targetInput.style.width = '18ch';
+    targetInput.value = cam.target.join(',');
+    const applyCameraButton = document.createElement('button');
+    applyCameraButton.dataset.testid = 'density-benchmark-apply-camera';
+    applyCameraButton.textContent = 'Apply camera';
+    applyCameraButton.addEventListener('click', () => {
+      const eye = parseVec3(eyeInput.value.trim());
+      const target = parseVec3(targetInput.value.trim());
+      if (!eye || !target) return;
+      const next = benchmark.setCamera({ eye, target });
+      camera.setLookAt(next.eye, next.target);
+      eyeInput.value = next.eye.join(',');
+      targetInput.value = next.target.join(',');
+    });
+    const resetCameraButton = document.createElement('button');
+    resetCameraButton.dataset.testid = 'density-benchmark-reset-camera';
+    resetCameraButton.textContent = 'Reset camera';
+    resetCameraButton.addEventListener('click', () => {
+      const next = benchmark.resetCamera();
+      camera.setLookAt(next.eye, next.target);
+      eyeInput.value = next.eye.join(',');
+      targetInput.value = next.target.join(',');
+    });
     const cleanCaptureStyle = document.createElement('style');
     cleanCaptureStyle.textContent = 'body.density-benchmark-clean-capture > *:not(#canvas) { visibility: hidden !important; }';
     document.head.appendChild(cleanCaptureStyle);
-    panel.append(select, startButton, screenshotButton, copyButton, copyManifestButton, downloadButton, cleanCaptureButton);
+    panel.append(
+      select, startButton,
+      screenshotButton, copyButton,
+      copyManifestButton, downloadButton,
+      cleanCaptureButton, document.createElement('span'),
+      document.createTextNode('eye'), eyeInput,
+      document.createTextNode('target'), targetInput,
+      applyCameraButton, resetCameraButton,
+    );
     document.body.appendChild(panel);
   }
   if (requestedBenchmarkCase) benchmark.start(requestedBenchmarkCase);
@@ -404,10 +458,26 @@ async function main(): Promise<void> {
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
     const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
     camera.setSceneBounds(worldBoxHalfExtent, worldCloudHeight);
-    if (!benchmarkFrame) camera.update(deltaTime);
+    if (benchmarkFrame) {
+      const caseId = benchmark.getStatus().caseId;
+      if (caseId && caseId !== benchmarkOrbitCaseId) {
+        const pose = benchmark.getCamera();
+        camera.setLookAt(pose.eye, pose.target);
+        benchmarkOrbitCaseId = caseId;
+      }
+    } else {
+      benchmarkOrbitCaseId = null;
+    }
+    camera.update(deltaTime);
 
     const aspect = canvas.width / canvas.height;
-    const cam = benchmarkFrame?.camera ?? camera.computeFrame(aspect);
+    const cam = camera.computeFrame(aspect);
+    if (benchmarkFrame) {
+      const state = benchmark.getStatus().state;
+      if (state === 'warming' || state === 'sampling' || state === 'ready-for-screenshot' || state === 'complete') {
+        benchmark.followInteractiveCamera({ eye: cam.eye, target: camera.getTarget() });
+      }
+    }
     lastCam = cam;
     const sceneClock = benchmarkFrame?.sceneClock ?? (scenarioState.enabled
       ? playhead
