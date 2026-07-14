@@ -5,9 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { chromium } = require(path.join(__dirname, '_pw/node_modules/playwright'));
-const ROUND = process.env.W7_ROUND || '';
-const OUT = ROUND ? path.join(__dirname, ROUND) : __dirname;
+const { chromium } = require(path.join(__dirname, '../w7-stratiform-fix/_pw/node_modules/playwright'));
+const OUT = __dirname;
 const SHOTS = path.join(OUT, 'screenshots');
 const BASE = 'http://127.0.0.1:5173/procedural-clouds/?benchmark=1';
 

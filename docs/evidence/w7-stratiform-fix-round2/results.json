@@ -1,0 +1,2117 @@
+{
+  "schemaVersion": 1,
+  "round": "w7-stratiform-fix-round2",
+  "generatedAt": "2026-07-14T05:21:15.214Z",
+  "captureGeneratedAt": "2026-07-14T05:18:10.987Z",
+  "baseUrl": "http://127.0.0.1:5173/procedural-clouds/?benchmark=1",
+  "priorFailureReport": "docs/evidence/w7-stratiform-fix/report.md",
+  "environment": {
+    "os": "Windows 10",
+    "browser": "Google Chrome (Playwright channel=chrome)",
+    "webgpuAdapter": {
+      "vendor": "nvidia",
+      "architecture": "ampere",
+      "device": "",
+      "description": ""
+    },
+    "timestampQueryFeature": true
+  },
+  "automatedChecks": {
+    "test:genus-dispatch": "pass",
+    "test:pipeline-isolation": "pass",
+    "test:density-v2-layout": "pass",
+    "test:density-v2-tiles": "pass",
+    "test:density-v2-fields": "pass",
+    "test:density-v2-evaluators": "pass",
+    "test:ground-shadow-hash": "pass",
+    "build": "pass",
+    "openspec validate add-density-v2-stratiform-family --strict": "pass"
+  },
+  "timingPairs": {
+    "single-stratus": {
+      "legacyMedian": 0.15872,
+      "legacyP90": 0.188416,
+      "v2Median": 0.028672,
+      "v2P90": 0.029696,
+      "medianRatio": 0.18064516129032257,
+      "p90Ratio": 0.15760869565217392,
+      "gate": "pass"
+    },
+    "single-cirrostratus": {
+      "legacyMedian": 0.453632,
+      "legacyP90": 0.467968,
+      "v2Median": 0.037888,
+      "v2P90": 0.037888,
+      "medianRatio": 0.08352144469525959,
+      "p90Ratio": 0.08096280087527352,
+      "gate": "pass"
+    },
+    "single-altostratus": {
+      "legacyMedian": 0.238592,
+      "legacyP90": 0.253952,
+      "v2Median": 0.031744,
+      "v2P90": 0.031744,
+      "medianRatio": 0.13304721030042918,
+      "p90Ratio": 0.125,
+      "gate": "pass"
+    },
+    "single-nimbostratus": {
+      "legacyMedian": 0.333824,
+      "legacyP90": 0.33792,
+      "v2Median": 0.032768,
+      "v2P90": 0.033792,
+      "medianRatio": 0.09815950920245398,
+      "p90Ratio": 0.1,
+      "gate": "pass"
+    },
+    "w7-stratiform-stack": {
+      "legacyMedian": 0.892928,
+      "legacyP90": 0.918528,
+      "v2Median": 0.054272,
+      "v2P90": 0.055296,
+      "medianRatio": 0.060779816513761464,
+      "p90Ratio": 0.060200668896321065,
+      "gate": "pass"
+    },
+    "w7-stratiform-overlap": {
+      "legacyMedian": 0.882688,
+      "legacyP90": 0.909312,
+      "v2Median": 0.055296,
+      "v2P90": 0.05632,
+      "medianRatio": 0.06264501160092807,
+      "p90Ratio": 0.061936936936936936,
+      "gate": "pass"
+    }
+  },
+  "caseCount": 48,
+  "screenshotCount": 96,
+  "gate": {
+    "automatedChecks": "pass",
+    "visualOverall": "partial-fail",
+    "timingOverall": "pass",
+    "recommendation": "Stop-Review",
+    "rationale": [
+      "自动检查全部 pass；sampleLimits 仍为 Stratiform [2,0,0,0]。",
+      "St/As/Ns/overlap V2 形态可过；Cs normal 为 optical/exposure follow-up；stack normal 为 composition fail（层次难辨）。",
+      "Cs/As/Ns cache timing：V2 median≤1.00×Legacy 且 p90≤1.20×Legacy（实测远低于阈值）；绝对值偏低，建议人工复核 timestamp 语义，但仍按采集数据记 pass。"
+    ]
+  },
+  "results": [
+    {
+      "caseId": "w7--single-stratus--legacy--cached--normal",
+      "scene": "stratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 119,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 8.40704,
+          "p90": 8.54016,
+          "p95": 8.6016,
+          "min": 8.230912,
+          "max": 8.854528
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.15872,
+          "p90": 0.188416,
+          "p95": 0.206848,
+          "min": 0.14336,
+          "max": 0.207872
+        },
+        "post": {
+          "count": 119,
+          "median": 0.017408,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.01536,
+          "max": 0.02048
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-stratus--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy 锚点：团块/孔隙可辨"
+    },
+    {
+      "caseId": "w7--single-stratus--legacy--cached--density-debug",
+      "scene": "stratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-stratus--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 锚点：团块/孔隙可辨"
+    },
+    {
+      "caseId": "w7--single-stratus--legacy--hybrid--normal",
+      "scene": "stratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-stratus--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 锚点：团块/孔隙可辨"
+    },
+    {
+      "caseId": "w7--single-stratus--legacy--hybrid--density-debug",
+      "scene": "stratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-stratus--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 锚点：团块/孔隙可辨"
+    },
+    {
+      "caseId": "w7--single-stratus--recipe-v2--cached--normal",
+      "scene": "stratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 119,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 8.690688,
+          "p90": 8.82688,
+          "p95": 8.853504,
+          "min": 8.47872,
+          "max": 8.904704
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.028672,
+          "p90": 0.029696,
+          "p95": 0.029696,
+          "min": 0.027648,
+          "max": 0.029696
+        },
+        "post": {
+          "count": 119,
+          "median": 0.017408,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.016384,
+          "max": 0.018432
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-stratus--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "pass",
+      "notes": "debug 有中央大孔与灰阶；normal 不规则透绿，未退化为实心白板。维持上一轮 pass。"
+    },
+    {
+      "caseId": "w7--single-stratus--recipe-v2--cached--density-debug",
+      "scene": "stratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-stratus--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 有中央大孔与灰阶；normal 不规则透绿，未退化为实心白板。维持上一轮 pass。"
+    },
+    {
+      "caseId": "w7--single-stratus--recipe-v2--hybrid--normal",
+      "scene": "stratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-stratus--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 有中央大孔与灰阶；normal 不规则透绿，未退化为实心白板。维持上一轮 pass。"
+    },
+    {
+      "caseId": "w7--single-stratus--recipe-v2--hybrid--density-debug",
+      "scene": "stratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-stratus--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-stratus--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 有中央大孔与灰阶；normal 不规则透绿，未退化为实心白板。维持上一轮 pass。"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--legacy--cached--normal",
+      "scene": "cirrostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 120,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 11.177984,
+          "p90": 11.362304,
+          "p95": 11.380736,
+          "min": 10.912768,
+          "max": 11.761664
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.453632,
+          "p90": 0.467968,
+          "p95": 0.47104,
+          "min": 0.433152,
+          "max": 0.861184
+        },
+        "post": {
+          "count": 120,
+          "median": 0.02048,
+          "p90": 0.021504,
+          "p95": 0.021504,
+          "min": 0.018432,
+          "max": 0.021504
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy 薄层锚点可见"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--legacy--cached--density-debug",
+      "scene": "cirrostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 薄层锚点可见"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--legacy--hybrid--normal",
+      "scene": "cirrostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 薄层锚点可见"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--legacy--hybrid--density-debug",
+      "scene": "cirrostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 薄层锚点可见"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--recipe-v2--cached--normal",
+      "scene": "cirrostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 120,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 9.86112,
+          "p90": 9.974784,
+          "p95": 10.048512,
+          "min": 9.623552,
+          "max": 10.1376
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.037888,
+          "p90": 0.037888,
+          "p95": 0.037888,
+          "min": 0.036864,
+          "max": 0.038912
+        },
+        "post": {
+          "count": 120,
+          "median": 0.018432,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.016384,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "fail",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "optical/exposure",
+      "cacheTiming": "pass",
+      "notes": "debug：连续幕面+上侧低密区，有低/中/高灰阶，非近常数高亮平面 → raw pass。normal：仍偏暗灰丘，半透明高空薄幕不够明确 → optical-only follow-up，不归咎 coverage/Base。"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--recipe-v2--cached--density-debug",
+      "scene": "cirrostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "optical/exposure",
+      "cacheTiming": "not-applicable",
+      "notes": "debug：连续幕面+上侧低密区，有低/中/高灰阶，非近常数高亮平面 → raw pass。normal：仍偏暗灰丘，半透明高空薄幕不够明确 → optical-only follow-up，不归咎 coverage/Base。"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--recipe-v2--hybrid--normal",
+      "scene": "cirrostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "fail",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "optical/exposure",
+      "cacheTiming": "not-applicable",
+      "notes": "debug：连续幕面+上侧低密区，有低/中/高灰阶，非近常数高亮平面 → raw pass。normal：仍偏暗灰丘，半透明高空薄幕不够明确 → optical-only follow-up，不归咎 coverage/Base。"
+    },
+    {
+      "caseId": "w7--single-cirrostratus--recipe-v2--hybrid--density-debug",
+      "scene": "cirrostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-cirrostratus--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-cirrostratus--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "optical/exposure",
+      "cacheTiming": "not-applicable",
+      "notes": "debug：连续幕面+上侧低密区，有低/中/高灰阶，非近常数高亮平面 → raw pass。normal：仍偏暗灰丘，半透明高空薄幕不够明确 → optical-only follow-up，不归咎 coverage/Base。"
+    },
+    {
+      "caseId": "w7--single-altostratus--legacy--cached--normal",
+      "scene": "altostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 119,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 9.714688,
+          "p90": 9.940992,
+          "p95": 10.020864,
+          "min": 9.490432,
+          "max": 10.257408
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.238592,
+          "p90": 0.253952,
+          "p95": 0.254976,
+          "min": 0.206848,
+          "max": 0.257024
+        },
+        "post": {
+          "count": 119,
+          "median": 0.018432,
+          "p90": 0.018432,
+          "p95": 0.019456,
+          "min": 0.016384,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-altostratus--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy 团块锚点"
+    },
+    {
+      "caseId": "w7--single-altostratus--legacy--cached--density-debug",
+      "scene": "altostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-altostratus--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 团块锚点"
+    },
+    {
+      "caseId": "w7--single-altostratus--legacy--hybrid--normal",
+      "scene": "altostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-altostratus--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 团块锚点"
+    },
+    {
+      "caseId": "w7--single-altostratus--legacy--hybrid--density-debug",
+      "scene": "altostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-altostratus--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 团块锚点"
+    },
+    {
+      "caseId": "w7--single-altostratus--recipe-v2--cached--normal",
+      "scene": "altostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 120,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 10.10176,
+          "p90": 10.262528,
+          "p95": 10.330112,
+          "min": 9.9072,
+          "max": 10.489856
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.031744,
+          "p90": 0.031744,
+          "p95": 0.032768,
+          "min": 0.03072,
+          "max": 0.032768
+        },
+        "post": {
+          "count": 120,
+          "median": 0.018432,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.016384,
+          "max": 0.018432
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-altostratus--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "pass",
+      "notes": "debug 多孔隙+峰谷灰阶；normal 破碎团块非直边白方板。"
+    },
+    {
+      "caseId": "w7--single-altostratus--recipe-v2--cached--density-debug",
+      "scene": "altostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-altostratus--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 多孔隙+峰谷灰阶；normal 破碎团块非直边白方板。"
+    },
+    {
+      "caseId": "w7--single-altostratus--recipe-v2--hybrid--normal",
+      "scene": "altostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-altostratus--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 多孔隙+峰谷灰阶；normal 破碎团块非直边白方板。"
+    },
+    {
+      "caseId": "w7--single-altostratus--recipe-v2--hybrid--density-debug",
+      "scene": "altostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-altostratus--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-altostratus--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 多孔隙+峰谷灰阶；normal 破碎团块非直边白方板。"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--legacy--cached--normal",
+      "scene": "nimbostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 119,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 9.306112,
+          "p90": 9.432064,
+          "p95": 9.467904,
+          "min": 9.111552,
+          "max": 9.609216
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.333824,
+          "p90": 0.33792,
+          "p95": 0.338944,
+          "min": 0.308224,
+          "max": 0.339968
+        },
+        "post": {
+          "count": 119,
+          "median": 0.018432,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.016384,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy 起伏锚点"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--legacy--cached--density-debug",
+      "scene": "nimbostratus",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 起伏锚点"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--legacy--hybrid--normal",
+      "scene": "nimbostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 起伏锚点"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--legacy--hybrid--density-debug",
+      "scene": "nimbostratus",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 1,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 起伏锚点"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--recipe-v2--cached--normal",
+      "scene": "nimbostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 119,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 10.356736,
+          "p90": 10.541056,
+          "p95": 10.607616,
+          "min": 10.125312,
+          "max": 10.740736
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.032768,
+          "p90": 0.033792,
+          "p95": 0.033792,
+          "min": 0.031744,
+          "max": 0.033792
+        },
+        "post": {
+          "count": 119,
+          "median": 0.018432,
+          "p90": 0.018432,
+          "p95": 0.018432,
+          "min": 0.016384,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "pass",
+      "notes": "debug 低/中/高灰阶+孔隙，非近常数矩形；normal 厚重斑驳有洞，非均匀白甲板。"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--recipe-v2--cached--density-debug",
+      "scene": "nimbostratus",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 低/中/高灰阶+孔隙，非近常数矩形；normal 厚重斑驳有洞，非均匀白甲板。"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--recipe-v2--hybrid--normal",
+      "scene": "nimbostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 低/中/高灰阶+孔隙，非近常数矩形；normal 厚重斑驳有洞，非均匀白甲板。"
+    },
+    {
+      "caseId": "w7--single-nimbostratus--recipe-v2--hybrid--density-debug",
+      "scene": "nimbostratus",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 1,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--single-nimbostratus--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--single-nimbostratus--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug 低/中/高灰阶+孔隙，非近常数矩形；normal 厚重斑驳有洞，非均匀白甲板。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--legacy--cached--normal",
+      "scene": "stack",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 99,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 99,
+          "median": 13.1072,
+          "p90": 13.597696,
+          "p95": 13.703168,
+          "min": 12.521472,
+          "max": 13.933568
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.892928,
+          "p90": 0.918528,
+          "p95": 0.922624,
+          "min": 0.862208,
+          "max": 0.940032
+        },
+        "post": {
+          "count": 99,
+          "median": 0.02048,
+          "p90": 0.02048,
+          "p95": 0.02048,
+          "min": 0.018432,
+          "max": 0.021504
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy 多层锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--legacy--cached--density-debug",
+      "scene": "stack",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 多层锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--legacy--hybrid--normal",
+      "scene": "stack",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 多层锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--legacy--hybrid--density-debug",
+      "scene": "stack",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy 多层锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--recipe-v2--cached--normal",
+      "scene": "stack",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 120,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 12.848128,
+          "p90": 13.101056,
+          "p95": 13.146112,
+          "min": 12.299264,
+          "max": 13.853696
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.054272,
+          "p90": 0.055296,
+          "p95": 0.055296,
+          "min": 0.052224,
+          "max": 0.055296
+        },
+        "post": {
+          "count": 120,
+          "median": 0.018432,
+          "p90": 0.019456,
+          "p95": 0.019456,
+          "min": 0.016384,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "fail",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "composition",
+      "cacheTiming": "pass",
+      "notes": "metadata：activeBodyCount=4、recipe-v2 ready、shared-fields ready、warnings=[]、五属 evaluator 启用。debug 有斑驳孔隙非单一白板；normal 视角下四属高度/厚度层次仍难清晰分出，偏连续厚层 → composition fail。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--recipe-v2--cached--density-debug",
+      "scene": "stack",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "composition",
+      "cacheTiming": "not-applicable",
+      "notes": "metadata：activeBodyCount=4、recipe-v2 ready、shared-fields ready、warnings=[]、五属 evaluator 启用。debug 有斑驳孔隙非单一白板；normal 视角下四属高度/厚度层次仍难清晰分出，偏连续厚层 → composition fail。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--recipe-v2--hybrid--normal",
+      "scene": "stack",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "fail",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "composition",
+      "cacheTiming": "not-applicable",
+      "notes": "metadata：activeBodyCount=4、recipe-v2 ready、shared-fields ready、warnings=[]、五属 evaluator 启用。debug 有斑驳孔隙非单一白板；normal 视角下四属高度/厚度层次仍难清晰分出，偏连续厚层 → composition fail。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-stack--recipe-v2--hybrid--density-debug",
+      "scene": "stack",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-stack--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-stack--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": "composition",
+      "cacheTiming": "not-applicable",
+      "notes": "metadata：activeBodyCount=4、recipe-v2 ready、shared-fields ready、warnings=[]、五属 evaluator 启用。debug 有斑驳孔隙非单一白板；normal 视角下四属高度/厚度层次仍难清晰分出，偏连续厚层 → composition fail。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--legacy--cached--normal",
+      "scene": "overlap",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 100,
+      "cacheSamples": 60,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 100,
+          "median": 13.149184,
+          "p90": 13.594624,
+          "p95": 13.748224,
+          "min": 12.50816,
+          "max": 14.245888
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.882688,
+          "p90": 0.909312,
+          "p95": 0.91136,
+          "min": 0.851968,
+          "max": 0.927744
+        },
+        "post": {
+          "count": 100,
+          "median": 0.02048,
+          "p90": 0.02048,
+          "p95": 0.02048,
+          "min": 0.018432,
+          "max": 0.021504
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--legacy--cached--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--legacy--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "baseline",
+      "notes": "legacy overlap 锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--legacy--cached--density-debug",
+      "scene": "overlap",
+      "producer": "legacy",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--legacy--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--legacy--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy overlap 锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--legacy--hybrid--normal",
+      "scene": "overlap",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--legacy--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--legacy--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy overlap 锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--legacy--hybrid--density-debug",
+      "scene": "overlap",
+      "producer": "legacy",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "legacy",
+      "producerActive": "legacy",
+      "producerLifecycle": "ready",
+      "sharedFields": null,
+      "activeBodyCount": 4,
+      "enabledGenera": null,
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--legacy--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--legacy--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "legacy overlap 锚点"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--recipe-v2--cached--normal",
+      "scene": "overlap",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 118,
+      "cacheSamples": 60,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 118,
+          "median": 12.780544,
+          "p90": 13.037568,
+          "p95": 13.094912,
+          "min": 12.347392,
+          "max": 13.21984
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.055296,
+          "p90": 0.05632,
+          "p95": 0.057344,
+          "min": 0.054272,
+          "max": 0.057344
+        },
+        "post": {
+          "count": 118,
+          "median": 0.018432,
+          "p90": 0.019456,
+          "p95": 0.019456,
+          "min": 0.017408,
+          "max": 0.019456
+        }
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--recipe-v2--cached--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--recipe-v2--cached--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "pass",
+      "notes": "debug/normal 均保留低密区与内部起伏，非全屏近常数直边板；activeBodyCount=4、无 warnings。属间主次从单帧难以量化，未见明显合成崩溃。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--recipe-v2--cached--density-debug",
+      "scene": "overlap",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--recipe-v2--cached--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--recipe-v2--cached--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug/normal 均保留低密区与内部起伏，非全屏近常数直边板；activeBodyCount=4、无 warnings。属间主次从单帧难以量化，未见明显合成崩溃。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--recipe-v2--hybrid--normal",
+      "scene": "overlap",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "normal",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--recipe-v2--hybrid--normal--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--recipe-v2--hybrid--normal--clean.png"
+      },
+      "rawDensityVerdict": "n/a",
+      "normalOpticalVerdict": "pass",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug/normal 均保留低密区与内部起伏，非全屏近常数直边板；activeBodyCount=4、无 warnings。属间主次从单帧难以量化，未见明显合成崩溃。"
+    },
+    {
+      "caseId": "w7--w7-stratiform-overlap--recipe-v2--hybrid--density-debug",
+      "scene": "overlap",
+      "producer": "recipe-v2",
+      "quality": "hybrid",
+      "view": "density-debug",
+      "status": "ready-for-screenshot",
+      "earlyExitFromTimingStall": false,
+      "warmupFrames": 60,
+      "cloudSamples": 0,
+      "cacheSamples": 0,
+      "producerRequested": "recipe-v2",
+      "producerActive": "recipe-v2",
+      "producerLifecycle": "ready",
+      "sharedFields": "ready",
+      "activeBodyCount": 4,
+      "enabledGenera": [
+        "cumulus",
+        "stratus",
+        "altostratus",
+        "nimbostratus",
+        "cirrostratus"
+      ],
+      "warnings": [],
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms"
+      },
+      "screenshots": {
+        "hud": "screenshots/w7--w7-stratiform-overlap--recipe-v2--hybrid--density-debug--hud.png",
+        "clean": "screenshots/w7--w7-stratiform-overlap--recipe-v2--hybrid--density-debug--clean.png"
+      },
+      "rawDensityVerdict": "pass",
+      "normalOpticalVerdict": "n/a",
+      "supportTileMetadataVerdict": "pass",
+      "failureClass": null,
+      "cacheTiming": "not-applicable",
+      "notes": "debug/normal 均保留低密区与内部起伏，非全屏近常数直边板；activeBodyCount=4、无 warnings。属间主次从单帧难以量化，未见明显合成崩溃。"
+    }
+  ]
+}
