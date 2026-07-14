@@ -24,7 +24,16 @@ fn densityV2EvaluateStratiform(
     return DensityV2Evaluation(0.0, body.ids.x);
   }
   let base = densitySharedSampleBase(densityV2SamplingCoordinate(ctx, body, recipe, recipe.domain0.y, 11u));
-  let lowAmplitude = 1.0 + (base.r - 0.5) * 2.0 * recipe.topology2.x + recipe.topology1.w;
+  // Shape toward a configurable floor. Modulating around 1.0 cannot recover
+  // horizontal structure once a thick stratiform layer becomes optically opaque.
+  let baseSoftness = max(recipe.topology0.w, 1e-4);
+  let baseShape = smoothstep(
+    recipe.topology1.x - baseSoftness,
+    recipe.topology1.x + baseSoftness,
+    base.r,
+  );
+  let baseContrast = clamp(recipe.topology2.x, 0.0, 1.0);
+  let lowAmplitude = mix(1.0, baseShape, baseContrast) + recipe.topology1.w;
   let rawDensity = footprint * vertical * coverage * max(lowAmplitude, 0.0);
   return DensityV2Evaluation(densityV2Finalize(rawDensity, body, recipe), body.ids.x);
 }

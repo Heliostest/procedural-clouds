@@ -73,12 +73,12 @@ const STRATUS_BANK: DensityV2RecipeParameterBank = Object.freeze({
     vertical0: lane(0.10, 0.18, 0.28, 0),
     // [profileStart, profileSpan, reserved, reserved]
     vertical1: lane(0, 1, 0, 0),
-    // [coverageThreshold, coverageSoftness, bodyCoverageGain, densitySoftness]
-    topology0: lane(0.48, 0.18, 0.18, 0),
-    // [baseRWeight, baseGWeight, secondBaseWeight, connectivityBias]
-    topology1: lane(1, 0, 0, 0.02),
-    // [basePeakAmplitude, secondBaseScale, macroCoverageBias, reserved]
-    topology2: lane(0.45, 0, 0.04, 0),
+    // [coverageThreshold, coverageSoftness, bodyCoverageGain, baseSoftness]
+    topology0: lane(0.48, 0.18, 0.18, 0.16),
+    // [baseThreshold, reserved, reserved, densityFloor]
+    topology1: lane(0.48, 0, 0, 0.05),
+    // [baseContrast, reserved, macroCoverageBias, reserved]
+    topology2: lane(0.25, 0, 0.04, 0),
     detail0: ZERO,
     detail1: ZERO,
     attachment0: ZERO,
@@ -123,11 +123,11 @@ const CIRROSTRATUS_BANK = stratiformBank({
   domain0: lane(0.72, 0.62, 0, 0.03),
   domain1: lane(0.012, 0, 1.15, 0.24),
   vertical0: lane(0.08, 0.12, 0.04, 0),
-  vertical1: lane(0.35, 0.30, 0, 0),
-  topology0: lane(0.34, 0.22, 0.40, 0),
-  topology1: lane(1, 0, 0, 0.02),
-  topology2: lane(0.10, 0, 0.17, 0),
-  finalize0: lane(0.78, 1, 4, 0),
+  vertical1: lane(0.30, 0.40, 0, 0),
+  topology0: lane(0.39, 0.18, 0.20, 0.22),
+  topology1: lane(0.52, 0, 0, 0.10),
+  topology2: lane(0.55, 0, 0.02, 0),
+  finalize0: lane(1.05, 1, 4, 0),
 });
 
 const ALTOSTRATUS_BANK = stratiformBank({
@@ -135,9 +135,9 @@ const ALTOSTRATUS_BANK = stratiformBank({
   domain1: lane(0.015, 0, 1.45, 0.3),
   vertical0: lane(0.16, 0.22, 0.22, 0),
   vertical1: lane(0, 1, 0, 0),
-  topology0: lane(0.40, 0.20, 0.30, 0),
-  topology1: lane(1, 0, 0, 0.03),
-  topology2: lane(0.38, 0, 0.12, 0),
+  topology0: lane(0.44, 0.18, 0.20, 0.18),
+  topology1: lane(0.54, 0, 0, 0.03),
+  topology2: lane(0.92, 0, 0.02, 0),
   finalize0: lane(0.85, 1, 6, 0),
 });
 
@@ -146,9 +146,9 @@ const NIMBOSTRATUS_BANK = stratiformBank({
   domain1: lane(0.012, 0, 1.25, 0.42),
   vertical0: lane(0.20, 0.24, 0.18, 0),
   vertical1: lane(0, 1, 0, 0),
-  topology0: lane(0.30, 0.20, 0.35, 0),
-  topology1: lane(1, 0, 0, 0.08),
-  topology2: lane(0.34, 0, 0.12, 0),
+  topology0: lane(0.37, 0.15, 0.16, 0.18),
+  topology1: lane(0.56, 0, 0, 0.02),
+  topology2: lane(0.97, 0, 0.015, 0),
   finalize0: lane(0.95, 1, 8, 0),
 });
 

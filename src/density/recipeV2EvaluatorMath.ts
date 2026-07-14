@@ -31,10 +31,14 @@ export function densityV2CoverageGate(
 
 export function densityV2StratiformLowAmplitude(
   base: number,
-  amplitude: number,
-  connectivityBias: number,
+  threshold: number,
+  softness: number,
+  contrast: number,
+  densityFloor: number,
 ): number {
-  return Math.max(0, 1 + (base - 0.5) * 2 * amplitude + connectivityBias);
+  const width = Math.max(softness, 1e-4);
+  const shape = smoothstep(threshold - width, threshold + width, clamp01(base));
+  return Math.max(0, 1 + (shape - 1) * clamp01(contrast) + densityFloor);
 }
 
 export function densityV2StratiformTop(macroThickness: number, variationStrength: number): number {
@@ -195,8 +199,9 @@ export function verifyDensityV2EvaluatorMathFixtures(): void {
     || !approximatelyEqual(densityV2CoverageGate(0.7, 0.5, 0.5, 0.2, 0, 0), 1)) {
     throw new Error('Density V2 coverage-gate mirror fixture failed');
   }
-  if (!approximatelyEqual(densityV2StratiformLowAmplitude(0, 0.2, 0.05), 0.85)
-    || !approximatelyEqual(densityV2StratiformLowAmplitude(1, 0.2, 0.05), 1.25)) {
+  if (!approximatelyEqual(densityV2StratiformLowAmplitude(0, 0.5, 0.2, 0.8, 0.05), 0.25)
+    || !approximatelyEqual(densityV2StratiformLowAmplitude(0.5, 0.5, 0.2, 0.8, 0.05), 0.65)
+    || !approximatelyEqual(densityV2StratiformLowAmplitude(1, 0.5, 0.2, 0.8, 0.05), 1.05)) {
     throw new Error('Density V2 stratiform low-amplitude mirror fixture failed');
   }
   if (!approximatelyEqual(densityV2StratiformTop(0, 0.2), 0.8)
