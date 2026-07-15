@@ -1,113 +1,122 @@
 # W8 Cellular / Wave 视觉验收报告
 
 OpenSpec：`add-density-v2-cellular-wave-family`  
-生成时间：见 `gate-report.json`  
+evidenceGeneratedAt：`2026-07-15T13:18:23.052Z`  
 入口：`http://127.0.0.1:5173/procedural-clouds/?benchmark=1`  
 浏览器：Google Chrome（Playwright `channel=chrome`）+ `--enable-unsafe-webgpu --ignore-gpu-blocklist --disable-gpu-sandbox`  
 viewport：1400×900  
 
-## Gate
+## sourceEvidence
 
-| 项 | 状态 |
+| 字段 | 值 |
 | --- | --- |
-| decision | **stop** |
-| automated | pass |
-| runtimeWebGpu | pass（64 case 截图齐；Cb Legacy timing 超时） |
-| visual | **fail** |
-| performance | **pass**（Sc/Ac/Cc cached） |
-| rollback | pass |
-| ownerApproval | **pending**（未勾选） |
-| archiveAllowed | false |
+| revision | `3187a4be76ec1057f7d4d8faf91ce7f7678d3715` |
+| dirty | `false` |
+| diffSha256 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| status | `[]` |
+| untracked | `[]` |
 
-**建议：Stop。不要更新 OpenSpec tasks 9.1–10.3 为完成；10.4 保持未勾选。**
+本轮工作树干净；`diffSha256` 为空树 SHA（无 tracked/untracked 源码差分）。
+
+## Gate（见 gate-report.json）
+
+建议：**Stop**。不勾选 tasks 9.x/10.x；不归档；不 commit/push。
 
 ## 采集规模
 
-- case：64
-- 截图：128（`screenshots/*--hud.png` + `*--clean.png`）
-- 脚本：`capture-w8.mjs`
+- case：64 / 64（`results.length=64`，`caseCount=64`）
+- 关联截图：128 / 128（每 case hud+clean；以 `results.raw.json` 路径为准）
+- Recipe V2：32 case 均为 `producerRequested=recipe-v2`、`producerActive=recipe-v2`、`lifecycle=ready`；无 invalid/failed/NaN/WebGPU validation
+- `actualEvaluatorCalls`：`null` / HUD `unavailable`（未伪造）
+- 非 ready：`w8--single-cirrocumulus--legacy--cached--normal` → `timeout-after-warmup`（仍有截图；timing unresolved）
 
-## 按 scene 结论（Legacy / V2 × normal / density-debug）
+## Console / WebGPU
 
-### single-stratocumulus — **fail**
+| 分类 | 结论 |
+| --- | --- |
+| WebGPU validation | 无 |
+| benign | 仅 `http://127.0.0.1:5173/favicon.ico` 404 |
+| 其他 console error | 无 |
 
-| | Legacy | Recipe V2 |
-| --- | --- | --- |
-| normal | 有云 | 离散团块，非高连接厚 Cellular layer |
-| density-debug | 有 raw density | 有密度与斑驳，但未形成大 cell 高连接层 |
+## 按 scene（Recipe V2；Legacy 仅参考）
 
-![Sc V2 normal](screenshots/w8--single-stratocumulus--recipe-v2--cached--normal--clean.png)  
-![Sc V2 debug](screenshots/w8--single-stratocumulus--recipe-v2--cached--density-debug--clean.png)
+### single-stratocumulus — **review**
+
+- raw density：胞状孔隙与一定连接可见；非方垫/硬洞；大尺度厚层证据不足  
+- normal：软团簇，形态未决  
+- Legacy：有云，仅参考  
+
+关键图：  
+`screenshots/w8--single-stratocumulus--recipe-v2--cached--density-debug--clean.png`  
+`screenshots/w8--single-stratocumulus--recipe-v2--cached--normal--clean.png`
 
 ### single-altocumulus — **fail**
 
-V2 normal/debug 均呈孤立 puff，缺少中等 cell 连接；与 Sc/Cc 尺度区分不足。
+孤立 puff，缺中等 cell/连接；与 Sc/Cc 难区分。  
 
-![Ac V2 normal](screenshots/w8--single-altocumulus--recipe-v2--cached--normal--clean.png)  
-![Ac V2 debug](screenshots/w8--single-altocumulus--recipe-v2--cached--density-debug--clean.png)
+失败证据：  
+`screenshots/w8--single-altocumulus--recipe-v2--cached--normal--clean.png`  
+`screenshots/w8--single-altocumulus--recipe-v2--cached--density-debug--clean.png`
 
-### single-cirrocumulus — **review**
+### single-cirrocumulus — **fail**
 
-存在小尺度离散 cell，未见明显棋盘/锁纹；连续 ripple 与极薄 profile 证据不足。
+无清晰小尺度 ripple；光滑薄斑。  
 
-![Cc V2 normal](screenshots/w8--single-cirrocumulus--recipe-v2--cached--normal--clean.png)  
-![Cc V2 debug](screenshots/w8--single-cirrocumulus--recipe-v2--cached--density-debug--clean.png)
+失败证据：  
+`screenshots/w8--single-cirrocumulus--recipe-v2--cached--density-debug--clean.png`  
+`screenshots/w8--single-cirrocumulus--recipe-v2--cached--normal--clean.png`
 
 ### w8-cellular-scale — **fail**
 
-同视域未严格可辨 `Sc > Ac > Cc` 的 cell 尺度与层厚。
+内部 cell 与层厚 `Sc > Ac > Cc` 排序不清晰。  
 
-![scale V2 debug](screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--clean.png)
+失败证据：  
+`screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--clean.png`  
+`screenshots/w8--w8-cellular-scale--recipe-v2--cached--normal--clean.png`  
+`screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--hud.png`
 
 ### w8-cellular-overlap — **review**
 
-未见明显黑洞/闪断；**无 RGBA metadata readback** → metadata **unresolved**。
+未见饱和板/黑洞/硬切/缺块；metadata 与 Support containment **unresolved**。  
 
-![overlap V2 debug](screenshots/w8--w8-cellular-overlap--recipe-v2--cached--density-debug--clean.png)
+`screenshots/w8--w8-cellular-overlap--recipe-v2--cached--density-debug--clean.png`  
+`screenshots/w8--w8-cellular-overlap--recipe-v2--cached--normal--clean.png`
 
-### w8-wave-ripple — **unresolved**
+### w8-wave-ripple — **review**
 
-单帧未见棋盘/锁纹；固定相位连续 ripple 无法仅凭单帧确认。
+三 Cc 同高水平排列；弱内部起伏；单帧不能证明风连续/无锁纹。  
 
-![wave V2 debug](screenshots/w8--w8-wave-ripple--recipe-v2--cached--density-debug--clean.png)
+`screenshots/w8--w8-wave-ripple--recipe-v2--cached--normal--clean.png`  
+`screenshots/w8--w8-wave-ripple--recipe-v2--cached--density-debug--clean.png`
 
 ### Cb / Ci 回退 — **pass**
 
-| case | 结论 |
+| | 结论 |
 | --- | --- |
-| Cb/Ci Recipe V2 normal | 空（仅地面）；`active=recipe-v2` `lifecycle=ready` |
-| Cb/Ci Recipe V2 density-debug | 全黑（0 non-black pixels） |
-| Cb/Ci Legacy | 可见云/密度，锚点未坏 |
+| Cb/Ci V2 density-debug | 全黑（0 non-black） |
+| Cb/Ci V2 normal | 仅地面，无主体云 |
+| Cb/Ci Legacy | 可见，锚点未坏 |
 
-![Cb V2 debug 空](screenshots/w8--single-cumulonimbus--recipe-v2--cached--density-debug--clean.png)  
-![Cb Legacy normal](screenshots/w8--single-cumulonimbus--legacy--cached--normal--clean.png)  
-![Ci V2 debug 空](screenshots/w8--single-cirrus--recipe-v2--cached--density-debug--clean.png)  
-![Ci Legacy normal](screenshots/w8--single-cirrus--legacy--cached--normal--clean.png)
+## 不可豁免项
 
-## Recipe V2 协议检查
+| 项 | 结论 |
+| --- | --- |
+| finite-nonnegative-density-and-metadata | unresolved（无 NaN/Inf 运行时迹象，但无 RGBA metadata 证明） |
+| support-and-tile-mask-containment | unresolved |
+| no-checkerboard-camera-lock-or-wind-discontinuity | unresolved（单帧未见棋盘；风/锁纹未证） |
 
-对 V2 case：`requested=recipe-v2`、`active=recipe-v2`、`lifecycle=ready`；enabled/unsupported genera 符合预期；Sc/Ac/Cc `sampleLimits=[3,0,0,0]`。  
-`actualEvaluatorCalls` 运行时为 `null`（非字符串 `unavailable`）→ **unresolved**，未伪造。  
-采集中曾因把数组 sampleLimits 误判为 object 字段而标 invalid，已在 `build-gate.mjs` 纠正。
-
-## Timing（cached + normal）
+## Timing（cached + normal，Sc/Ac/Cc）
 
 | scene | Legacy median / p90 | V2 median / p90 | median ratio | p90 ratio | 分类 |
 | --- | --- | --- | --- | --- | --- |
-| single-stratocumulus | 0.1157 / 0.1649 | 0.0379 / 0.0389 | 0.327 | 0.236 | pass |
-| single-altocumulus | 0.1393 / 0.2028 | 0.0369 / 0.0379 | 0.265 | 0.187 | pass |
-| single-cirrocumulus | 0.1679 / 0.2499 | 0.0369 / 0.0379 | 0.220 | 0.152 | pass |
+| single-stratocumulus | 0.1413 / （见 raw） | 0.03584 / 0.0379 | 0.254 | 0.216 | pass（样本 60/60） |
+| single-altocumulus | 0.1382 / （见 raw） | 0.03584 / （见 raw） | 0.259 | 0.191 | pass（样本 60/60） |
+| single-cirrocumulus | — | 0.03584 / 0.0379 | — | — | **unresolved**（Legacy timeout，无 cache samples） |
 
-样本均 ≥60。`w8--single-cumulonimbus--legacy--cached--normal` warmup 后超时 → 该 case timing **unresolved**（不在三属性能门内）。
+整体 performance：**unresolved**（Cc 对缺失）。性能不能覆盖形态失败。
 
-## invalid / fail / unresolved
+## OpenSpec
 
-- **visual fail scenes**：Sc、Ac、cellular-scale（相关 case 见 `gate-report.json` → `visual.failCases`）
-- **unresolved**：wave-ripple 连续相位；全矩阵 metadata；overlap support/tile；`actualEvaluatorCalls=null`；Cb Legacy timing 超时
-- **runtime invalid（纠正后）**：0（无 WebGPU validation / NaN）
-
-## OpenSpec tasks
-
-- **不建议**勾选 9.1–10.3 为完成（视觉 Gate 失败）
-- **10.4 项目所有者批准必须保持未勾选**
-- 不要归档 change
+- 不勾选 9.1–10.x  
+- 不归档  
+- ownerApproval 保持 pending；archiveAllowed=false  

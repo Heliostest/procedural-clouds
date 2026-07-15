@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceGeneratedAt": "2026-07-15T13:18:23.052Z",
+  "reviewer": "AI_OR_HUMAN_REVIEWER",
+  "reviewedAt": "2026-07-15T13:25:00.000Z",
+  "nonWaivableChecks": {
+    "finite-nonnegative-density-and-metadata": "unresolved",
+    "support-and-tile-mask-containment": "unresolved",
+    "no-checkerboard-camera-lock-or-wind-discontinuity": "unresolved"
+  },
+  "scenes": {
+    "single-stratocumulus": {
+      "rawDensityVerdict": "review",
+      "normalOpticalVerdict": "review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": "density-debug 可见胞状孔隙与一定连接，非实心方垫/硬洞；但大尺度厚层状 Cellular 证据不足。normal 呈软团簇。无 RGBA metadata readback。"
+    },
+    "single-altocumulus": {
+      "rawDensityVerdict": "fail",
+      "normalOpticalVerdict": "fail",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": "normal/density-debug 均为孤立小 puff，缺中等 cell/中等连接层；与 Sc/Cc 尺度区分不足。"
+    },
+    "single-cirrocumulus": {
+      "rawDensityVerdict": "fail",
+      "normalOpticalVerdict": "fail",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": "薄层小斑可见，但无清晰小尺度 ripple/纹理；呈光滑模糊块，不满足可辨识 Cc ripple。"
+    },
+    "w8-cellular-scale": {
+      "rawDensityVerdict": "fail",
+      "normalOpticalVerdict": "fail",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": "三 body 同 footprint 前提下，内部 cell 尺度与物理层厚 Sc>Ac>Cc 排序不可严格辨认；不可勉强 pass。"
+    },
+    "w8-cellular-overlap": {
+      "rawDensityVerdict": "review",
+      "normalOpticalVerdict": "review",
+      "supportTileVerdict": "unresolved",
+      "metadataVerdict": "unresolved",
+      "note": "未见饱和实心板/明显黑洞/硬切边/缺块；但无 RGBA metadata 与精确 Support containment 证据，保持 unresolved。"
+    },
+    "w8-wave-ripple": {
+      "rawDensityVerdict": "review",
+      "normalOpticalVerdict": "review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": "三 Cc 同高水平排列；normal 有弱内部密度起伏，density-debug 偏光滑。单帧不能证明风连续/相机无锁纹，相关不可豁免项 unresolved。"
+    }
+  }
+}

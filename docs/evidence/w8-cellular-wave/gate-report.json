@@ -1,9 +1,16 @@
 {
   "schemaVersion": 1,
   "changeId": "add-density-v2-cellular-wave-family",
-  "generatedAt": "2026-07-15T03:59:12.177Z",
-  "sourceRevision": "working-tree",
-  "status": "visual-validation-failed",
+  "generatedAt": "2026-07-15T13:21:11.651Z",
+  "evidenceGeneratedAt": "2026-07-15T13:18:23.052Z",
+  "sourceEvidence": {
+    "revision": "3187a4be76ec1057f7d4d8faf91ce7f7678d3715",
+    "dirty": false,
+    "diffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status": [],
+    "untracked": []
+  },
+  "status": "validation-failed",
   "decision": "stop",
   "archiveAllowed": false,
   "automated": {
@@ -18,7 +25,8 @@
       "test:ground-shadow-hash",
       "typecheck",
       "build",
-      "openspec-strict"
+      "openspec-strict",
+      "test:w8-gate"
     ]
   },
   "runtimeWebGpu": {
@@ -27,7 +35,7 @@
     "completedCases": 64,
     "invalidCases": [],
     "timeoutCases": [
-      "w8--single-cumulonimbus--legacy--cached--normal"
+      "w8--single-cirrocumulus--legacy--cached--normal"
     ],
     "statusCounts": {
       "ready-for-screenshot": 63,
@@ -36,7 +44,19 @@
     "consoleErrors": [
       {
         "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
-        "t": "2026-07-15T01:58:53.219Z"
+        "url": "http://127.0.0.1:5173/favicon.ico",
+        "lineNumber": 0,
+        "columnNumber": 0,
+        "t": "2026-07-15T13:14:10.318Z"
+      }
+    ],
+    "benignConsoleErrors": [
+      {
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "url": "http://127.0.0.1:5173/favicon.ico",
+        "lineNumber": 0,
+        "columnNumber": 0,
+        "t": "2026-07-15T13:14:10.318Z"
       }
     ],
     "deviceInfo": {
@@ -88,7 +108,7 @@
     "notes": [
       "Playwright channel=chrome + WebGPU flags",
       "sampleLimits arrays [3,0,0,0] accepted",
-      "actualEvaluatorCalls runtime null (not unavailable string) → unresolved",
+      "actualEvaluatorCalls null or unavailable string is the expected unavailable representation",
       "false invalid from array-vs-object sampleLimits check cleared"
     ]
   },
@@ -96,6 +116,9 @@
     "status": "fail",
     "requiredScreenshots": 128,
     "capturedScreenshots": 128,
+    "screenshotDirectoryCount": 128,
+    "reviewMatchesEvidence": true,
+    "reviewedSceneCount": 6,
     "nonWaivableChecks": {
       "cell-scale-and-profile-order": "fail",
       "finite-nonnegative-density-and-metadata": "unresolved",
@@ -104,36 +127,24 @@
       "w7-legacy-realtime-optical-regression": "not-in-scope-w8-matrix"
     },
     "sceneVerdicts": {
-      "sc": "fail",
+      "sc": "review",
       "ac": "fail",
-      "cc": "review",
+      "cc": "fail",
       "scale": "fail",
       "overlap": "review",
-      "wave": "unresolved",
+      "wave": "review",
       "cbCiV2Empty": "pass",
       "legacyRollback": "pass"
     },
     "failCases": [
-      "w8--single-stratocumulus--legacy--cached--normal",
-      "w8--single-stratocumulus--legacy--cached--density-debug",
-      "w8--single-stratocumulus--legacy--hybrid--normal",
-      "w8--single-stratocumulus--legacy--hybrid--density-debug",
-      "w8--single-stratocumulus--recipe-v2--cached--normal",
-      "w8--single-stratocumulus--recipe-v2--cached--density-debug",
-      "w8--single-stratocumulus--recipe-v2--hybrid--normal",
-      "w8--single-stratocumulus--recipe-v2--hybrid--density-debug",
-      "w8--single-altocumulus--legacy--cached--normal",
-      "w8--single-altocumulus--legacy--cached--density-debug",
-      "w8--single-altocumulus--legacy--hybrid--normal",
-      "w8--single-altocumulus--legacy--hybrid--density-debug",
       "w8--single-altocumulus--recipe-v2--cached--normal",
       "w8--single-altocumulus--recipe-v2--cached--density-debug",
       "w8--single-altocumulus--recipe-v2--hybrid--normal",
       "w8--single-altocumulus--recipe-v2--hybrid--density-debug",
-      "w8--w8-cellular-scale--legacy--cached--normal",
-      "w8--w8-cellular-scale--legacy--cached--density-debug",
-      "w8--w8-cellular-scale--legacy--hybrid--normal",
-      "w8--w8-cellular-scale--legacy--hybrid--density-debug",
+      "w8--single-cirrocumulus--recipe-v2--cached--normal",
+      "w8--single-cirrocumulus--recipe-v2--cached--density-debug",
+      "w8--single-cirrocumulus--recipe-v2--hybrid--normal",
+      "w8--single-cirrocumulus--recipe-v2--hybrid--density-debug",
       "w8--w8-cellular-scale--recipe-v2--cached--normal",
       "w8--w8-cellular-scale--recipe-v2--cached--density-debug",
       "w8--w8-cellular-scale--recipe-v2--hybrid--normal",
@@ -141,8 +152,8 @@
     ]
   },
   "performance": {
-    "status": "pass",
-    "classification": "pass",
+    "status": "unresolved",
+    "classification": "unresolved",
     "minimumCacheWarmups": 5,
     "minimumGpuSamples": 60,
     "medianRatioLimit": 1,
@@ -152,49 +163,38 @@
         "scene": "single-stratocumulus",
         "status": "pass",
         "legacy": {
-          "median": 0.115712,
-          "p90": 0.164864,
+          "median": 0.141312,
+          "p90": 0.175104,
           "count": 60
         },
         "recipeV2": {
-          "median": 0.037888,
-          "p90": 0.038912,
+          "median": 0.03584,
+          "p90": 0.037888,
           "count": 60
         },
-        "medianRatio": 0.3274,
-        "p90Ratio": 0.236
+        "medianRatio": 0.2536,
+        "p90Ratio": 0.2164
       },
       {
         "scene": "single-altocumulus",
         "status": "pass",
         "legacy": {
-          "median": 0.139264,
-          "p90": 0.202752,
+          "median": 0.13824,
+          "p90": 0.198656,
           "count": 60
         },
         "recipeV2": {
-          "median": 0.036864,
+          "median": 0.03584,
           "p90": 0.037888,
           "count": 60
         },
-        "medianRatio": 0.2647,
-        "p90Ratio": 0.1869
+        "medianRatio": 0.2593,
+        "p90Ratio": 0.1907
       },
       {
         "scene": "single-cirrocumulus",
-        "status": "pass",
-        "legacy": {
-          "median": 0.167936,
-          "p90": 0.249856,
-          "count": 60
-        },
-        "recipeV2": {
-          "median": 0.036864,
-          "p90": 0.037888,
-          "count": 60
-        },
-        "medianRatio": 0.2195,
-        "p90Ratio": 0.1516
+        "status": "unresolved",
+        "reason": "insufficient samples"
       }
     ]
   },
@@ -209,7 +209,8 @@
   "ownerApproval": "pending",
   "notes": [
     "Do not archive OpenSpec; 10.4 owner approval remains unchecked.",
-    "Decision=stop due to cellular morphology / scale-order visual failures.",
-    "Performance Sc/Ac/Cc cached median/p90 ratios within budget."
+    "Visual review timestamp matches results.raw.json.",
+    "Decision=stop due to Recipe V2 cellular morphology / scale-order visual failures.",
+    "Performance is classified separately and cannot override morphology failures."
   ]
 }
