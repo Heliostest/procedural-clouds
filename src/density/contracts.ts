@@ -94,13 +94,25 @@ export interface DensityTileMaskStats {
 }
 
 export interface DensityV2EvaluatorStats {
-  enabledGenera: readonly ['cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'];
+  enabledGenera: readonly [
+    'cumulus', 'stratus', 'stratocumulus', 'altocumulus',
+    'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus',
+  ];
+  unsupportedGenera: readonly ['cumulonimbus', 'cirrus'];
   sampleLimits: Readonly<{
     cumulus: readonly [3, 1, 0, 0];
     stratus: readonly [2, 0, 0, 0];
+    stratocumulus: readonly [3, 0, 0, 0];
+    altocumulus: readonly [3, 0, 0, 0];
     altostratus: readonly [2, 0, 0, 0];
     nimbostratus: readonly [2, 0, 0, 0];
     cirrostratus: readonly [2, 0, 0, 0];
+    cirrocumulus: readonly [3, 0, 0, 0];
+  }>;
+  cellularHooks: Readonly<{
+    stratocumulus: readonly [number, number, number, number];
+    altocumulus: readonly [number, number, number, number];
+    cirrocumulus: readonly [number, number, number, number];
   }>;
   unsupportedBodyCount: number;
   actualEvaluatorCalls: number | null;

@@ -622,7 +622,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     }), 'cacheRes');
     tipKey(cacheFolder.add(params, 'cacheUpdateRate', 1, 8, 1).name(t('cacheUpdate')), 'cacheUpdate');
     tipKey(cacheFolder.add(params, 'cacheSmooth', 0.0, 0.95, 0.01).name(t('cacheSmooth')), 'cacheSmooth');
-    tipKey(cacheFolder.add(params, 'densityProducerMode', { Legacy: 0, 'Recipe V2 (W6 St/Cu)': 1 }).name(t('densityProducerMode')), 'densityProducerMode');
+    tipKey(cacheFolder.add(params, 'densityProducerMode', { Legacy: 0, 'Recipe V2 (W8 8 genera)': 1 }).name(t('densityProducerMode')), 'densityProducerMode');
     tipKey(cacheFolder.add(params, 'qualityMode', { Cached: 0, Hybrid: 1, Realtime: 2 }).name(t('qualityMode')), 'qualityMode');
     tipKey(cacheFolder.add(params, 'detailFreq', 0.5, 16.0, 0.1).name(t('detailFreq')), 'detailFreq');
     tipKey(cacheFolder.add(params, 'detailStrength', 0.0, 4.0, 0.01).name(t('detailStrength')), 'detailStrength');

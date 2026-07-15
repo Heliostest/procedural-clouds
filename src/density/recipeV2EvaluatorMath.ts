@@ -131,6 +131,55 @@ export function densityV2HeightBiasedErosion(
   return clamp01(detail) * Math.max(0, strength) * bias;
 }
 
+export function densityV2CellularAnalyticHooks(
+  normalizedX: number,
+  normalizedZ: number,
+  height01: number,
+  macroPhase: number,
+  waveStrength: number,
+  rippleAmplitude: number,
+  lensStrength: number,
+  rollStrength: number,
+  rippleFrequency: number,
+  lensAspect: number,
+): readonly [number, number] {
+  const wave = Math.max(waveStrength, 0);
+  const rippleAmount = Math.max(rippleAmplitude, 0);
+  const lensAmount = Math.max(lensStrength, 0);
+  const rollAmount = Math.max(rollStrength, 0);
+  if (wave <= 0 && rippleAmount <= 0 && lensAmount <= 0 && rollAmount <= 0) return [0, 1];
+  const phase = (normalizedX * rippleFrequency + normalizedZ * 0.5 + macroPhase) * Math.PI * 2;
+  const offset = Math.sin(phase) * wave;
+  const ripple = 1 + Math.sin(phase * 1.7 + height01 * Math.PI) * rippleAmount;
+  const aspect = Math.max(lensAspect, 1);
+  const lensDistance = Math.hypot(normalizedX, normalizedZ * aspect);
+  const lens = (1 - clamp01(lensAmount))
+    + Math.max(1 - lensDistance * lensDistance, 0) * clamp01(lensAmount);
+  const roll = 1 + Math.cos(phase + height01 * Math.PI * 2) * rollAmount;
+  return [offset, Math.max(ripple * lens * roll, 0)];
+}
+
+export function densityV2CellularSignal(
+  primaryInterior: number,
+  primaryEdge: number,
+  secondaryInterior: number,
+  secondaryEdge: number,
+  interiorWeight: number,
+  edgeWeight: number,
+  secondaryWeight: number,
+  connectivityBias: number,
+  contrast: number,
+  softness: number,
+): number {
+  const secondary = secondaryInterior * 0.75 + secondaryEdge * 0.25;
+  const signal = primaryInterior * interiorWeight
+    + primaryEdge * edgeWeight
+    + secondary * secondaryWeight
+    + connectivityBias;
+  const width = Math.max(softness, 1e-4);
+  return smoothstep(0.72 - width, 0.72 + width, signal * Math.max(contrast, 0));
+}
+
 export function densityV2Finalize(rawDensity: number, bodyDensity: number, lifecycle: number, multiplier: number, maxDensity: number): number {
   const result = Math.max(0, rawDensity) * Math.max(0, bodyDensity) * Math.max(0, lifecycle) * Math.max(0, multiplier);
   return Number.isFinite(result) ? Math.min(result, Math.max(0, maxDensity)) : 0;
@@ -224,6 +273,21 @@ export function verifyDensityV2EvaluatorMathFixtures(): void {
   const erosionHigh = densityV2HeightBiasedErosion(1, 1, 0.24, 0.72);
   if (erosionLow < 0 || erosionHigh > 0.24 || erosionHigh <= erosionLow) {
     throw new Error('Density V2 height-biased erosion fixture failed');
+  }
+  const identityHooks = densityV2CellularAnalyticHooks(0.25, -0.4, 0.5, 0.3, 0, 0, 0, 0, 3, 0);
+  if (identityHooks[0] !== 0 || identityHooks[1] !== 1) {
+    throw new Error('Density V2 Cellular zero-strength hook must be an exact identity');
+  }
+  const rippleHooks = densityV2CellularAnalyticHooks(0.25, -0.4, 0.5, 0.3, 0.12, 0.18, 0, 0, 3, 0);
+  if (rippleHooks.some((value) => !Number.isFinite(value))
+    || Math.abs(rippleHooks[0]) > 0.12 + 1e-6 || rippleHooks[1] < 0) {
+    throw new Error('Density V2 Cellular analytic hook bounds failed');
+  }
+  const disconnected = densityV2CellularSignal(0.55, 0.3, 0.5, 0.25, 0.6, 0.25, 0.4, 0.02, 1.1, 0.14);
+  const connected = densityV2CellularSignal(0.55, 0.3, 0.5, 0.25, 0.6, 0.25, 0.4, 0.22, 1.1, 0.14);
+  if (!Number.isFinite(disconnected) || !Number.isFinite(connected)
+    || disconnected < 0 || connected > 1 || connected <= disconnected) {
+    throw new Error('Density V2 Cellular signal/connectivity fixture failed');
   }
   const composed = densityV2SoftCompose([{ density: 1, genusId: 1 }, { density: 0.5, genusId: 0 }]);
   const expected = 1 + (1 - Math.exp(-0.5));

@@ -20,6 +20,7 @@ math.verifyDensityV2EvaluatorMathFixtures();
 
 const stratus = readFileSync(resolve(root, 'shaders/density-v2-stratus.wgsl'), 'utf8');
 const cumulus = readFileSync(resolve(root, 'shaders/density-v2-cumulus.wgsl'), 'utf8');
+const cellular = readFileSync(resolve(root, 'shaders/density-v2-cellular.wgsl'), 'utf8');
 const common = readFileSync(resolve(root, 'shaders/density-v2-common.wgsl'), 'utf8');
 const spike = readFileSync(resolve(root, 'shaders/density-v2-spike.wgsl'), 'utf8');
 const cloud = readFileSync(resolve(root, 'shaders/cloud.wgsl'), 'utf8');
@@ -105,6 +106,20 @@ for (const contract of [
 if (sampleCalls(cumulus).join(',') !== 'Macro,Base,Base,Detail') {
   throw new Error(`Cumulus must contain exactly Macro+Base+Base+Detail samples, got ${sampleCalls(cumulus).join(',')}`);
 }
+if (sampleCalls(cellular).join(',') !== 'Macro,Base,Base') {
+  throw new Error(`Cellular must contain exactly Macro+Base+Base samples, got ${sampleCalls(cellular).join(',')}`);
+}
+for (const contract of [
+  'fn densityV2EvaluateCellular(',
+  'fn densityV2CellularAnalyticHooks(',
+  'waveStrength <= 0.0',
+  'rippleAmplitude <= 0.0',
+  'lensStrength <= 0.0',
+  'rollStrength <= 0.0',
+  'return vec2f(0.0, 1.0)',
+]) {
+  if (!cellular.includes(contract)) throw new Error(`Cellular source contract missing: ${contract}`);
+}
 for (const contract of [
   'densityV2InverseQuaternionRotate',
   'densityV2RoundedSheetFade',
@@ -115,7 +130,7 @@ for (const contract of [
 ]) {
   if (!common.includes(contract)) throw new Error(`W6 common evaluator contract missing: ${contract}`);
 }
-if (!manifest.includes('DENSITY_BENCHMARK_SCHEMA_VERSION = 3')
+if (!manifest.includes('DENSITY_BENCHMARK_SCHEMA_VERSION = 4')
   || !manifest.includes("'density-debug': 10") || !manifest.includes('eye: [10.5, 13.5, 10.5]')) {
   throw new Error('W7 benchmark must use raw-density debug and keep the camera outside Cirrostratus');
 }
@@ -128,17 +143,19 @@ for (const contract of ['rawDensityIntegral += d * baseStep', 'dv == 10', 'rawDe
 if (!renderer.includes('params.taaEnabled && params.debugView < 0.5')) {
   throw new Error('Debug views must not consume TAA history');
 }
-for (const contract of ['W7 V2 density:', 'W7 evaluators:', 'Cs=${evaluator.sampleLimits.cirrostratus', 'As=${evaluator.sampleLimits.altostratus', 'Ns=${evaluator.sampleLimits.nimbostratus']) {
-  if (!main.includes(contract)) throw new Error(`W7 HUD contract missing: ${contract}`);
+for (const contract of ['W8 V2 density:', 'W8 evaluators:', 'Sc=${evaluator.sampleLimits.stratocumulus', 'Ac=${evaluator.sampleLimits.altocumulus', 'Cc=${evaluator.sampleLimits.cirrocumulus']) {
+  if (!main.includes(contract)) throw new Error(`W8 HUD contract missing: ${contract}`);
 }
 for (const contract of [
   'bodyIndex < DENSITY_V2_MAX_BODIES',
   'recipe.identityAndModes.y == 0u',
-  'genusId != 0u && genusId != 1u && genusId != 5u && genusId != 6u && genusId != 8u',
+  'genusId != 2u && genusId != 4u',
+  'genusId != 5u && genusId != 6u && genusId != 8u && genusId != 9u',
   'densityV2EvaluateStratiform',
+  'densityV2EvaluateCellular',
   'textureStore(densityOutput',
 ]) {
-  if (!spike.includes(contract)) throw new Error(`W6 dispatcher contract missing: ${contract}`);
+  if (!spike.includes(contract)) throw new Error(`W8 dispatcher contract missing: ${contract}`);
 }
 for (const scene of [
   'single-stratus',
@@ -151,11 +168,17 @@ for (const scene of [
   'single-nimbostratus',
   'w7-stratiform-stack',
   'w7-stratiform-overlap',
+  'single-stratocumulus',
+  'single-altocumulus',
+  'single-cirrocumulus',
+  'w8-cellular-scale',
+  'w8-cellular-overlap',
+  'w8-wave-ripple',
 ]) {
-  if (!manifest.includes(`'${scene}'`)) throw new Error(`W6 benchmark scene missing: ${scene}`);
+  if (!manifest.includes(`'${scene}'`)) throw new Error(`W8 benchmark scene missing: ${scene}`);
 }
 if (!manifest.includes("for (const producer of ['legacy', 'recipe-v2'] as const)")) {
   throw new Error('W6 benchmark cases do not use the global producer A/B seam');
 }
 
-console.log('Density V2 W7 recipe, family math, source-budget, dispatch, and A/B fixtures passed');
+console.log('Density V2 W8 recipe, Cellular math, source-budget, dispatch, and A/B fixtures passed');

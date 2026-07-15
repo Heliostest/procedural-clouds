@@ -11,6 +11,7 @@ const paramsSource = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
 const recipeV2CommonSource = readFileSync(resolve(root, 'shaders/density-v2-common.wgsl'), 'utf8');
 const recipeV2StratusSource = readFileSync(resolve(root, 'shaders/density-v2-stratus.wgsl'), 'utf8');
 const recipeV2CumulusSource = readFileSync(resolve(root, 'shaders/density-v2-cumulus.wgsl'), 'utf8');
+const recipeV2CellularSource = readFileSync(resolve(root, 'shaders/density-v2-cellular.wgsl'), 'utf8');
 const recipeV2Source = readFileSync(resolve(root, 'shaders/density-v2-spike.wgsl'), 'utf8');
 const recipeV2PipelineSource = readFileSync(resolve(root, 'src/density/recipeV2Pipeline.ts'), 'utf8');
 const recipeV2AdapterSource = readFileSync(resolve(root, 'src/density/recipeDensityV2Adapter.ts'), 'utf8');
@@ -124,14 +125,14 @@ if (realtime.includes('textureDimensions(densityTex0')) {
 if (!realtime.includes('params.g.densityResolution') || !paramsSource.includes('densityResolution: 59')) {
   throw new Error('Ground-shadow density resolution uniform contract is incomplete');
 }
-const recipeV2Closure = [recipeV2CommonSource, recipeV2StratusSource, recipeV2CumulusSource, recipeV2Source, sharedSamplingSource].join('\n');
+const recipeV2Closure = [recipeV2CommonSource, recipeV2StratusSource, recipeV2CumulusSource, recipeV2CellularSource, recipeV2Source, sharedSamplingSource].join('\n');
 const recipeV2Forbidden = [
   'cloudDensityTyped', 'evalBody', 'node_tex_voronoi', 'noise_fbm',
   'textureLoad', 'textureGather', 'atomic', 'var<workgroup>',
   'operatorCount', 'indirect', 'texture_4d', 'perBodyTexture',
 ];
 for (const symbol of recipeV2Forbidden) {
-  if (recipeV2Closure.includes(symbol)) throw new Error(`Recipe V2 W6 closure contains forbidden symbol: ${symbol}`);
+  if (recipeV2Closure.includes(symbol)) throw new Error(`Recipe V2 W8 closure contains forbidden symbol: ${symbol}`);
 }
 if ((recipeV2Source.match(/textureStore\(/g) ?? []).length !== 1) {
   throw new Error('Recipe V2 W6 compute must contain exactly one textureStore');
@@ -148,15 +149,19 @@ if ((recipeV2Source.match(/@compute\b/g) ?? []).length !== 1
 }
 const stratusSamples = (recipeV2StratusSource.match(/densitySharedSample(?:Macro|Base|Detail)\(/g) ?? []);
 const cumulusSamples = (recipeV2CumulusSource.match(/densitySharedSample(?:Macro|Base|Detail)\(/g) ?? []);
+const cellularSamples = (recipeV2CellularSource.match(/densitySharedSample(?:Macro|Base|Detail)\(/g) ?? []);
 if (stratusSamples.join(',') !== 'densitySharedSampleMacro(,densitySharedSampleBase(') {
   throw new Error(`Stratus static sample budget changed: ${stratusSamples.join(',')}`);
 }
 if (cumulusSamples.join(',') !== 'densitySharedSampleMacro(,densitySharedSampleBase(,densitySharedSampleBase(,densitySharedSampleDetail(') {
   throw new Error(`Cumulus static sample budget changed: ${cumulusSamples.join(',')}`);
 }
+if (cellularSamples.join(',') !== 'densitySharedSampleMacro(,densitySharedSampleBase(,densitySharedSampleBase(') {
+  throw new Error(`Cellular static sample budget changed: ${cellularSamples.join(',')}`);
+}
 const evaluatorFunctions = [...recipeV2Closure.matchAll(/fn\s+densityV2Evaluate([A-Za-z]+)\s*\(/g)].map((match) => match[1]).sort();
-if (evaluatorFunctions.join(',') !== 'Cumulus,Stratiform') {
-  throw new Error(`Recipe V2 W6 evaluator set changed: ${evaluatorFunctions.join(',')}`);
+if (evaluatorFunctions.join(',') !== 'Cellular,Cumulus,Stratiform') {
+  throw new Error(`Recipe V2 W8 evaluator set changed: ${evaluatorFunctions.join(',')}`);
 }
 if (!recipeV2PipelineSource.includes('createBindGroupLayout')
   || recipeV2PipelineSource.includes("layout: 'auto'")) {

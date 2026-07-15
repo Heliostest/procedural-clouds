@@ -55,7 +55,8 @@ fn csDensityV2Spike(
     }
     let genusId = body.ids.x;
     // Static dispatcher: unsupported genera exit before any shared texture sample.
-    if (genusId != 0u && genusId != 1u && genusId != 5u && genusId != 6u && genusId != 8u) {
+    if (genusId != 0u && genusId != 1u && genusId != 2u && genusId != 4u
+      && genusId != 5u && genusId != 6u && genusId != 8u && genusId != 9u) {
       continue;
     }
     if (any(body.localScaleAndFeather.xyz <= vec3f(1e-5))) {
@@ -67,6 +68,8 @@ fn csDensityV2Spike(
       evaluation = densityV2EvaluateCumulus(ctx, body, recipe);
     } else if (recipe.identityAndModes.w == 0u) {
       evaluation = densityV2EvaluateStratiform(ctx, body, recipe);
+    } else if (recipe.identityAndModes.w == 2u) {
+      evaluation = densityV2EvaluateCellular(ctx, body, recipe);
     }
     let density = max(evaluation.density, 0.0);
     totalDensity += density;

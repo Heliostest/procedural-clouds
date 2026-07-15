@@ -369,11 +369,12 @@ async function main(): Promise<void> {
     }
     if (s.densityProducerActive === 'recipe-v2') {
       const dispatch = s.densityProducerDispatchWorkgroups.join('x');
-      lines.push(`W7 V2 density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
+      lines.push(`W8 V2 density: records=${s.densityProducerRecordBytes}B output=${(s.densityProducerOutputBytes / 1048576).toFixed(1)}MiB dispatch=${dispatch}`);
       lines.push(`V2 create: adapter=${s.densityProducerCreateCpuMs.toFixed(1)}ms shader=${s.densityProducerShaderModuleCreateCpuMs.toFixed(1)}ms pipeline=${s.densityProducerPipelineCreateCpuMs.toFixed(1)}ms rebuild=${s.densityProducerRebuildCpuMs.toFixed(1)}ms source=${s.densityProducerSourceLength}`);
       const evaluator = s.densityProducerEvaluator;
       if (evaluator) {
-        lines.push(`W7 evaluators: ${evaluator.enabledGenera.join('+')} samples Cu=${evaluator.sampleLimits.cumulus.join('/')} St=${evaluator.sampleLimits.stratus.join('/')} Cs=${evaluator.sampleLimits.cirrostratus.join('/')} As=${evaluator.sampleLimits.altostratus.join('/')} Ns=${evaluator.sampleLimits.nimbostratus.join('/')} unsupportedBodies=${evaluator.unsupportedBodyCount}`);
+        lines.push(`W8 evaluators: ${evaluator.enabledGenera.join('+')} unsupported=${evaluator.unsupportedGenera.join('+')} samples Cu=${evaluator.sampleLimits.cumulus.join('/')} St=${evaluator.sampleLimits.stratus.join('/')} Sc=${evaluator.sampleLimits.stratocumulus.join('/')} Ac=${evaluator.sampleLimits.altocumulus.join('/')} Cs=${evaluator.sampleLimits.cirrostratus.join('/')} Cc=${evaluator.sampleLimits.cirrocumulus.join('/')} As=${evaluator.sampleLimits.altostratus.join('/')} Ns=${evaluator.sampleLimits.nimbostratus.join('/')} unsupportedBodies=${evaluator.unsupportedBodyCount}`);
+        lines.push(`W8 Cellular hooks [wave/ripple/lens/roll]: Sc=${evaluator.cellularHooks.stratocumulus.join('/')} Ac=${evaluator.cellularHooks.altocumulus.join('/')} Cc=${evaluator.cellularHooks.cirrocumulus.join('/')}`);
         lines.push(`evaluator calls: actual=${evaluator.actualEvaluatorCalls ?? 'unavailable'} upperBound=${evaluator.evaluatorCallUpperBound}`);
       }
       const mask = s.densityProducerTileMask;

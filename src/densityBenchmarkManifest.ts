@@ -3,7 +3,7 @@ import { CLOUD_GENERA, type CloudGenus } from './genusProfile';
 import { createDefaultParams, type CloudParams } from './params';
 import type { WindAdvectionSample } from './wind';
 
-export const DENSITY_BENCHMARK_SCHEMA_VERSION = 3 as const;
+export const DENSITY_BENCHMARK_SCHEMA_VERSION = 4 as const;
 export const DENSITY_BENCHMARK_BASELINE_ID = 'density-v2-w0-legacy-v1';
 
 export type BenchmarkQuality = 'cached' | 'hybrid' | 'realtime';
@@ -16,7 +16,10 @@ export type BenchmarkSceneId = `single-${CloudGenus}`
   | 'w6-cumulus-multi'
   | 'w6-stratus-cumulus-overlap'
   | 'w7-stratiform-stack'
-  | 'w7-stratiform-overlap';
+  | 'w7-stratiform-overlap'
+  | 'w8-cellular-scale'
+  | 'w8-cellular-overlap'
+  | 'w8-wave-ripple';
 export type BenchmarkCaseStatus = 'pending' | 'running' | 'complete' | 'invalid' | 'stale';
 
 type SerializableParamKey = {
@@ -190,6 +193,26 @@ function createScenes(): BenchmarkScene[] {
     translatedBody(altostratus, 'w7-overlap-altostratus', 0, 0),
     translatedBody(nimbostratus, 'w7-overlap-nimbostratus', 0, 0),
   ];
+  const stratocumulus = centeredBody('stratocumulus');
+  const altocumulus = centeredBody('altocumulus');
+  const cirrocumulus = centeredBody('cirrocumulus');
+  const cellularScale = [
+    translatedBody(stratocumulus, 'w8-scale-stratocumulus', -3000, 0),
+    translatedBody(altocumulus, 'w8-scale-altocumulus', 0, 0),
+    translatedBody(cirrocumulus, 'w8-scale-cirrocumulus', 3000, 0),
+  ];
+  const cellularOverlap = [
+    translatedBody(stratocumulus, 'w8-overlap-stratocumulus', 0, 0),
+    translatedBody(altocumulus, 'w8-overlap-altocumulus', 0, 0),
+    translatedBody(cirrocumulus, 'w8-overlap-cirrocumulus', 0, 0),
+    translatedBody(stratus, 'w8-overlap-stratus', 0, 0),
+    translatedBody(cumulus, 'w8-overlap-cumulus', 0, 0),
+  ];
+  const waveRipple = [
+    translatedBody(cirrocumulus, 'w8-ripple-west', -2200, 0),
+    translatedBody(cirrocumulus, 'w8-ripple-center', 0, 0),
+    translatedBody(cirrocumulus, 'w8-ripple-east', 2200, 0),
+  ];
 
   return [
     ...singleScenes,
@@ -241,6 +264,31 @@ function createScenes(): BenchmarkScene[] {
       sceneTimeSeconds: 12,
       bodies: stratiformOverlap,
       windSamples: zeroWind(stratiformOverlap.length),
+    },
+    {
+      id: 'w8-cellular-scale',
+      label: 'W8 Cellular scale: Sc > Ac > Cc',
+      sceneTimeSeconds: 12,
+      bodies: cellularScale,
+      windSamples: zeroWind(cellularScale.length),
+    },
+    {
+      id: 'w8-cellular-overlap',
+      label: 'W8 Cellular + Stratiform + Cumulus overlap',
+      sceneTimeSeconds: 12,
+      bodies: cellularOverlap,
+      windSamples: zeroWind(cellularOverlap.length),
+    },
+    {
+      id: 'w8-wave-ripple',
+      label: 'W8 Cirrocumulus wave/ripple phase continuity',
+      sceneTimeSeconds: 12,
+      bodies: waveRipple,
+      windSamples: [
+        { offsetM: [0, 0], morphTime: 0 },
+        { offsetM: [1200, 600], morphTime: 0 },
+        { offsetM: [2400, 1200], morphTime: 0 },
+      ],
     },
   ];
 }
@@ -391,6 +439,28 @@ function createCases(): DensityBenchmarkCase[] {
       }
     }
   }
+  const w8Scenes: readonly BenchmarkSceneId[] = [
+    'single-stratocumulus', 'single-altocumulus', 'single-cirrocumulus',
+    'w8-cellular-scale', 'w8-cellular-overlap', 'w8-wave-ripple',
+    'single-cumulonimbus', 'single-cirrus',
+  ];
+  for (const sceneId of w8Scenes) {
+    for (const producer of ['legacy', 'recipe-v2'] as const) {
+      for (const quality of ['cached', 'hybrid'] as const) {
+        for (const view of ['normal', 'density-debug'] as const) {
+          const id = `w8--${sceneId}--${producer}--${quality}--${view}`;
+          cases.push({
+            id, sceneId, producer, quality, view,
+            gateRequired: quality === 'cached' && view === 'normal',
+            timingRequired: quality === 'cached' && view === 'normal',
+            screenshotRequired: true,
+            realtimeCompatibilityOnly: false,
+            screenshotPath: screenshotPath(id),
+          });
+        }
+      }
+    }
+  }
   return cases;
 }
 
@@ -435,8 +505,13 @@ export function createDensityBenchmarkManifest(
         compatibilityAnchor: 'heightAmbientModel=0',
       },
       'add-stratocumulus-cumulus-breakup': {
-        status: 'no tasks; no runtime behavior',
-        authoritativeSetting: 'not included',
+        status: 'scope absorbed by add-density-v2-cellular-wave-family',
+        authoritativeSetting: 'recipe-v2-cellular-family',
+      },
+      'add-density-v2-cellular-wave-family': {
+        status: 'implementation-complete-validation-pending',
+        authoritativeSetting: 'densityProducerMode=1',
+        compatibilityAnchor: 'densityProducerMode=0',
       },
     },
     viewport: { width: 1280, height: 720 },

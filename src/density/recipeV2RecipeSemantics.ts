@@ -173,23 +173,101 @@ const CUMULUS_BANK: DensityV2RecipeParameterBank = Object.freeze({
   }),
 });
 
+function cellularBank(options: {
+  domain0: DensityV2Lane;
+  domain1: DensityV2Lane;
+  vertical0: DensityV2Lane;
+  vertical1: DensityV2Lane;
+  topology0: DensityV2Lane;
+  topology1: DensityV2Lane;
+  topology2: DensityV2Lane;
+  detail0: DensityV2Lane;
+  finalize0: DensityV2Lane;
+}): DensityV2RecipeParameterBank {
+  return Object.freeze({
+    enabled: true,
+    // Cellular has one Macro and two Base samples. It owns no Detail/attachments.
+    detailAttachmentCosts: lane(1, 0, 0, 0),
+    sampleLimits: lane(3, 0, 0, 0),
+    lanes: Object.freeze({
+      domain0: options.domain0,
+      domain1: options.domain1,
+      vertical0: options.vertical0,
+      vertical1: options.vertical1,
+      topology0: options.topology0,
+      topology1: options.topology1,
+      topology2: options.topology2,
+      detail0: options.detail0,
+      detail1: ZERO,
+      attachment0: ZERO,
+      finalize0: options.finalize0,
+      reserved0: ZERO,
+    }),
+  });
+}
+
+const STRATOCUMULUS_BANK = cellularBank({
+  // [macroFrequency, primaryCellFrequency, secondaryCellFrequency, seedScale]
+  domain0: lane(0.85, 0.72, 1.05, 0.07),
+  // [windPhaseScale, waveStrength, horizontalAnisotropy, verticalAnisotropy]
+  domain1: lane(0.015, 0.06, 1.05, 0.50),
+  // [bottomFade, topFade, thicknessVariation, reserved]
+  vertical0: lane(0.15, 0.20, 0.18, 0),
+  // [profileStart, profileSpan, lensAspect, reserved]
+  vertical1: lane(0.05, 0.85, 0, 0),
+  // [coverageThreshold, coverageSoftness, bodyCoverageGain, cellSoftness]
+  topology0: lane(0.42, 0.18, 0.35, 0.16),
+  // [interiorWeight, edgeWeight, secondaryWeight, connectivityBias]
+  topology1: lane(0.62, 0.22, 0.35, 0.22),
+  // [cellContrast, secondaryScale, macroCoverageBias, rippleFrequency]
+  topology2: lane(1.05, 1.45, 0.08, 2.0),
+  // [rippleAmplitude, lensStrength, rollStrength, reserved]
+  detail0: lane(0.04, 0, 0, 0),
+  finalize0: lane(1.0, 1, 6, 0),
+});
+
+const ALTOCUMULUS_BANK = cellularBank({
+  domain0: lane(1.20, 1.35, 1.90, 0.09),
+  domain1: lane(0.017, 0.08, 1.15, 0.42),
+  vertical0: lane(0.12, 0.16, 0.12, 0),
+  vertical1: lane(0.18, 0.62, 0, 0),
+  topology0: lane(0.47, 0.15, 0.30, 0.14),
+  topology1: lane(0.60, 0.28, 0.40, 0.08),
+  topology2: lane(1.15, 1.40, 0.04, 3.0),
+  detail0: lane(0.08, 0, 0, 0),
+  finalize0: lane(0.95, 1, 6, 0),
+});
+
+const CIRROCUMULUS_BANK = cellularBank({
+  domain0: lane(1.55, 2.30, 3.40, 0.12),
+  domain1: lane(0.018, 0.12, 1.25, 0.30),
+  vertical0: lane(0.08, 0.10, 0.06, 0),
+  vertical1: lane(0.32, 0.32, 0, 0),
+  topology0: lane(0.50, 0.12, 0.25, 0.12),
+  topology1: lane(0.58, 0.34, 0.45, 0.02),
+  topology2: lane(1.25, 1.50, 0.02, 3.0),
+  detail0: lane(0.18, 0, 0, 0),
+  finalize0: lane(0.80, 1, 4, 0),
+});
+
 const DISABLED_BANK = disabledBank();
 
 export const DENSITY_V2_RECIPE_BANKS: Readonly<Record<CloudGenus, DensityV2RecipeParameterBank>> = Object.freeze({
   cumulus: CUMULUS_BANK,
   stratus: STRATUS_BANK,
-  stratocumulus: DISABLED_BANK,
+  stratocumulus: STRATOCUMULUS_BANK,
   cumulonimbus: DISABLED_BANK,
-  altocumulus: DISABLED_BANK,
+  altocumulus: ALTOCUMULUS_BANK,
   altostratus: ALTOSTRATUS_BANK,
   nimbostratus: NIMBOSTRATUS_BANK,
   cirrus: DISABLED_BANK,
   cirrostratus: CIRROSTRATUS_BANK,
-  cirrocumulus: DISABLED_BANK,
+  cirrocumulus: CIRROCUMULUS_BANK,
 });
 
 export const DENSITY_V2_ENABLED_GENERA = Object.freeze([
-  'cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus',
+  'cumulus', 'stratus', 'stratocumulus', 'altocumulus',
+  'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus',
 ] as const);
 
 export function verifyDensityV2RecipeSemantics(): void {
@@ -198,7 +276,7 @@ export function verifyDensityV2RecipeSemantics(): void {
     .map(([genus]) => genus)
     .sort();
   if (enabled.join(',') !== [...DENSITY_V2_ENABLED_GENERA].sort().join(',')) {
-    throw new Error(`Density V2 W7 enabled set mismatch: ${enabled.join(',')}`);
+    throw new Error(`Density V2 W8 enabled set mismatch: ${enabled.join(',')}`);
   }
   for (const [genus, bank] of Object.entries(DENSITY_V2_RECIPE_BANKS)) {
     if (!bank.enabled && ([...bank.sampleLimits, ...bank.detailAttachmentCosts].some((value) => value !== 0))) {
@@ -213,8 +291,10 @@ export function verifyDensityV2RecipeSemantics(): void {
   }
   if ([STRATUS_BANK, CIRROSTRATUS_BANK, ALTOSTRATUS_BANK, NIMBOSTRATUS_BANK]
     .some((bank) => bank.sampleLimits.join(',') !== '2,0,0,0')
+    || [STRATOCUMULUS_BANK, ALTOCUMULUS_BANK, CIRROCUMULUS_BANK]
+      .some((bank) => bank.sampleLimits.join(',') !== '3,0,0,0')
     || CUMULUS_BANK.sampleLimits.join(',') !== '3,1,0,0') {
-    throw new Error('Density V2 W7 static sample limits changed');
+    throw new Error('Density V2 W8 static sample limits changed');
   }
   for (const [genus, bank] of Object.entries({
     stratus: STRATUS_BANK,
@@ -225,6 +305,25 @@ export function verifyDensityV2RecipeSemantics(): void {
     const [profileStart, profileSpan] = bank.lanes.vertical1;
     if (profileSpan <= 0 || profileStart + profileSpan > 1 + 1e-6) {
       throw new Error(`Density V2 Stratiform profile is outside Body height: ${genus}`);
+    }
+  }
+  const cellularBanks = [STRATOCUMULUS_BANK, ALTOCUMULUS_BANK, CIRROCUMULUS_BANK] as const;
+  const cellFrequencies = cellularBanks.map((bank) => bank.lanes.domain0[1]);
+  const profileSpans = cellularBanks.map((bank) => bank.lanes.vertical1[1]);
+  const connectivity = cellularBanks.map((bank) => bank.lanes.topology1[3]);
+  if (!(cellFrequencies[0] < cellFrequencies[1] && cellFrequencies[1] < cellFrequencies[2])) {
+    throw new Error('Density V2 Cellular effective scale must satisfy Sc > Ac > Cc');
+  }
+  if (!(profileSpans[0] > profileSpans[1] && profileSpans[1] > profileSpans[2])) {
+    throw new Error('Density V2 Cellular profile span must satisfy Sc > Ac > Cc');
+  }
+  if (!(connectivity[0] > connectivity[1] && connectivity[1] > connectivity[2])) {
+    throw new Error('Density V2 Cellular connectivity must satisfy Sc > Ac > Cc');
+  }
+  for (const [index, bank] of cellularBanks.entries()) {
+    if (bank.detailAttachmentCosts.join(',') !== '1,0,0,0'
+      || bank.lanes.detail0[1] !== 0 || bank.lanes.detail0[2] !== 0) {
+      throw new Error(`Density V2 Cellular cost or disabled lens/roll default changed: ${index}`);
     }
   }
 }

@@ -30,7 +30,7 @@ for (const contract of [
   if (!mask.includes(contract)) throw new Error(`Density V2 tile-mask contract missing: ${contract}`);
 }
 for (const fixtureId of [
-  'default-grid', 'no-body', 'multi-body', 'rotated-wind-cb', 'non-divisible-grid',
+  'default-grid', 'no-body', 'multi-body', 'cellular-overlap', 'rotated-wind-cb', 'non-divisible-grid',
   'invalid-before-valid', 'extreme-budget-fallback',
 ]) {
   if (!fixtures.includes(`'${fixtureId}'`)) throw new Error(`Density V2 tile fixture missing: ${fixtureId}`);
@@ -42,6 +42,8 @@ if (!packing.includes('supportAabbMin')
 }
 if (!shader.includes('@builtin(workgroup_id) tileId')
   || !shader.includes('densityTileMasks[tileIndex]')
+  || !shader.includes('var candidateMask = activeMask')
+  || !shader.includes('if (tileMaskEnabled)')
   || (shader.match(/textureStore\(/g) ?? []).length !== 1) {
   throw new Error('Density V2 shader does not gate candidates with one final store');
 }

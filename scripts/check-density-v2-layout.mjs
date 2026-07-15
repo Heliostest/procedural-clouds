@@ -56,8 +56,10 @@ if (!recipes.includes('recipe.enabled ? 1 : 0')) {
 }
 for (const contract of [
   'DENSITY_V2_ENABLED_GENERA = Object.freeze([',
-  "'cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'",
+  "'cumulus', 'stratus', 'stratocumulus', 'altocumulus'",
+  "'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus'",
   'sampleLimits: lane(2, 0, 0, 0)',
+  'sampleLimits: lane(3, 0, 0, 0)',
   'sampleLimits: lane(3, 1, 0, 0)',
   'verifyDensityV2RecipeSemantics',
 ]) {
@@ -93,4 +95,4 @@ if (!fixtures.includes('Density V2 lifecycle density must be packed exactly once
   throw new Error('Density V2 lifecycle density packing fixture is missing');
 }
 
-console.log('Density V2 layouts, W7 five-genus recipes, and math fixtures are consistent');
+console.log('Density V2 layouts, W8 eight-genus recipes, and math fixtures are consistent');

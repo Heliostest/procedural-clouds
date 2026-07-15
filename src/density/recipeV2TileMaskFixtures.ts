@@ -13,6 +13,7 @@ export const DENSITY_V2_TILE_FIXTURE_IDS = Object.freeze([
   'default-grid',
   'no-body',
   'multi-body',
+  'cellular-overlap',
   'rotated-wind-cb',
   'non-divisible-grid',
   'invalid-before-valid',
@@ -44,6 +45,22 @@ export function verifyDensityV2TileMaskFixtures(): void {
     || multiResult.candidateMemberships === 0
     || multiResult.words.some((word) => (word & ~3) !== 0)) {
     throw new Error('Density V2 multi-body tile fixture failed');
+  }
+
+  const cellularPacked = packDensityV2Frame(densityV2FixtureInput([
+    densityV2FixtureBody('Sc', 'stratocumulus'),
+    densityV2FixtureBody('Ac', 'altocumulus'),
+    densityV2FixtureBody('Cc', 'cirrocumulus'),
+    densityV2FixtureBody('St', 'stratus'),
+    densityV2FixtureBody('Cu', 'cumulus'),
+  ]), 12);
+  const cellularOptions = { resolution: 12, workgroup: [4, 3, 2] as const, packed: cellularPacked };
+  const cellularResult = buildDensityV2TileMask(cellularOptions);
+  verifyDensityV2TileMaskNoFalseNegatives(cellularResult, cellularOptions);
+  if (cellularPacked.activeBodyCount !== 5
+    || cellularResult.candidateMemberships === 0
+    || cellularResult.words.some((word) => (word & ~31) !== 0)) {
+    throw new Error('Density V2 Cellular/Stratiform/Cumulus overlap mask fixture failed');
   }
 
   const cb = densityV2FixtureBody('CB', 'cumulonimbus');

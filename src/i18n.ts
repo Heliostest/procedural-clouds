@@ -527,7 +527,7 @@ const TIPS: Record<string, { en: string; zh: string }> = {
   cacheRes: { en: '3D density cache resolution (32–256). Cubic memory cost.', zh: '3D 密度缓存分辨率（32–256）。内存立方增长。' },
   cacheUpdate: { en: 'How many cache slices are refreshed per frame (lower spreads cost over time).', zh: '每帧刷新的缓存切片数（越低越能分摊开销）。' },
   cacheSmooth: { en: 'Temporal smoothing of the cache between updates (reduces flicker).', zh: '更新之间缓存的时间平滑（减少闪烁）。' },
-  densityProducerMode: { en: 'Selects who produces the Cached/Hybrid density cache. W5 Recipe V2 owns shared fields but intentionally keeps density empty.', zh: '选择由谁生产 Cached/Hybrid 密度缓存。W5 Recipe V2 已拥有共享场，但仍有意保持全零密度。' },
+  densityProducerMode: { en: 'Selects the Cached/Hybrid density producer. W8 Recipe V2 supports Cumulus, four Stratiform genera, and three Cellular genera.', zh: '选择 Cached/Hybrid 密度生产器。W8 Recipe V2 支持积云、四个层状云属与三个胞状云属。' },
   qualityMode: { en: 'Cached = fastest (uses cache), Realtime = full quality (no cache), Hybrid = mix.', zh: 'Cached = 最快（用缓存），Realtime = 全质量（不用缓存），Hybrid = 混合。' },
   detailFreq: { en: 'Global frequency of the high-frequency detail noise added at render time.', zh: '渲染时叠加的高频细节噪声的全局频率。' },
   detailStrength: { en: 'Global strength of the high-frequency detail noise added at render time.', zh: '渲染时叠加的高频细节噪声的全局强度。' },

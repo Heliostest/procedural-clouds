@@ -1,4 +1,5 @@
 import commonDensitySource from '../../shaders/density-v2-common.wgsl?raw';
+import cellularDensitySource from '../../shaders/density-v2-cellular.wgsl?raw';
 import cumulusDensitySource from '../../shaders/density-v2-cumulus.wgsl?raw';
 import spikeDensitySource from '../../shaders/density-v2-spike.wgsl?raw';
 import stratusDensitySource from '../../shaders/density-v2-stratus.wgsl?raw';
@@ -86,6 +87,7 @@ export async function createRecipeV2PipelineResources(
     commonDensitySource,
     stratusDensitySource,
     cumulusDensitySource,
+    cellularDensitySource,
     spikeDensitySource,
   ].join('\n\n');
   const inputLayout = device.createBindGroupLayout({

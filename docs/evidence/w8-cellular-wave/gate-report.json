@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "changeId": "add-density-v2-cellular-wave-family",
+  "generatedAt": "2026-07-15T00:00:00+08:00",
+  "sourceRevision": "working-tree",
+  "status": "visual-validation-pending",
+  "decision": "review",
+  "archiveAllowed": false,
+  "automated": {
+    "status": "pass",
+    "checks": [
+      "test:genus-dispatch",
+      "test:pipeline-isolation",
+      "test:density-v2-layout",
+      "test:density-v2-tiles",
+      "test:density-v2-fields",
+      "test:density-v2-evaluators",
+      "test:ground-shadow-hash",
+      "typecheck",
+      "build",
+      "openspec-strict"
+    ]
+  },
+  "runtimeWebGpu": {
+    "status": "pending",
+    "expectedCases": 64,
+    "completedCases": 0,
+    "invalidCases": []
+  },
+  "visual": {
+    "status": "pending",
+    "requiredScreenshots": 128,
+    "capturedScreenshots": 0,
+    "nonWaivableChecks": [
+      "cell-scale-and-profile-order",
+      "finite-nonnegative-density-and-metadata",
+      "support-and-tile-mask-containment",
+      "no-checkerboard-camera-lock-or-wind-discontinuity",
+      "w7-legacy-realtime-optical-regression"
+    ]
+  },
+  "performance": {
+    "status": "unresolved",
+    "classification": "not-collected",
+    "minimumCacheWarmups": 5,
+    "minimumGpuSamples": 60,
+    "medianRatioLimit": 1.0,
+    "p90RatioLimit": 1.2
+  },
+  "rollback": {
+    "legacyAnchor": "densityProducerMode=0",
+    "status": "pending-runtime-confirmation"
+  },
+  "ownerApproval": "pending",
+  "notes": [
+    "Automated source and build checks passed on the working tree.",
+    "Visual, runtime metadata, WebGPU validation and GPU timestamp evidence are not yet collected.",
+    "Unavailable timing must remain unresolved and must not be converted to pass."
+  ]
+}

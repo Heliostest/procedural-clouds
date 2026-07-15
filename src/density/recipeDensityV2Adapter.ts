@@ -168,7 +168,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       && (this.forceRefresh || scheduledUpdate || this.windMovedPastVoxel(input));
     const packed = packDensityV2Frame(input, this.resolution);
     this.activeBodyCount = packed.activeBodyCount;
-    const enabledGenusIds = new Set([0, 1, 5, 6, 8]);
+    const enabledGenusIds = new Set([0, 1, 2, 4, 5, 6, 8, 9]);
     this.unsupportedBodyCount = packed.activeBodies.filter((body) => !enabledGenusIds.has(body.genusId)).length;
     if (willEncode) {
       const maskOptions = {
@@ -352,10 +352,22 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       tileMask: this.tileMaskStats(),
       sharedFields: this.sharedFields.getStats(),
       evaluator: {
-        enabledGenera: ['cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'],
+        enabledGenera: [
+          'cumulus', 'stratus', 'stratocumulus', 'altocumulus',
+          'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus',
+        ],
+        unsupportedGenera: ['cumulonimbus', 'cirrus'],
         sampleLimits: {
           cumulus: [3, 1, 0, 0], stratus: [2, 0, 0, 0],
+          stratocumulus: [3, 0, 0, 0], altocumulus: [3, 0, 0, 0],
           altostratus: [2, 0, 0, 0], nimbostratus: [2, 0, 0, 0], cirrostratus: [2, 0, 0, 0],
+          cirrocumulus: [3, 0, 0, 0],
+        },
+        // [waveStrength, rippleAmplitude, lensStrength, rollStrength]
+        cellularHooks: {
+          stratocumulus: [0.06, 0.04, 0, 0],
+          altocumulus: [0.08, 0.08, 0, 0],
+          cirrocumulus: [0.12, 0.18, 0, 0],
         },
         unsupportedBodyCount: this.unsupportedBodyCount,
         actualEvaluatorCalls: null,

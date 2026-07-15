@@ -120,10 +120,12 @@ if (!renderer.includes('ensureDensitySharedDebugPipeline()')
 }
 if (!recipes.includes('recipe.enabled ? 1 : 0')
   || !recipeSemantics.includes('DENSITY_V2_ENABLED_GENERA = Object.freeze([')
-  || !recipeSemantics.includes("'cumulus', 'stratus', 'altostratus', 'nimbostratus', 'cirrostratus'")
+  || !recipeSemantics.includes("'cumulus', 'stratus', 'stratocumulus', 'altocumulus'")
+  || !recipeSemantics.includes("'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus'")
   || !recipeSemantics.includes('sampleLimits: lane(2, 0, 0, 0)')
+  || !recipeSemantics.includes('sampleLimits: lane(3, 0, 0, 0)')
   || !recipeSemantics.includes('sampleLimits: lane(3, 1, 0, 0)')) {
-  throw new Error('W7 shared sampling consumers do not preserve the approved family budgets');
+  throw new Error('W8 shared sampling consumers do not preserve the approved family budgets');
 }
 
 console.log('Density V2 shared-field budgets, bounded generators, lifecycle and diagnostics are isolated');
