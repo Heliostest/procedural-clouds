@@ -1,0 +1,8 @@
+{
+    "private":  true,
+    "name":  "_pw",
+    "version":  "1.0.0",
+    "dependencies":  {
+                         "playwright":  "^1.49.1"
+                     }
+}

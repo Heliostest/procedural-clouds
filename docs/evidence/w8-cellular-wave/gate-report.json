@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "changeId": "add-density-v2-cellular-wave-family",
-  "generatedAt": "2026-07-15T00:00:00+08:00",
+  "generatedAt": "2026-07-15T03:59:12.177Z",
   "sourceRevision": "working-tree",
-  "status": "visual-validation-pending",
-  "decision": "review",
+  "status": "visual-validation-failed",
+  "decision": "stop",
   "archiveAllowed": false,
   "automated": {
     "status": "pass",
@@ -22,39 +22,194 @@
     ]
   },
   "runtimeWebGpu": {
-    "status": "pending",
+    "status": "pass",
     "expectedCases": 64,
-    "completedCases": 0,
-    "invalidCases": []
+    "completedCases": 64,
+    "invalidCases": [],
+    "timeoutCases": [
+      "w8--single-cumulonimbus--legacy--cached--normal"
+    ],
+    "statusCounts": {
+      "ready-for-screenshot": 63,
+      "timeout-after-warmup": 1
+    },
+    "consoleErrors": [
+      {
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "t": "2026-07-15T01:58:53.219Z"
+      }
+    ],
+    "deviceInfo": {
+      "adapter": {
+        "vendor": "nvidia",
+        "architecture": "ampere",
+        "device": "",
+        "description": ""
+      },
+      "features": [
+        "bgra8unorm-storage",
+        "chromium-experimental-multi-draw-indirect",
+        "chromium-experimental-timestamp-query-inside-passes",
+        "clip-distances",
+        "core-features-and-limits",
+        "depth-clip-control",
+        "depth32float-stencil8",
+        "dual-source-blending",
+        "float32-blendable",
+        "float32-filterable",
+        "indirect-first-instance",
+        "primitive-index",
+        "rg11b10ufloat-renderable",
+        "shader-f16",
+        "subgroup-size-control",
+        "subgroups",
+        "texture-component-swizzle",
+        "texture-compression-bc",
+        "texture-compression-bc-sliced-3d",
+        "texture-formats-tier1",
+        "texture-formats-tier2",
+        "timestamp-query"
+      ],
+      "limits": {
+        "maxTextureDimension1D": 16384,
+        "maxTextureDimension2D": 16384,
+        "maxTextureDimension3D": 2048,
+        "maxTextureArrayLayers": 2048,
+        "maxBindGroups": 4,
+        "maxStorageBufferBindingSize": 2147483644,
+        "maxComputeWorkgroupStorageSize": 32768,
+        "maxComputeInvocationsPerWorkgroup": 1024,
+        "maxComputeWorkgroupSizeX": 1024,
+        "maxComputeWorkgroupSizeY": 1024,
+        "maxComputeWorkgroupSizeZ": 64,
+        "maxComputeWorkgroupsPerDimension": 65535
+      }
+    },
+    "notes": [
+      "Playwright channel=chrome + WebGPU flags",
+      "sampleLimits arrays [3,0,0,0] accepted",
+      "actualEvaluatorCalls runtime null (not unavailable string) → unresolved",
+      "false invalid from array-vs-object sampleLimits check cleared"
+    ]
   },
   "visual": {
-    "status": "pending",
+    "status": "fail",
     "requiredScreenshots": 128,
-    "capturedScreenshots": 0,
-    "nonWaivableChecks": [
-      "cell-scale-and-profile-order",
-      "finite-nonnegative-density-and-metadata",
-      "support-and-tile-mask-containment",
-      "no-checkerboard-camera-lock-or-wind-discontinuity",
-      "w7-legacy-realtime-optical-regression"
+    "capturedScreenshots": 128,
+    "nonWaivableChecks": {
+      "cell-scale-and-profile-order": "fail",
+      "finite-nonnegative-density-and-metadata": "unresolved",
+      "support-and-tile-mask-containment": "unresolved",
+      "no-checkerboard-camera-lock-or-wind-discontinuity": "unresolved",
+      "w7-legacy-realtime-optical-regression": "not-in-scope-w8-matrix"
+    },
+    "sceneVerdicts": {
+      "sc": "fail",
+      "ac": "fail",
+      "cc": "review",
+      "scale": "fail",
+      "overlap": "review",
+      "wave": "unresolved",
+      "cbCiV2Empty": "pass",
+      "legacyRollback": "pass"
+    },
+    "failCases": [
+      "w8--single-stratocumulus--legacy--cached--normal",
+      "w8--single-stratocumulus--legacy--cached--density-debug",
+      "w8--single-stratocumulus--legacy--hybrid--normal",
+      "w8--single-stratocumulus--legacy--hybrid--density-debug",
+      "w8--single-stratocumulus--recipe-v2--cached--normal",
+      "w8--single-stratocumulus--recipe-v2--cached--density-debug",
+      "w8--single-stratocumulus--recipe-v2--hybrid--normal",
+      "w8--single-stratocumulus--recipe-v2--hybrid--density-debug",
+      "w8--single-altocumulus--legacy--cached--normal",
+      "w8--single-altocumulus--legacy--cached--density-debug",
+      "w8--single-altocumulus--legacy--hybrid--normal",
+      "w8--single-altocumulus--legacy--hybrid--density-debug",
+      "w8--single-altocumulus--recipe-v2--cached--normal",
+      "w8--single-altocumulus--recipe-v2--cached--density-debug",
+      "w8--single-altocumulus--recipe-v2--hybrid--normal",
+      "w8--single-altocumulus--recipe-v2--hybrid--density-debug",
+      "w8--w8-cellular-scale--legacy--cached--normal",
+      "w8--w8-cellular-scale--legacy--cached--density-debug",
+      "w8--w8-cellular-scale--legacy--hybrid--normal",
+      "w8--w8-cellular-scale--legacy--hybrid--density-debug",
+      "w8--w8-cellular-scale--recipe-v2--cached--normal",
+      "w8--w8-cellular-scale--recipe-v2--cached--density-debug",
+      "w8--w8-cellular-scale--recipe-v2--hybrid--normal",
+      "w8--w8-cellular-scale--recipe-v2--hybrid--density-debug"
     ]
   },
   "performance": {
-    "status": "unresolved",
-    "classification": "not-collected",
+    "status": "pass",
+    "classification": "pass",
     "minimumCacheWarmups": 5,
     "minimumGpuSamples": 60,
-    "medianRatioLimit": 1.0,
-    "p90RatioLimit": 1.2
+    "medianRatioLimit": 1,
+    "p90RatioLimit": 1.2,
+    "pairs": [
+      {
+        "scene": "single-stratocumulus",
+        "status": "pass",
+        "legacy": {
+          "median": 0.115712,
+          "p90": 0.164864,
+          "count": 60
+        },
+        "recipeV2": {
+          "median": 0.037888,
+          "p90": 0.038912,
+          "count": 60
+        },
+        "medianRatio": 0.3274,
+        "p90Ratio": 0.236
+      },
+      {
+        "scene": "single-altocumulus",
+        "status": "pass",
+        "legacy": {
+          "median": 0.139264,
+          "p90": 0.202752,
+          "count": 60
+        },
+        "recipeV2": {
+          "median": 0.036864,
+          "p90": 0.037888,
+          "count": 60
+        },
+        "medianRatio": 0.2647,
+        "p90Ratio": 0.1869
+      },
+      {
+        "scene": "single-cirrocumulus",
+        "status": "pass",
+        "legacy": {
+          "median": 0.167936,
+          "p90": 0.249856,
+          "count": 60
+        },
+        "recipeV2": {
+          "median": 0.036864,
+          "p90": 0.037888,
+          "count": 60
+        },
+        "medianRatio": 0.2195,
+        "p90Ratio": 0.1516
+      }
+    ]
   },
   "rollback": {
     "legacyAnchor": "densityProducerMode=0",
-    "status": "pending-runtime-confirmation"
+    "status": "pass",
+    "notes": [
+      "Cb/Ci Recipe V2 normal+density-debug empty with active=recipe-v2",
+      "Cb/Ci Legacy density/optical visible"
+    ]
   },
   "ownerApproval": "pending",
   "notes": [
-    "Automated source and build checks passed on the working tree.",
-    "Visual, runtime metadata, WebGPU validation and GPU timestamp evidence are not yet collected.",
-    "Unavailable timing must remain unresolved and must not be converted to pass."
+    "Do not archive OpenSpec; 10.4 owner approval remains unchecked.",
+    "Decision=stop due to cellular morphology / scale-order visual failures.",
+    "Performance Sc/Ac/Cc cached median/p90 ratios within budget."
   ]
 }
