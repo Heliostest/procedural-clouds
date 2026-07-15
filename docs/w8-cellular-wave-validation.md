@@ -12,6 +12,16 @@ OpenSpec change：`add-density-v2-cellular-wave-family`
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
+重新验证修复后的工作树时必须强制覆盖旧截图：
+
+```powershell
+$env:W8_FORCE_CAPTURE='1'
+node docs/evidence/w8-cellular-wave/capture-w8.mjs
+Remove-Item Env:W8_FORCE_CAPTURE
+```
+
+采集文件会记录 Git revision、dirty 状态、tracked diff 与未跟踪源码内容的 SHA-256，以及 console error URL；散列会排除本目录下会被采集过程改写的结果、审阅和截图产物。不得复用与当前工作树不匹配的旧截图。
+
 入口：
 
 ```text
@@ -67,6 +77,15 @@ normal 用来判断 Optical、云影和最终呈现；`density-debug` 是 raw de
 - `results.raw.json`：每个 case 的状态、fingerprint、producer diagnostics、evaluator stats、shared-field stats、GPU timing、warnings 与截图路径；
 - `gate-report.json`：机器可读分类，至少含 automated/runtime/visual/performance/rollback/ownerApproval；
 - `report.md`：按 scene 汇总的视觉判断、失败证据和 Continue/Stop/Review 建议。
+- `visual-review.json`：从 `visual-review.template.json` 复制，`evidenceGeneratedAt` 必须与本轮 `results.raw.json.generatedAt` 完全一致；仅对 Recipe V2 写 pass/fail/review，Legacy 保持 reference。
+
+完成视觉判断后运行：
+
+```powershell
+node docs/evidence/w8-cellular-wave/build-gate.mjs
+```
+
+若 visual review 时间戳缺失或与本轮 evidence 不一致，Gate 必须保持 review；反复生成 Gate 不得覆盖 evidence 的 `generatedAt`。模板中的三个 `nonWaivableChecks` 也必须逐项填写，缺失或 unresolved 时不能 Continue。`actualEvaluatorCalls=null` 与字符串 `unavailable` 均表示无法获得真实调用数，不得误记为 unresolved 或伪造成数字。非 WebGPU console error 必须连同 URL 分类；明确来自 `/favicon.ico` 的 404 可单列为 benign，其余错误不能只凭一条裸 `404` 忽略。
 
 性能只对 Sc/Ac/Cc 的 Legacy/V2 `cached + normal` 成对计算：V2 cache median 目标 `<=1.00x Legacy`，p90 目标 `<=1.20x Legacy`。timestamp 不可用或任一侧有效样本不足时写 `unresolved`，不得写 pass。
 

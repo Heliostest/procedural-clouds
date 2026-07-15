@@ -365,9 +365,9 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
         },
         // [waveStrength, rippleAmplitude, lensStrength, rollStrength]
         cellularHooks: {
-          stratocumulus: [0.06, 0.04, 0, 0],
-          altocumulus: [0.08, 0.08, 0, 0],
-          cirrocumulus: [0.12, 0.18, 0, 0],
+          stratocumulus: [0.02, 0.03, 0, 0],
+          altocumulus: [0.04, 0.08, 0, 0],
+          cirrocumulus: [0.08, 0.36, 0, 0],
         },
         unsupportedBodyCount: this.unsupportedBodyCount,
         actualEvaluatorCalls: null,

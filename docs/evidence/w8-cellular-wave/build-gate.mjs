@@ -4,6 +4,26 @@ import { fileURLToPath } from 'url';
 
 const OUT = path.dirname(fileURLToPath(import.meta.url));
 const raw = JSON.parse(fs.readFileSync(path.join(OUT, 'results.raw.json'), 'utf8'));
+const visualReviewPath = path.join(OUT, 'visual-review.json');
+const visualReview = fs.existsSync(visualReviewPath)
+  ? JSON.parse(fs.readFileSync(visualReviewPath, 'utf8'))
+  : null;
+const reviewMatchesEvidence = visualReview?.evidenceGeneratedAt === raw.generatedAt;
+
+const EXPECTED_CASES = 64;
+const REQUIRED_VISUAL_SCENES = [
+  'single-stratocumulus',
+  'single-altocumulus',
+  'single-cirrocumulus',
+  'w8-cellular-scale',
+  'w8-cellular-overlap',
+  'w8-wave-ripple',
+];
+const REQUIRED_NON_WAIVABLE = [
+  'finite-nonnegative-density-and-metadata',
+  'support-and-tile-mask-containment',
+  'no-checkerboard-camera-lock-or-wind-discontinuity',
+];
 
 const EXPECTED_ENABLED = ['cumulus', 'stratus', 'stratocumulus', 'altocumulus', 'altostratus', 'nimbostratus', 'cirrostratus', 'cirrocumulus'].sort();
 const EXPECTED_UNSUPPORTED = ['cumulonimbus', 'cirrus'].sort();
@@ -33,44 +53,13 @@ function revalidateV2(r) {
   return {
     ok: notes.length === 0,
     notes,
-    actualEvaluatorCallsStatus: ev?.actualEvaluatorCalls === 'unavailable'
-      ? 'ok'
-      : (ev?.actualEvaluatorCalls == null ? 'unresolved-null' : String(ev?.actualEvaluatorCalls)),
+    actualEvaluatorCallsStatus: ev?.actualEvaluatorCalls == null || ev?.actualEvaluatorCalls === 'unavailable'
+      ? 'ok-unavailable'
+      : String(ev?.actualEvaluatorCalls),
   };
 }
 
-const sceneVerdict = {
-  'single-stratocumulus': {
-    rawDensityVerdict: 'fail',
-    normalOpticalVerdict: 'fail',
-    note: 'V2 有 raw density，但光学呈离散团块，未形成大 cell/高连接厚 Cellular layer。',
-  },
-  'single-altocumulus': {
-    rawDensityVerdict: 'fail',
-    normalOpticalVerdict: 'fail',
-    note: 'V2 呈孤立 puff，缺少中等 cell 连接层；与 Sc/Cc 尺度区分不足。',
-  },
-  'single-cirrocumulus': {
-    rawDensityVerdict: 'review',
-    normalOpticalVerdict: 'review',
-    note: '存在小尺度离散 cell，未见明显棋盘/锁纹；连续 ripple/极薄 profile 证据不足。',
-  },
-  'w8-cellular-scale': {
-    rawDensityVerdict: 'fail',
-    normalOpticalVerdict: 'fail',
-    note: '同视域未严格可辨 Sc>Ac>Cc cell 尺度与层厚排序。',
-  },
-  'w8-cellular-overlap': {
-    rawDensityVerdict: 'review',
-    normalOpticalVerdict: 'review',
-    note: '未见明显黑洞/闪断；无 RGBA metadata readback，metadata=unresolved。',
-  },
-  'w8-wave-ripple': {
-    rawDensityVerdict: 'unresolved',
-    normalOpticalVerdict: 'unresolved',
-    note: '单帧未见棋盘/锁纹，固定相位连续 ripple 无法仅凭单帧确认。',
-  },
-};
+const sceneVerdict = reviewMatchesEvidence ? (visualReview.scenes || {}) : {};
 
 function sceneOf(id) {
   const m = id.match(/^w8--(.+)--(legacy|recipe-v2)--/);
@@ -114,13 +103,25 @@ for (const r of raw.results) {
     }
   } else {
     const sv = sceneVerdict[scene];
-    if (sv) {
+    if (isLegacy) {
+      r.rawDensityVerdict = isDebug ? 'reference' : 'n/a';
+      r.normalOpticalVerdict = isNormal ? 'reference' : 'n/a';
+      r.note = 'Legacy reference anchor; W8 morphology verdict applies only to Recipe V2.';
+    } else if (isV2 && sv) {
       r.rawDensityVerdict = isDebug ? sv.rawDensityVerdict : 'n/a';
       r.normalOpticalVerdict = isNormal ? sv.normalOpticalVerdict : 'n/a';
       r.note = sv.note;
+    } else if (isV2) {
+      r.rawDensityVerdict = isDebug ? 'pending-review' : 'n/a';
+      r.normalOpticalVerdict = isNormal ? 'pending-review' : 'n/a';
+      r.note = reviewMatchesEvidence
+        ? 'No scene verdict supplied for the current evidence.'
+        : 'Visual review missing or stale for the current evidence timestamp.';
     }
-    r.supportTileVerdict = scene === 'w8-cellular-overlap' ? 'unresolved' : 'review';
-    r.metadataVerdict = 'unresolved';
+    r.supportTileVerdict = isV2
+      ? (sv?.supportTileVerdict || (scene === 'w8-cellular-overlap' ? 'unresolved' : 'review'))
+      : 'reference';
+    r.metadataVerdict = isV2 ? (sv?.metadataVerdict || 'unresolved') : 'reference';
   }
   if (!r.timingClassification) r.timingClassification = r.cacheTiming || 'unresolved';
 }
@@ -155,15 +156,24 @@ for (const scene of perfScenes) {
   });
 }
 
-raw.generatedAt = new Date().toISOString();
+// generatedAt identifies the screenshot evidence and must remain stable so a
+// matching visual-review.json remains current across repeat gate builds.
+raw.classifiedAt = new Date().toISOString();
 raw.performancePairs = performancePairs;
+const summarizeScene = (scene) => {
+  const verdict = sceneVerdict[scene];
+  if (!verdict) return 'pending-review';
+  if (verdict.rawDensityVerdict === 'fail' || verdict.normalOpticalVerdict === 'fail') return 'fail';
+  if (verdict.rawDensityVerdict === 'pass' && verdict.normalOpticalVerdict === 'pass') return 'pass';
+  return 'review';
+};
 raw.visualSummary = {
-  sc: 'fail',
-  ac: 'fail',
-  cc: 'review',
-  scale: 'fail',
-  overlap: 'review',
-  wave: 'unresolved',
+  sc: summarizeScene('single-stratocumulus'),
+  ac: summarizeScene('single-altocumulus'),
+  cc: summarizeScene('single-cirrocumulus'),
+  scale: summarizeScene('w8-cellular-scale'),
+  overlap: summarizeScene('w8-cellular-overlap'),
+  wave: summarizeScene('w8-wave-ripple'),
   cbCiV2Empty: 'pass',
   legacyRollback: 'pass',
 };
@@ -174,17 +184,62 @@ const statusCounts = raw.results.reduce((m, r) => {
   return m;
 }, {});
 const invalid = raw.results.filter((r) => r.status === 'invalid' || r.status === 'failed');
-const failVisual = raw.results.filter((r) => r.rawDensityVerdict === 'fail' || r.normalOpticalVerdict === 'fail');
-const hasStopVisual = failVisual.length > 0;
-const decision = hasStopVisual ? 'stop' : 'review';
+const failVisual = raw.results.filter((r) => r.caseId.includes('--recipe-v2--')
+  && (r.rawDensityVerdict === 'fail' || r.normalOpticalVerdict === 'fail'));
+const reviewedSceneCount = REQUIRED_VISUAL_SCENES.filter((scene) => sceneVerdict[scene]).length;
 const shots = fs.readdirSync(path.join(OUT, 'screenshots')).filter((f) => f.endsWith('.png')).length;
+const screenshotExists = (relativePath) => typeof relativePath === 'string'
+  && fs.existsSync(path.join(OUT, relativePath));
+const completedCases = raw.results.filter((r) => (
+  screenshotExists(r.screenshots?.hud) && screenshotExists(r.screenshots?.clean)
+)).length;
+const linkedScreenshots = new Set(raw.results.flatMap((r) => (
+  [r.screenshots?.hud, r.screenshots?.clean].filter((relativePath) => screenshotExists(relativePath))
+)));
+const webgpuErrors = (raw.consoleErrors || []).filter((error) => /webgpu|validation|GPUError/i.test(error.text || ''));
+const benignConsoleErrors = (raw.consoleErrors || []).filter((error) => (
+  /\/favicon\.ico(?:\?|$)/i.test(error.url || '')
+    && /404|failed to load resource/i.test(error.text || '')
+));
+const unclassifiedConsoleErrors = (raw.consoleErrors || []).filter((error) => (
+  !webgpuErrors.includes(error) && !benignConsoleErrors.includes(error)
+));
+const sourceEvidenceComplete = Boolean(
+  raw.sourceEvidence?.revision
+    && raw.sourceEvidence?.diffSha256
+    && typeof raw.sourceEvidence?.dirty === 'boolean',
+);
+const runtimeIncomplete = raw.results.length !== EXPECTED_CASES || completedCases !== EXPECTED_CASES;
+const runtimeStatus = invalid.length || webgpuErrors.length || runtimeIncomplete
+  ? 'fail'
+  : (unclassifiedConsoleErrors.length || !sourceEvidenceComplete ? 'review' : 'pass');
+const scaleVerdict = raw.visualSummary.scale;
+const reviewedNonWaivable = reviewMatchesEvidence ? (visualReview.nonWaivableChecks || {}) : {};
+const nonWaivableChecks = {
+  'cell-scale-and-profile-order': scaleVerdict === 'pass' ? 'pass' : (scaleVerdict === 'fail' ? 'fail' : 'unresolved'),
+  ...Object.fromEntries(REQUIRED_NON_WAIVABLE.map((name) => [name, reviewedNonWaivable[name] || 'unresolved'])),
+  'w7-legacy-realtime-optical-regression': 'not-in-scope-w8-matrix',
+};
+const hasStopVisual = failVisual.length > 0
+  || REQUIRED_NON_WAIVABLE.some((name) => nonWaivableChecks[name] === 'fail');
+const visualReady = reviewMatchesEvidence
+  && reviewedSceneCount === REQUIRED_VISUAL_SCENES.length
+  && Object.values(raw.visualSummary).every((verdict) => verdict === 'pass')
+  && REQUIRED_NON_WAIVABLE.every((name) => nonWaivableChecks[name] === 'pass');
+const visualStatus = hasStopVisual ? 'fail' : (visualReady ? 'pass' : 'review');
+const hardFailure = runtimeStatus === 'fail' || perfStatus === 'fail' || visualStatus === 'fail';
+const technicalReady = runtimeStatus === 'pass' && perfStatus === 'pass' && visualStatus === 'pass';
+const decision = hardFailure ? 'stop' : (technicalReady ? 'continue' : 'review');
 
 const gate = {
   schemaVersion: 1,
   changeId: 'add-density-v2-cellular-wave-family',
   generatedAt: new Date().toISOString(),
-  sourceRevision: 'working-tree',
-  status: decision === 'stop' ? 'visual-validation-failed' : 'visual-validation-review',
+  evidenceGeneratedAt: raw.generatedAt,
+  sourceEvidence: raw.sourceEvidence || null,
+  status: decision === 'stop'
+    ? 'validation-failed'
+    : (decision === 'continue' ? 'ready-for-owner-review' : 'validation-review'),
   decision,
   archiveAllowed: false,
   automated: {
@@ -192,35 +247,35 @@ const gate = {
     checks: [
       'test:genus-dispatch', 'test:pipeline-isolation', 'test:density-v2-layout', 'test:density-v2-tiles',
       'test:density-v2-fields', 'test:density-v2-evaluators', 'test:ground-shadow-hash', 'typecheck', 'build', 'openspec-strict',
+      'test:w8-gate',
     ],
   },
   runtimeWebGpu: {
-    status: invalid.length ? 'fail' : 'pass',
-    expectedCases: 64,
-    completedCases: raw.results.filter((r) => r.screenshots?.hud && r.screenshots?.clean).length,
+    status: runtimeStatus,
+    expectedCases: EXPECTED_CASES,
+    completedCases,
     invalidCases: invalid.map((r) => r.caseId),
     timeoutCases: raw.results.filter((r) => r.status === 'timeout-after-warmup').map((r) => r.caseId),
     statusCounts,
     consoleErrors: raw.consoleErrors || [],
+    benignConsoleErrors,
     deviceInfo: raw.deviceInfo,
     notes: [
       'Playwright channel=chrome + WebGPU flags',
       'sampleLimits arrays [3,0,0,0] accepted',
-      'actualEvaluatorCalls runtime null (not unavailable string) → unresolved',
+      'actualEvaluatorCalls null or unavailable string is the expected unavailable representation',
       'false invalid from array-vs-object sampleLimits check cleared',
+      ...(unclassifiedConsoleErrors.length ? ['Non-WebGPU console errors require URL-level classification'] : []),
     ],
   },
   visual: {
-    status: hasStopVisual ? 'fail' : 'review',
+    status: visualStatus,
     requiredScreenshots: 128,
-    capturedScreenshots: shots,
-    nonWaivableChecks: {
-      'cell-scale-and-profile-order': 'fail',
-      'finite-nonnegative-density-and-metadata': 'unresolved',
-      'support-and-tile-mask-containment': 'unresolved',
-      'no-checkerboard-camera-lock-or-wind-discontinuity': 'unresolved',
-      'w7-legacy-realtime-optical-regression': 'not-in-scope-w8-matrix',
-    },
+    capturedScreenshots: linkedScreenshots.size,
+    screenshotDirectoryCount: shots,
+    reviewMatchesEvidence,
+    reviewedSceneCount,
+    nonWaivableChecks,
     sceneVerdicts: raw.visualSummary,
     failCases: [...new Set(failVisual.map((r) => r.caseId))],
   },
@@ -244,8 +299,15 @@ const gate = {
   ownerApproval: 'pending',
   notes: [
     'Do not archive OpenSpec; 10.4 owner approval remains unchecked.',
-    'Decision=stop due to cellular morphology / scale-order visual failures.',
-    'Performance Sc/Ac/Cc cached median/p90 ratios within budget.',
+    reviewMatchesEvidence
+      ? 'Visual review timestamp matches results.raw.json.'
+      : 'Visual review is missing or stale; copy visual-review.template.json and use results.raw.json generatedAt.',
+    hasStopVisual
+      ? 'Decision=stop due to Recipe V2 cellular morphology / scale-order visual failures.'
+      : (decision === 'continue'
+        ? 'Technical evidence is complete; continue to owner approval without archiving.'
+        : 'Decision=review until every current Recipe V2 scene and non-waivable verdict is complete.'),
+    'Performance is classified separately and cannot override morphology failures.',
   ],
 };
 fs.writeFileSync(path.join(OUT, 'gate-report.json'), `${JSON.stringify(gate, null, 2)}\n`);

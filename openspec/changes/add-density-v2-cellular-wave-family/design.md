@@ -88,7 +88,7 @@ W8 复用 layout v2 的既有 lanes，并为 Cellular family定义独立语义 d
 - `vertical0/vertical1`：bottom/top fade、profile start/span、thickness variation；
 - `topology0`：coverage threshold/softness/body gain/cell softness；
 - `topology1`：cell interior/edge/secondary weights/connectivity bias；
-- `topology2`：cell contrast、secondary scale、macro bias、ripple frequency；
+- `topology2`：cell contrast、cell threshold、macro bias、ripple frequency；
 - `detail0`：ripple amplitude、lens strength、roll strength、reserved；
 - `finalize0`：density multiplier、feather scale、max density、reserved。
 

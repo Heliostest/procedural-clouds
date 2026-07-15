@@ -1,4 +1,6 @@
 import { createRequire } from 'module';
+import { createHash } from 'crypto';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +12,43 @@ const OUT = __dirname;
 const SHOTS = path.join(OUT, 'screenshots');
 const BASE = 'http://127.0.0.1:5173/procedural-clouds/?benchmark=1';
 const MIN_GPU_SAMPLES = 60;
+const FORCE_CAPTURE = process.env.W8_FORCE_CAPTURE === '1';
+
+function sourceEvidence() {
+  const root = path.resolve(OUT, '../../..');
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+  const pathspecs = [
+    '.',
+    ':(exclude)docs/evidence/w8-cellular-wave/results.raw.json',
+    ':(exclude)docs/evidence/w8-cellular-wave/gate-report.json',
+    ':(exclude)docs/evidence/w8-cellular-wave/report.md',
+    ':(exclude)docs/evidence/w8-cellular-wave/visual-review.json',
+    ':(exclude)docs/evidence/w8-cellular-wave/screenshots/**',
+  ];
+  const revision = git('rev-parse', 'HEAD');
+  const status = git('status', '--porcelain=v1', '--untracked-files=all', '--', ...pathspecs);
+  const diff = execFileSync('git', ['diff', '--no-ext-diff', '--binary', 'HEAD', '--', ...pathspecs], {
+    cwd: root,
+    maxBuffer: 32 * 1024 * 1024,
+  });
+  const untracked = execFileSync(
+    'git',
+    ['ls-files', '--others', '--exclude-standard', '-z', '--', ...pathspecs],
+    { cwd: root, encoding: 'utf8' },
+  ).split('\0').filter(Boolean).sort();
+  const sourceHash = createHash('sha256').update(diff);
+  for (const relativePath of untracked) {
+    sourceHash.update(`\0untracked:${relativePath}\0`);
+    sourceHash.update(fs.readFileSync(path.join(root, relativePath)));
+  }
+  return {
+    revision,
+    dirty: status.length > 0,
+    diffSha256: sourceHash.digest('hex'),
+    status: status.split('\n').filter(Boolean),
+    untracked,
+  };
+}
 
 const SCENES = [
   'single-stratocumulus',
@@ -176,7 +215,16 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   page.setDefaultTimeout(360_000);
   page.on('console', (msg) => {
-    if (msg.type() === 'error') consoleErrors.push({ text: msg.text(), t: new Date().toISOString() });
+    if (msg.type() === 'error') {
+      const location = msg.location();
+      consoleErrors.push({
+        text: msg.text(),
+        url: location.url || null,
+        lineNumber: location.lineNumber ?? null,
+        columnNumber: location.columnNumber ?? null,
+        t: new Date().toISOString(),
+      });
+    }
   });
   page.on('pageerror', (err) => {
     consoleErrors.push({ text: `uncaught: ${err.message}`, t: new Date().toISOString() });
@@ -196,6 +244,7 @@ async function main() {
   }
 
   const cases = allCases();
+  const capturedSource = sourceEvidence();
   const records = [];
   let deviceInfo = null;
   const existingRawPath = path.join(OUT, 'results.raw.json');
@@ -210,7 +259,7 @@ async function main() {
   for (let i = 0; i < cases.length; i++) {
     const id = cases[i];
     const timingRequired = id.includes('--cached--normal');
-    if (hasShots(id)) {
+    if (!FORCE_CAPTURE && hasShots(id)) {
       console.log(`[skip ${i + 1}/${cases.length}] ${id}`);
       const prev = priorById.get(id);
       records.push(prev && prev.status !== 'failed' ? {
@@ -256,6 +305,7 @@ async function main() {
       fs.writeFileSync(path.join(OUT, 'results.raw.json'), `${JSON.stringify({
         schemaVersion: 1,
         generatedAt: new Date().toISOString(),
+        sourceEvidence: capturedSource,
         baseUrl: BASE,
         deviceInfo,
         caseCount: records.length,
@@ -341,6 +391,7 @@ async function main() {
   const evidence = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
+    sourceEvidence: capturedSource,
     baseUrl: BASE,
     viewport: { width: 1400, height: 900 },
     deviceInfo,

@@ -142,21 +142,28 @@ export function densityV2CellularAnalyticHooks(
   rollStrength: number,
   rippleFrequency: number,
   lensAspect: number,
-): readonly [number, number] {
+): readonly [number, number, number] {
   const wave = Math.max(waveStrength, 0);
   const rippleAmount = Math.max(rippleAmplitude, 0);
   const lensAmount = Math.max(lensStrength, 0);
   const rollAmount = Math.max(rollStrength, 0);
-  if (wave <= 0 && rippleAmount <= 0 && lensAmount <= 0 && rollAmount <= 0) return [0, 1];
-  const phase = (normalizedX * rippleFrequency + normalizedZ * 0.5 + macroPhase) * Math.PI * 2;
-  const offset = Math.sin(phase) * wave;
-  const ripple = 1 + Math.sin(phase * 1.7 + height01 * Math.PI) * rippleAmount;
+  if (wave <= 0 && rippleAmount <= 0 && lensAmount <= 0 && rollAmount <= 0) return [0, 1, 0];
+  const phase = (
+    normalizedX * rippleFrequency
+    + normalizedZ * 0.35
+    + (macroPhase - 0.5) * 0.25
+  ) * Math.PI * 2;
+  const carrier = 0.5 + 0.5 * Math.sin(phase);
+  const offset = (carrier * 2 - 1) * wave;
+  const rippleThresholdOffset = (0.5 - carrier) * rippleAmount;
+  const rippleBlend = clamp01(rippleAmount * 3);
+  const rippleDensity = (1 - rippleBlend) + (0.35 + carrier * 0.65) * rippleBlend;
   const aspect = Math.max(lensAspect, 1);
   const lensDistance = Math.hypot(normalizedX, normalizedZ * aspect);
   const lens = (1 - clamp01(lensAmount))
     + Math.max(1 - lensDistance * lensDistance, 0) * clamp01(lensAmount);
   const roll = 1 + Math.cos(phase + height01 * Math.PI * 2) * rollAmount;
-  return [offset, Math.max(ripple * lens * roll, 0)];
+  return [offset, Math.max(rippleDensity * lens * roll, 0), rippleThresholdOffset];
 }
 
 export function densityV2CellularSignal(
@@ -167,17 +174,24 @@ export function densityV2CellularSignal(
   interiorWeight: number,
   edgeWeight: number,
   secondaryWeight: number,
-  connectivityBias: number,
+  connectivity: number,
   contrast: number,
+  threshold: number,
   softness: number,
+  thresholdOffset = 0,
 ): number {
   const secondary = secondaryInterior * 0.75 + secondaryEdge * 0.25;
-  const signal = primaryInterior * interiorWeight
+  const weightSum = Math.max(interiorWeight + edgeWeight + secondaryWeight, 1e-4);
+  const weighted = (primaryInterior * interiorWeight
     + primaryEdge * edgeWeight
-    + secondary * secondaryWeight
-    + connectivityBias;
+    + secondary * secondaryWeight) / weightSum;
+  const bridge = Math.max(primaryInterior, secondaryInterior) * 0.85;
+  const signal = (
+    weighted + (Math.max(weighted, bridge) - weighted) * clamp01(connectivity)
+  ) * Math.max(contrast, 0);
   const width = Math.max(softness, 1e-4);
-  return smoothstep(0.72 - width, 0.72 + width, signal * Math.max(contrast, 0));
+  const boundedThreshold = Math.min(0.95, Math.max(0.05, threshold + thresholdOffset));
+  return smoothstep(boundedThreshold - width, boundedThreshold + width, signal);
 }
 
 export function densityV2Finalize(rawDensity: number, bodyDensity: number, lifecycle: number, multiplier: number, maxDensity: number): number {
@@ -275,19 +289,24 @@ export function verifyDensityV2EvaluatorMathFixtures(): void {
     throw new Error('Density V2 height-biased erosion fixture failed');
   }
   const identityHooks = densityV2CellularAnalyticHooks(0.25, -0.4, 0.5, 0.3, 0, 0, 0, 0, 3, 0);
-  if (identityHooks[0] !== 0 || identityHooks[1] !== 1) {
+  if (identityHooks[0] !== 0 || identityHooks[1] !== 1 || identityHooks[2] !== 0) {
     throw new Error('Density V2 Cellular zero-strength hook must be an exact identity');
   }
   const rippleHooks = densityV2CellularAnalyticHooks(0.25, -0.4, 0.5, 0.3, 0.12, 0.18, 0, 0, 3, 0);
   if (rippleHooks.some((value) => !Number.isFinite(value))
-    || Math.abs(rippleHooks[0]) > 0.12 + 1e-6 || rippleHooks[1] < 0) {
+    || Math.abs(rippleHooks[0]) > 0.12 + 1e-6 || rippleHooks[1] < 0 || rippleHooks[1] > 1) {
     throw new Error('Density V2 Cellular analytic hook bounds failed');
   }
-  const disconnected = densityV2CellularSignal(0.55, 0.3, 0.5, 0.25, 0.6, 0.25, 0.4, 0.02, 1.1, 0.14);
-  const connected = densityV2CellularSignal(0.55, 0.3, 0.5, 0.25, 0.6, 0.25, 0.4, 0.22, 1.1, 0.14);
+  const disconnected = densityV2CellularSignal(0.72, 0.1, 0.2, 0.1, 0.6, 0.25, 0.4, 0.02, 1, 0.50, 0.10);
+  const connected = densityV2CellularSignal(0.72, 0.1, 0.2, 0.1, 0.6, 0.25, 0.4, 0.28, 1, 0.50, 0.10);
   if (!Number.isFinite(disconnected) || !Number.isFinite(connected)
     || disconnected < 0 || connected > 1 || connected <= disconnected) {
     throw new Error('Density V2 Cellular signal/connectivity fixture failed');
+  }
+  const crest = densityV2CellularSignal(0.75, 0.4, 0.70, 0.3, 0.6, 0.25, 0.4, 0.08, 1, 0.64, 0.08, -0.12);
+  const trough = densityV2CellularSignal(0.75, 0.4, 0.70, 0.3, 0.6, 0.25, 0.4, 0.08, 1, 0.64, 0.08, 0.12);
+  if (crest <= trough || crest < 0.8 || trough > 0.2) {
+    throw new Error('Density V2 Cellular ripple threshold modulation fixture failed');
   }
   const composed = densityV2SoftCompose([{ density: 1, genusId: 1 }, { density: 0.5, genusId: 0 }]);
   const expected = 1 + (1 - Math.exp(-0.5));

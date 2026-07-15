@@ -208,46 +208,46 @@ function cellularBank(options: {
 
 const STRATOCUMULUS_BANK = cellularBank({
   // [macroFrequency, primaryCellFrequency, secondaryCellFrequency, seedScale]
-  domain0: lane(0.85, 0.72, 1.05, 0.07),
+  domain0: lane(0.85, 0.95, 1.35, 0.07),
   // [windPhaseScale, waveStrength, horizontalAnisotropy, verticalAnisotropy]
-  domain1: lane(0.015, 0.06, 1.05, 0.50),
+  domain1: lane(0.015, 0.02, 1.05, 0),
   // [bottomFade, topFade, thicknessVariation, reserved]
-  vertical0: lane(0.15, 0.20, 0.18, 0),
+  vertical0: lane(0.12, 0.16, 0.16, 0),
   // [profileStart, profileSpan, lensAspect, reserved]
-  vertical1: lane(0.05, 0.85, 0, 0),
+  vertical1: lane(0.05, 0.82, 0, 0),
   // [coverageThreshold, coverageSoftness, bodyCoverageGain, cellSoftness]
-  topology0: lane(0.42, 0.18, 0.35, 0.16),
-  // [interiorWeight, edgeWeight, secondaryWeight, connectivityBias]
-  topology1: lane(0.62, 0.22, 0.35, 0.22),
-  // [cellContrast, secondaryScale, macroCoverageBias, rippleFrequency]
-  topology2: lane(1.05, 1.45, 0.08, 2.0),
+  topology0: lane(0.32, 0.18, 0.15, 0.10),
+  // [interiorWeight, edgeWeight, secondaryWeight, connectivity]
+  topology1: lane(0.65, 0.20, 0.25, 0.28),
+  // [cellContrast, cellThreshold, macroCoverageBias, rippleFrequency]
+  topology2: lane(1.0, 0.50, 0.10, 1.5),
   // [rippleAmplitude, lensStrength, rollStrength, reserved]
-  detail0: lane(0.04, 0, 0, 0),
-  finalize0: lane(1.0, 1, 6, 0),
-});
-
-const ALTOCUMULUS_BANK = cellularBank({
-  domain0: lane(1.20, 1.35, 1.90, 0.09),
-  domain1: lane(0.017, 0.08, 1.15, 0.42),
-  vertical0: lane(0.12, 0.16, 0.12, 0),
-  vertical1: lane(0.18, 0.62, 0, 0),
-  topology0: lane(0.47, 0.15, 0.30, 0.14),
-  topology1: lane(0.60, 0.28, 0.40, 0.08),
-  topology2: lane(1.15, 1.40, 0.04, 3.0),
-  detail0: lane(0.08, 0, 0, 0),
+  detail0: lane(0.03, 0, 0, 0),
   finalize0: lane(0.95, 1, 6, 0),
 });
 
+const ALTOCUMULUS_BANK = cellularBank({
+  domain0: lane(1.20, 1.75, 2.45, 0.09),
+  domain1: lane(0.017, 0.04, 1.10, 0),
+  vertical0: lane(0.10, 0.14, 0.10, 0),
+  vertical1: lane(0.18, 0.38, 0, 0),
+  topology0: lane(0.34, 0.18, 0.15, 0.09),
+  topology1: lane(0.60, 0.25, 0.35, 0.16),
+  topology2: lane(1.0, 0.50, 0.10, 2.4),
+  detail0: lane(0.08, 0, 0, 0),
+  finalize0: lane(0.90, 1, 6, 0),
+});
+
 const CIRROCUMULUS_BANK = cellularBank({
-  domain0: lane(1.55, 2.30, 3.40, 0.12),
-  domain1: lane(0.018, 0.12, 1.25, 0.30),
-  vertical0: lane(0.08, 0.10, 0.06, 0),
-  vertical1: lane(0.32, 0.32, 0, 0),
-  topology0: lane(0.50, 0.12, 0.25, 0.12),
-  topology1: lane(0.58, 0.34, 0.45, 0.02),
-  topology2: lane(1.25, 1.50, 0.02, 3.0),
-  detail0: lane(0.18, 0, 0, 0),
-  finalize0: lane(0.80, 1, 4, 0),
+  domain0: lane(1.55, 2.80, 3.80, 0.12),
+  domain1: lane(0.018, 0.08, 1.20, 0),
+  vertical0: lane(0.08, 0.10, 0.05, 0),
+  vertical1: lane(0.15, 0.12, 0, 0),
+  topology0: lane(0.32, 0.18, 0.12, 0.08),
+  topology1: lane(0.55, 0.30, 0.40, 0.08),
+  topology2: lane(1.0, 0.50, 0.12, 3.0),
+  detail0: lane(0.36, 0, 0, 0),
+  finalize0: lane(0.72, 1, 4, 0),
 });
 
 const DISABLED_BANK = disabledBank();
@@ -310,6 +310,7 @@ export function verifyDensityV2RecipeSemantics(): void {
   const cellularBanks = [STRATOCUMULUS_BANK, ALTOCUMULUS_BANK, CIRROCUMULUS_BANK] as const;
   const cellFrequencies = cellularBanks.map((bank) => bank.lanes.domain0[1]);
   const profileSpans = cellularBanks.map((bank) => bank.lanes.vertical1[1]);
+  const physicalProfileMeters = profileSpans.map((span, index) => span * [1400, 2500, 4000][index]);
   const connectivity = cellularBanks.map((bank) => bank.lanes.topology1[3]);
   if (!(cellFrequencies[0] < cellFrequencies[1] && cellFrequencies[1] < cellFrequencies[2])) {
     throw new Error('Density V2 Cellular effective scale must satisfy Sc > Ac > Cc');
@@ -317,12 +318,17 @@ export function verifyDensityV2RecipeSemantics(): void {
   if (!(profileSpans[0] > profileSpans[1] && profileSpans[1] > profileSpans[2])) {
     throw new Error('Density V2 Cellular profile span must satisfy Sc > Ac > Cc');
   }
+  if (!(physicalProfileMeters[0] > physicalProfileMeters[1]
+    && physicalProfileMeters[1] > physicalProfileMeters[2])) {
+    throw new Error('Density V2 Cellular physical layer thickness must satisfy Sc > Ac > Cc');
+  }
   if (!(connectivity[0] > connectivity[1] && connectivity[1] > connectivity[2])) {
     throw new Error('Density V2 Cellular connectivity must satisfy Sc > Ac > Cc');
   }
   for (const [index, bank] of cellularBanks.entries()) {
     if (bank.detailAttachmentCosts.join(',') !== '1,0,0,0'
-      || bank.lanes.detail0[1] !== 0 || bank.lanes.detail0[2] !== 0) {
+      || bank.lanes.detail0[1] !== 0 || bank.lanes.detail0[2] !== 0
+      || bank.lanes.domain1[3] !== 0) {
       throw new Error(`Density V2 Cellular cost or disabled lens/roll default changed: ${index}`);
     }
   }

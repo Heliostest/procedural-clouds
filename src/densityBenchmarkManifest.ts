@@ -144,6 +144,28 @@ function translatedBody(source: CloudBody, id: string, offsetX: number, offsetZ:
   return body;
 }
 
+function benchmarkFootprintBody(
+  source: CloudBody,
+  id: string,
+  centerX: number,
+  centerZ: number,
+  halfExtentM: number,
+  coverage = source.coverage,
+): CloudBody {
+  const body = cloneBody(source);
+  body.id = id;
+  body.bounds = [
+    centerX - halfExtentM,
+    centerZ - halfExtentM,
+    centerX + halfExtentM,
+    centerZ + halfExtentM,
+  ];
+  body.feather = halfExtentM * 0.35;
+  body.coverage = coverage;
+  body.densityScale = 1;
+  return body;
+}
+
 function createScenes(): BenchmarkScene[] {
   const singleScenes = CLOUD_GENERA.map((genus): BenchmarkScene => {
     const bodies = [centeredBody(genus)];
@@ -196,22 +218,28 @@ function createScenes(): BenchmarkScene[] {
   const stratocumulus = centeredBody('stratocumulus');
   const altocumulus = centeredBody('altocumulus');
   const cirrocumulus = centeredBody('cirrocumulus');
+  // The scale scene uses equal horizontal support, feather, coverage and
+  // density. Cell frequency and vertical Recipe profile are the only intended
+  // morphology variables, so body footprint cannot masquerade as cell scale.
   const cellularScale = [
-    translatedBody(stratocumulus, 'w8-scale-stratocumulus', -3000, 0),
-    translatedBody(altocumulus, 'w8-scale-altocumulus', 0, 0),
-    translatedBody(cirrocumulus, 'w8-scale-cirrocumulus', 3000, 0),
+    benchmarkFootprintBody(stratocumulus, 'w8-scale-stratocumulus', -3200, 0, 1250, 0.6),
+    benchmarkFootprintBody(altocumulus, 'w8-scale-altocumulus', 0, 0, 1250, 0.6),
+    benchmarkFootprintBody(cirrocumulus, 'w8-scale-cirrocumulus', 3200, 0, 1250, 0.6),
   ];
+  // Keep genuine overlap while avoiding the previous five-body, full-extent
+  // saturation slab. This still exercises Cellular/Stratiform/Cumulus top-two
+  // composition with several pairwise and central intersections.
   const cellularOverlap = [
-    translatedBody(stratocumulus, 'w8-overlap-stratocumulus', 0, 0),
-    translatedBody(altocumulus, 'w8-overlap-altocumulus', 0, 0),
-    translatedBody(cirrocumulus, 'w8-overlap-cirrocumulus', 0, 0),
-    translatedBody(stratus, 'w8-overlap-stratus', 0, 0),
-    translatedBody(cumulus, 'w8-overlap-cumulus', 0, 0),
+    benchmarkFootprintBody(stratocumulus, 'w8-overlap-stratocumulus', -700, 0, 1700, 0.62),
+    benchmarkFootprintBody(altocumulus, 'w8-overlap-altocumulus', 700, 0, 1450, 0.58),
+    benchmarkFootprintBody(cirrocumulus, 'w8-overlap-cirrocumulus', 0, 650, 1500, 0.56),
+    benchmarkFootprintBody(stratus, 'w8-overlap-stratus', 0, -650, 2100, 0.62),
+    benchmarkFootprintBody(cumulus, 'w8-overlap-cumulus', 0, 100, 900, 0.58),
   ];
   const waveRipple = [
-    translatedBody(cirrocumulus, 'w8-ripple-west', -2200, 0),
-    translatedBody(cirrocumulus, 'w8-ripple-center', 0, 0),
-    translatedBody(cirrocumulus, 'w8-ripple-east', 2200, 0),
+    benchmarkFootprintBody(cirrocumulus, 'w8-ripple-west', -3200, 0, 1250, 0.58),
+    benchmarkFootprintBody(cirrocumulus, 'w8-ripple-center', 0, 0, 1250, 0.58),
+    benchmarkFootprintBody(cirrocumulus, 'w8-ripple-east', 3200, 0, 1250, 0.58),
   ];
 
   return [
@@ -271,6 +299,14 @@ function createScenes(): BenchmarkScene[] {
       sceneTimeSeconds: 12,
       bodies: cellularScale,
       windSamples: zeroWind(cellularScale.length),
+      camera: {
+        eye: [0, 9.5, 13],
+        target: [0, 4.5, 0],
+        up: [0, 1, 0],
+        fovYRadians: Math.PI / 5,
+        near: 0.05,
+        far: 220,
+      },
     },
     {
       id: 'w8-cellular-overlap',
@@ -289,6 +325,14 @@ function createScenes(): BenchmarkScene[] {
         { offsetM: [1200, 600], morphTime: 0 },
         { offsetM: [2400, 1200], morphTime: 0 },
       ],
+      camera: {
+        eye: [0, 10, 13],
+        target: [0, 7, 0],
+        up: [0, 1, 0],
+        fovYRadians: Math.PI / 5,
+        near: 0.05,
+        far: 220,
+      },
     },
   ];
 }

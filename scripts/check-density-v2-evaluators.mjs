@@ -112,13 +112,62 @@ if (sampleCalls(cellular).join(',') !== 'Macro,Base,Base') {
 for (const contract of [
   'fn densityV2EvaluateCellular(',
   'fn densityV2CellularAnalyticHooks(',
+  'fn densityV2CellularSignal(',
   'waveStrength <= 0.0',
   'rippleAmplitude <= 0.0',
   'lensStrength <= 0.0',
   'rollStrength <= 0.0',
-  'return vec2f(0.0, 1.0)',
+  'return vec3f(0.0, 1.0, 0.0)',
+  'recipe.topology2.y + thresholdOffset',
+  'max(weightedCell, bridge)',
 ]) {
   if (!cellular.includes(contract)) throw new Error(`Cellular source contract missing: ${contract}`);
+}
+if (cellular.includes('+ recipe.topology1.w')) {
+  throw new Error('Cellular connectivity must not be an additive saturation bias');
+}
+
+const cellularGenera = ['stratocumulus', 'altocumulus', 'cirrocumulus'];
+const fillRatios = [];
+for (const genus of cellularGenera) {
+  const lanes = semantics.DENSITY_V2_RECIPE_BANKS[genus].lanes;
+  let filled = 0;
+  let saturated = 0;
+  const sampleCount = 48 * 48;
+  for (let z = 0; z < 48; z++) {
+    for (let x = 0; x < 48; x++) {
+      const u = (x + 0.5) / 48 * Math.PI * 2;
+      const v = (z + 0.5) / 48 * Math.PI * 2;
+      const primaryInterior = 0.56 + 0.25 * Math.cos(u * 1.7) * Math.cos(v * 1.1);
+      const primaryEdge = 0.31 + 0.18 * Math.sin(u * 1.3 + v * 0.7);
+      const secondaryInterior = 0.54 + 0.23 * Math.cos(u * 0.8 - v * 1.9);
+      const secondaryEdge = 0.29 + 0.16 * Math.sin(u * 1.6 - v * 1.2);
+      const value = math.densityV2CellularSignal(
+        primaryInterior,
+        primaryEdge,
+        secondaryInterior,
+        secondaryEdge,
+        lanes.topology1[0],
+        lanes.topology1[1],
+        lanes.topology1[2],
+        lanes.topology1[3],
+        lanes.topology2[0],
+        lanes.topology2[1],
+        lanes.topology0[3],
+      );
+      if (value >= 0.5) filled++;
+      if (value >= 0.98) saturated++;
+    }
+  }
+  const fillRatio = filled / sampleCount;
+  const saturationRatio = saturated / sampleCount;
+  if (fillRatio < 0.08 || fillRatio > 0.78 || saturationRatio > 0.55) {
+    throw new Error(`${genus} Cellular probe is empty/solid: fill=${fillRatio} saturated=${saturationRatio}`);
+  }
+  fillRatios.push(fillRatio);
+}
+if (!(fillRatios[0] > fillRatios[1] && fillRatios[1] > fillRatios[2])) {
+  throw new Error(`Cellular coverage/connectivity ordering changed: ${fillRatios.join('/')}`);
 }
 for (const contract of [
   'densityV2InverseQuaternionRotate',
@@ -176,6 +225,14 @@ for (const scene of [
   'w8-wave-ripple',
 ]) {
   if (!manifest.includes(`'${scene}'`)) throw new Error(`W8 benchmark scene missing: ${scene}`);
+}
+for (const contract of [
+  'function benchmarkFootprintBody(',
+  "benchmarkFootprintBody(stratocumulus, 'w8-scale-stratocumulus', -3200, 0, 1250, 0.6)",
+  "benchmarkFootprintBody(altocumulus, 'w8-scale-altocumulus', 0, 0, 1250, 0.6)",
+  "benchmarkFootprintBody(cirrocumulus, 'w8-scale-cirrocumulus', 3200, 0, 1250, 0.6)",
+]) {
+  if (!manifest.includes(contract)) throw new Error(`W8 normalized scale benchmark contract missing: ${contract}`);
 }
 if (!manifest.includes("for (const producer of ['legacy', 'recipe-v2'] as const)")) {
   throw new Error('W6 benchmark cases do not use the global producer A/B seam');

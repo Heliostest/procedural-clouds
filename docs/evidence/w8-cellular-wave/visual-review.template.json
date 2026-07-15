@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceGeneratedAt": "COPY_FROM_RESULTS_RAW_JSON",
+  "reviewer": "AI_OR_HUMAN_REVIEWER",
+  "reviewedAt": "ISO_8601_TIMESTAMP",
+  "nonWaivableChecks": {
+    "finite-nonnegative-density-and-metadata": "unresolved",
+    "support-and-tile-mask-containment": "unresolved",
+    "no-checkerboard-camera-lock-or-wind-discontinuity": "unresolved"
+  },
+  "scenes": {
+    "single-stratocumulus": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    },
+    "single-altocumulus": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    },
+    "single-cirrocumulus": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    },
+    "w8-cellular-scale": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    },
+    "w8-cellular-overlap": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "unresolved",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    },
+    "w8-wave-ripple": {
+      "rawDensityVerdict": "pending-review",
+      "normalOpticalVerdict": "pending-review",
+      "supportTileVerdict": "review",
+      "metadataVerdict": "unresolved",
+      "note": ""
+    }
+  }
+}
