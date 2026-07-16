@@ -82,4 +82,4 @@
 - [ ] 10.2 timestamp 可用时 Sc/Ac/Cc V2 cache median≤1.00×Legacy、p90≤1.20×Legacy；否则记录 unresolved/owner-waived
 - [ ] 10.3 三属 cell 尺度、层厚、连接度与 ripple 可辨，完整云种/变种缺失不作为 W8 主体失败
 - [ ] 10.4 项目所有者批准 W8 Gate report；source/Support/NaN/metadata/W7-Legacy 回退、新资源/pass、超预算 sample、棋盘/相机锁纹或风不连续任一失败必须 Stop/Review
-- [ ] 10.5 只有 0–10.4 解决后才能归档并创建 W9 Fiber 提案
+- [x] 10.5 2026-07-16 项目所有者批准 W9 作为本 Stop 的架构修复例外先行实施；W8 保持 active，只有同 revision 联合复验解决0–10.4后才能归档；Fiber迁移仍顺延为W10

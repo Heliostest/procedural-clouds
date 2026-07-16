@@ -192,6 +192,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
   getOutput(): DensityCacheOutput {
     const views = this.requireViews();
     return {
+      contractVersion: 2,
       format: DENSITY_CACHE_FORMAT,
       resolution: [this.resolution, this.resolution, this.resolution],
       sampledViews: views,
@@ -201,7 +202,13 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       contentRevision: this.contentRevision,
       validSampleCount: this.cacheValidCount,
       valid: this.lifecycle === 'ready' && this.cacheValidCount > 0,
+      storageMode: 'global-only',
+      hierarchical: null,
     };
+  }
+
+  requestStorageMode(_mode: 'global-only' | 'hierarchical', _cacheRequired: boolean): void {
+    // Legacy owns only the unchanged global coarse cache.
   }
 
   setResolution(resolution: number): void {
@@ -258,6 +265,7 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
       tileMask: null,
       sharedFields: null,
       evaluator: null,
+      bricks: null,
     };
   }
 
@@ -267,6 +275,10 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
 
   recordSharedFieldGpuTiming(_atlasMs: number | null, _macroMs: number | null, _error = ''): void {
     // Legacy owns no W5 shared-field resources.
+  }
+
+  recordBrickGpuTiming(_brickMs: number | null, _error = ''): void {
+    // Legacy owns no body-local brick resources.
   }
 
   handleDeviceLost(reason: GPUDeviceLostInfo): void {

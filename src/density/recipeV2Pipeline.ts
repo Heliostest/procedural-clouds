@@ -3,6 +3,7 @@ import cellularDensitySource from '../../shaders/density-v2-cellular.wgsl?raw';
 import cumulusDensitySource from '../../shaders/density-v2-cumulus.wgsl?raw';
 import spikeDensitySource from '../../shaders/density-v2-spike.wgsl?raw';
 import stratusDensitySource from '../../shaders/density-v2-stratus.wgsl?raw';
+import brickDensitySource from '../../shaders/density-v2-brick.wgsl?raw';
 import sharedFieldBindingsSource from '../../shaders/density-shared-fields-bindings.wgsl?raw';
 import sharedFieldSamplingSource from '../../shaders/density-shared-sampling.wgsl?raw';
 import {
@@ -18,6 +19,15 @@ import { verifyDensityV2PackingFixtures } from './recipeV2PackingFixtures';
 import { verifyDensityV2EvaluatorMathFixtures } from './recipeV2EvaluatorMath';
 import { verifyDensityRecipeV2Table } from './recipeV2Recipes';
 import { verifyDensityV2TileMaskFixtures } from './recipeV2TileMaskFixtures';
+import {
+  DENSITY_BRICK_ATLAS_PROFILES,
+  type DensityBrickAtlasProfile,
+  verifyDensityBrickContracts,
+} from './bodyLocalBricks';
+import { verifyDensityBodyLocalBrickFixtures } from './bodyLocalBrickFixtures';
+
+export const DENSITY_BRICK_DISPATCH_BYTES = 112;
+export const DENSITY_BRICK_DISPATCH_STRIDE = 256;
 
 export interface RecipeV2PipelineCreationStats {
   shaderModuleCreateCpuMs: number;
@@ -34,6 +44,20 @@ export interface RecipeV2PipelineResources {
   readonly pipeline: GPUComputePipeline;
   readonly source: string;
   readonly creation: RecipeV2PipelineCreationStats;
+  createPipeline(workgroup: readonly [number, number, number]): GPUComputePipeline;
+  createBrickPipeline(workgroup: readonly [number, number, number]): Promise<RecipeV2BrickPipelineResources>;
+}
+
+export interface RecipeV2BrickPipelineResources {
+  readonly profile: DensityBrickAtlasProfile;
+  readonly module: GPUShaderModule;
+  readonly outputLayout: GPUBindGroupLayout;
+  readonly dispatchLayout: GPUBindGroupLayout;
+  readonly pipelineLayout: GPUPipelineLayout;
+  readonly pipeline: GPUComputePipeline;
+  readonly source: string;
+  readonly creation: RecipeV2PipelineCreationStats;
+  readonly profileFallbackReason: string;
   createPipeline(workgroup: readonly [number, number, number]): GPUComputePipeline;
 }
 
@@ -70,6 +94,156 @@ function descriptor(
   };
 }
 
+function brickDescriptor(
+  pipelineLayout: GPUPipelineLayout,
+  module: GPUShaderModule,
+  workgroup: readonly [number, number, number],
+): GPUComputePipelineDescriptor {
+  return {
+    label: 'recipe-density-v2-body-local-brick-compute',
+    layout: pipelineLayout,
+    compute: {
+      module,
+      entryPoint: 'csDensityV2Brick',
+      constants: {
+        brick_wg_x: workgroup[0],
+        brick_wg_y: workgroup[1],
+        brick_wg_z: workgroup[2],
+      },
+    },
+  };
+}
+
+async function createBrickPipelineResources(
+  device: GPUDevice,
+  profile: DensityBrickAtlasProfile,
+  inputLayout: GPUBindGroupLayout,
+  sharedFieldLayout: GPUBindGroupLayout,
+  sourcePrefix: string,
+  workgroup: readonly [number, number, number],
+): Promise<RecipeV2BrickPipelineResources> {
+  if (profile.dimension > device.limits.maxTextureDimension3D) {
+    throw new Error(`${profile.id}:dimension-limit`);
+  }
+  if (profile.residentBytes > 16 * 1024 * 1024) {
+    throw new Error(`${profile.id}:resident-budget`);
+  }
+  // Probe the format before constructing the real pipeline layout so an
+  // unsupported storage format reports its actual texture/layout error rather
+  // than poisoning the later pipeline with an opaque "previous error".
+  device.pushErrorScope('validation');
+  let probeTexture: GPUTexture | undefined;
+  let profileProbeError: unknown;
+  try {
+    probeTexture = device.createTexture({
+      label: `recipe-density-v2-brick-profile-probe-${profile.id}`,
+      size: [1, 1, 1],
+      dimension: '3d',
+      format: profile.format,
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    const probeSampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+    const storageLayout = device.createBindGroupLayout({
+      label: `recipe-density-v2-brick-storage-probe-${profile.id}`,
+      entries: [{
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
+        storageTexture: { access: 'write-only', format: profile.format, viewDimension: '3d' },
+      }],
+    });
+    const sampleLayout = device.createBindGroupLayout({
+      label: `recipe-density-v2-brick-sample-probe-${profile.id}`,
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: { type: 'filtering' } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float', viewDimension: '3d' } },
+      ],
+    });
+    device.createBindGroup({
+      label: `recipe-density-v2-brick-storage-probe-${profile.id}`,
+      layout: storageLayout,
+      entries: [{ binding: 0, resource: probeTexture.createView({ dimension: '3d' }) }],
+    });
+    device.createBindGroup({
+      label: `recipe-density-v2-brick-filter-probe-${profile.id}`,
+      layout: sampleLayout,
+      entries: [
+        { binding: 0, resource: probeSampler },
+        { binding: 1, resource: probeTexture.createView({ dimension: '3d' }) },
+      ],
+    });
+  } catch (error: unknown) {
+    profileProbeError = error;
+  }
+  const profileValidationError = await device.popErrorScope();
+  probeTexture?.destroy();
+  if (profileProbeError || profileValidationError) {
+    const reason = profileProbeError instanceof Error
+      ? profileProbeError.message
+      : profileValidationError?.message ?? String(profileProbeError ?? 'unknown-profile-error');
+    throw new Error(`${profile.id}:${reason}`);
+  }
+
+  device.pushErrorScope('validation');
+  const outputLayout = device.createBindGroupLayout({
+    label: `recipe-density-v2-brick-output-${profile.id}`,
+    entries: [{
+      binding: 0,
+      visibility: GPUShaderStage.COMPUTE,
+      storageTexture: { access: 'write-only', format: profile.format, viewDimension: '3d' },
+    }],
+  });
+  const dispatchLayout = device.createBindGroupLayout({
+    label: 'recipe-density-v2-brick-dispatch-layout',
+    entries: [{
+      binding: 0,
+      visibility: GPUShaderStage.COMPUTE,
+      buffer: { type: 'uniform', hasDynamicOffset: true, minBindingSize: DENSITY_BRICK_DISPATCH_BYTES },
+    }],
+  });
+  const pipelineLayout = device.createPipelineLayout({
+    label: `recipe-density-v2-brick-pipeline-layout-${profile.id}`,
+    bindGroupLayouts: [inputLayout, outputLayout, sharedFieldLayout, dispatchLayout],
+  });
+  const source = `${sourcePrefix}\n\n${brickDensitySource.replace('__BRICK_STORAGE_FORMAT__', profile.format)}`;
+  const moduleStarted = performance.now();
+  const module = device.createShaderModule({
+    label: `recipe-density-v2-brick-module-${profile.id}`,
+    code: source,
+  });
+  const shaderModuleCreateCpuMs = performance.now() - moduleStarted;
+  let pipeline: GPUComputePipeline | undefined;
+  let creationError: unknown;
+  const pipelineStarted = performance.now();
+  try {
+    pipeline = await device.createComputePipelineAsync(brickDescriptor(pipelineLayout, module, workgroup));
+  } catch (error: unknown) {
+    creationError = error;
+  }
+  const validationError = await device.popErrorScope();
+  if (creationError || validationError || !pipeline) {
+    const reason = creationError instanceof Error
+      ? creationError.message
+      : validationError?.message ?? String(creationError ?? 'unknown-error');
+    throw new Error(`${profile.id}:${reason}`);
+  }
+  const pipelineCreateCpuMs = performance.now() - pipelineStarted;
+  return {
+    profile,
+    module,
+    outputLayout,
+    dispatchLayout,
+    pipelineLayout,
+    pipeline,
+    source,
+    creation: { shaderModuleCreateCpuMs, pipelineCreateCpuMs, sourceLength: source.length },
+    profileFallbackReason: '',
+    createPipeline(nextWorkgroup) {
+      const validated = clampDensityV2Workgroup(device.limits, nextWorkgroup);
+      return device.createComputePipeline(brickDescriptor(pipelineLayout, module, validated));
+    },
+  };
+}
+
 export async function createRecipeV2PipelineResources(
   device: GPUDevice,
   requestedWorkgroup: readonly [number, number, number],
@@ -79,8 +253,10 @@ export async function createRecipeV2PipelineResources(
   verifyDensityV2PackingFixtures();
   verifyDensityV2TileMaskFixtures();
   verifyDensityV2EvaluatorMathFixtures();
+  verifyDensityBrickContracts();
+  verifyDensityBodyLocalBrickFixtures();
   const workgroup = clampDensityV2Workgroup(device.limits, requestedWorkgroup);
-  const source = [
+  const sourcePrefix = [
     buildDensityV2WgslAbi(),
     sharedFieldBindingsSource,
     sharedFieldSamplingSource,
@@ -88,6 +264,9 @@ export async function createRecipeV2PipelineResources(
     stratusDensitySource,
     cumulusDensitySource,
     cellularDensitySource,
+  ].join('\n\n');
+  const source = [
+    sourcePrefix,
     spikeDensitySource,
   ].join('\n\n');
   const inputLayout = device.createBindGroupLayout({
@@ -186,6 +365,26 @@ export async function createRecipeV2PipelineResources(
     createPipeline(nextWorkgroup) {
       const validated = clampDensityV2Workgroup(device.limits, nextWorkgroup);
       return device.createComputePipeline(descriptor(pipelineLayout, module, validated));
+    },
+    async createBrickPipeline(nextWorkgroup) {
+      const validated = clampDensityV2Workgroup(device.limits, nextWorkgroup);
+      const failures: string[] = [];
+      for (const profile of [DENSITY_BRICK_ATLAS_PROFILES.preferred, DENSITY_BRICK_ATLAS_PROFILES.fallback]) {
+        try {
+          const result = await createBrickPipelineResources(
+            device,
+            profile,
+            inputLayout,
+            sharedFieldLayout,
+            sourcePrefix,
+            validated,
+          );
+          return { ...result, profileFallbackReason: failures.join(';') };
+        } catch (error: unknown) {
+          failures.push(error instanceof Error ? error.message : String(error));
+        }
+      }
+      throw new Error(failures.join(';') || 'no-approved-brick-profile');
     },
   };
 }

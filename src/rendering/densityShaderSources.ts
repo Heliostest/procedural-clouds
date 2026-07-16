@@ -13,6 +13,7 @@ import cirrostratusSource from '../../shaders/genus/cirrostratus.wgsl?raw';
 import cirrocumulusSource from '../../shaders/genus/cirrocumulus.wgsl?raw';
 import genusDispatchSource from '../../shaders/genus/dispatch.wgsl?raw';
 import type { DensityQualityKind } from './densityQualityContracts';
+import { buildDensityBrickWgslAbi } from '../density/bodyLocalBricks';
 
 interface DensityShaderFragment {
   readonly name: string;
@@ -136,6 +137,130 @@ fragments.set('quality-cached', cachedQualityAdapter);
 fragments.set('quality-hybrid', hybridQualityAdapter);
 fragments.set('quality-realtime', realtimeQualityAdapter);
 
+const hierarchicalSampling = /* wgsl */ `
+${buildDensityBrickWgslAbi()}
+
+@group(1) @binding(3) var densityBrickSampler : sampler;
+@group(1) @binding(4) var densityBrickTex0 : texture_3d<f32>;
+@group(1) @binding(5) var densityBrickTex1 : texture_3d<f32>;
+@group(1) @binding(6) var<storage, read> densityBrickRecords : array<DensityBrickRecordGPU, 12>;
+@group(1) @binding(7) var<storage, read> densityBrickCandidates : array<vec2u>;
+
+fn densityBrickCandidateIndex(pos : vec3f) -> u32 {
+  let bmin = boxMin();
+  let bmax = getBoxMax();
+  let uvw = (pos - bmin) / (bmax - bmin);
+  let resolution = max(u32(round(params.g.densityResolution)), 1u);
+  let workgroup = max(vec3u(
+    u32(round(params.g.cacheWorkgroupX)),
+    u32(round(params.g.cacheWorkgroupY)),
+    u32(round(params.g.cacheWorkgroupZ)),
+  ), vec3u(1u));
+  let grid = (vec3u(resolution) + workgroup - vec3u(1u)) / workgroup;
+  let voxel = min(vec3u(floor(clamp(uvw, vec3f(0.0), vec3f(0.999999)) * f32(resolution))), vec3u(resolution - 1u));
+  let tile = min(voxel / workgroup, grid - vec3u(1u));
+  return tile.x + grid.x * (tile.y + grid.y * tile.z);
+}
+
+fn densityBrickRecordLocal(record : DensityBrickRecordGPU, pos : vec3f) -> vec3f {
+  return vec3f(
+    dot(record.worldToLocal0.xyz, pos) + record.worldToLocal0.w,
+    dot(record.worldToLocal1.xyz, pos) + record.worldToLocal1.w,
+    dot(record.worldToLocal2.xyz, pos) + record.worldToLocal2.w,
+  );
+}
+
+fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
+  let coarse = sampleDensityTyped(pos);
+  let bmin = boxMin();
+  let bmax = getBoxMax();
+  let uvw = (pos - bmin) / (bmax - bmin);
+  if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
+    return coarse;
+  }
+  let entry = densityBrickCandidates[densityBrickCandidateIndex(pos)];
+  let count = entry.y & 7u;
+  let overflow = (entry.y & 8u) != 0u;
+  let complete = (entry.y & 16u) != 0u;
+  let generation = entry.y >> 8u;
+  if (!complete || overflow || count > DENSITY_BRICK_CANDIDATE_LIMIT) {
+    return coarse;
+  }
+
+  var totalDensity = 0.0;
+  var bestDensity = 0.0;
+  var secondDensity = 0.0;
+  var bestGenus = 0u;
+  var secondGenus = 0u;
+  for (var i = 0u; i < 4u; i++) {
+    if (i >= count) { break; }
+    let recordIndex = (entry.x >> (i * 8u)) & 0xffu;
+    if (recordIndex >= DENSITY_BRICK_RECORD_COUNT) { return coarse; }
+    let record = densityBrickRecords[recordIndex];
+    if (record.header.x == 0u || record.header.y != recordIndex || record.header.w != generation) {
+      return coarse;
+    }
+    if (any(pos < record.supportMin.xyz) || any(pos > record.supportMax.xyz)) {
+      continue;
+    }
+    let local = densityBrickRecordLocal(record, pos);
+    if (any(local < vec3f(0.0)) || any(local > vec3f(1.0))) {
+      continue;
+    }
+    let atlasUv = local * record.atlasScale.xyz + record.atlasBias.xyz;
+    let da = textureSampleLevel(densityBrickTex0, densityBrickSampler, atlasUv, 0.0).r;
+    let db = textureSampleLevel(densityBrickTex1, densityBrickSampler, atlasUv, 0.0).r;
+    let density = max(mix(da, db, clamp(params.g.cacheBlend, 0.0, 1.0)), 0.0);
+    totalDensity += density;
+    if (density > bestDensity) {
+      secondDensity = bestDensity;
+      secondGenus = bestGenus;
+      bestDensity = density;
+      bestGenus = record.header.z;
+    } else if (density > secondDensity) {
+      secondDensity = density;
+      secondGenus = record.header.z;
+    }
+  }
+  if (bestDensity <= 0.0) { return vec4f(0.0); }
+  let rest = max(totalDensity - bestDensity, 0.0);
+  let restCap = max(bestDensity, 0.25);
+  let softDensity = bestDensity + restCap * (1.0 - exp(-rest / restCap));
+  let secondWeight = secondDensity / max(bestDensity + secondDensity, 1e-4);
+  return vec4f(softDensity, f32(bestGenus), f32(secondGenus), secondWeight);
+}
+`;
+
+const hierarchicalCachedQualityAdapter = /* wgsl */ `
+fn densityAtTyped(pos : vec3f) -> vec4f {
+  let s = sampleHierarchicalDensityTyped(pos);
+  return vec4f(applyEdgeShaping(max(s.x, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
+}
+
+fn densityAt(pos : vec3f) -> f32 {
+  return densityAtTyped(pos).x;
+}
+`;
+
+const hierarchicalHybridQualityAdapter = /* wgsl */ `
+fn densityAtTyped(pos : vec3f) -> vec4f {
+  let s = sampleHierarchicalDensityTyped(pos);
+  var base = s.x;
+  if (base > 0.01 && params.g.detailStrength > 0.0001) {
+    base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
+  }
+  return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
+}
+
+fn densityAt(pos : vec3f) -> f32 {
+  return densityAtTyped(pos).x;
+}
+`;
+
+fragments.set('hierarchical-cache-sampling', hierarchicalSampling);
+fragments.set('quality-hierarchical-cached', hierarchicalCachedQualityAdapter);
+fragments.set('quality-hierarchical-hybrid', hierarchicalHybridQualityAdapter);
+
 const genusFragmentNames = genusFragments.map((fragment) => fragment.name);
 
 export const DENSITY_SHADER_SOURCE_MANIFEST: Readonly<Record<DensityQualityKind | 'legacy-cache' | 'recipe-v2', DensityShaderSourceManifestEntry>> = Object.freeze({
@@ -199,6 +324,26 @@ function assemble(entry: DensityShaderSourceManifestEntry): string {
 
 export function buildDensityQualityShaderSource(kind: DensityQualityKind): string {
   return assemble(DENSITY_SHADER_SOURCE_MANIFEST[kind]);
+}
+
+export function buildHierarchicalDensityQualityShaderSource(kind: 'cached' | 'hybrid'): string {
+  const entry: DensityShaderSourceManifestEntry = {
+    kind,
+    fragments: kind === 'cached'
+      ? [
+          'noise-common-edge', 'shared-abi', 'cloud-vertex', 'shared-helpers', 'cache-sampling',
+          'cloud-render-prefix', 'edge-shaping', 'debug-shapes', 'hierarchical-cache-sampling',
+          'quality-hierarchical-cached', 'cloud-render-tail', 'ground-shadow-entry',
+        ]
+      : [
+          'noise-common-edge', 'shared-abi', 'cloud-vertex', 'shared-helpers', 'cache-sampling',
+          'cloud-render-prefix', 'hybrid-detail', 'edge-shaping', 'debug-shapes',
+          'hierarchical-cache-sampling', 'quality-hierarchical-hybrid', 'cloud-render-tail',
+          'ground-shadow-entry',
+        ],
+    forbiddenFragments: ['noise-legacy-voronoi', 'legacy-evaluator', ...genusFragmentNames, 'legacy-cache-entry'],
+  };
+  return assemble(entry);
 }
 
 export function buildLegacyDensityCacheShaderSource(): string {

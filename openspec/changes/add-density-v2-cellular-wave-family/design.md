@@ -17,7 +17,7 @@ W8 需要扩展 family 而不改变 renderer/cache 外部契约，也不能因 W
 - 让 cell scale、connectivity、thickness 与 ripple 成为正交、可检查参数。
 - 提供有界解析 Wave/Lens/Roll hook，零强度无额外形态成本。
 - 保持 W7 五属、Legacy、Realtime、Optical、tile mask 与缓存消费者回归。
-- 为 W9 增加新 family 时提供第二个“单 kernel、多 Recipe”模板。
+- 为 W9 body-local brick复用静态 evaluator、以及 W10 增加新 family时提供第二个“单 kernel、多 Recipe”模板。
 
 ## Non-Goals
 

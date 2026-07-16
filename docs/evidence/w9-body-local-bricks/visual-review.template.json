@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceGeneratedAt": "COPY_FROM_RESULTS_RAW_JSON",
+  "reviewer": "AI_OR_HUMAN_REVIEWER",
+  "reviewedAt": "ISO_8601_TIMESTAMP",
+  "ownerApproval": "pending",
+  "scenes": {
+    "single-stratocumulus": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "single-altocumulus": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "single-cirrocumulus": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w8-cellular-scale": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w8-cellular-overlap": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w8-wave-ripple": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w9-brick-lod-sweep": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w9-brick-overflow": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    },
+    "w9-thin-ridge-proxy": {
+      "hierarchicalVsGlobal": "pending-review",
+      "normal": "pending-review",
+      "densityDebug": "pending-review",
+      "seamAndPhase": "pending-review",
+      "metadataAndSupport": "pending-review",
+      "note": ""
+    }
+  }
+}

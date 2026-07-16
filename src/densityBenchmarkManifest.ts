@@ -3,12 +3,13 @@ import { CLOUD_GENERA, type CloudGenus } from './genusProfile';
 import { createDefaultParams, type CloudParams } from './params';
 import type { WindAdvectionSample } from './wind';
 
-export const DENSITY_BENCHMARK_SCHEMA_VERSION = 4 as const;
+export const DENSITY_BENCHMARK_SCHEMA_VERSION = 5 as const;
 export const DENSITY_BENCHMARK_BASELINE_ID = 'density-v2-w0-legacy-v1';
 
 export type BenchmarkQuality = 'cached' | 'hybrid' | 'realtime';
 export type BenchmarkView = 'normal' | 'density-debug';
 export type BenchmarkProducer = 'legacy' | 'recipe-v2';
+export type BenchmarkStorage = 'global-only' | 'hierarchical';
 export type BenchmarkSceneId = `single-${CloudGenus}`
   | 'stress-all-genera'
   | 'stress-complex-cb'
@@ -19,7 +20,10 @@ export type BenchmarkSceneId = `single-${CloudGenus}`
   | 'w7-stratiform-overlap'
   | 'w8-cellular-scale'
   | 'w8-cellular-overlap'
-  | 'w8-wave-ripple';
+  | 'w8-wave-ripple'
+  | 'w9-brick-lod-sweep'
+  | 'w9-brick-overflow'
+  | 'w9-thin-ridge-proxy';
 export type BenchmarkCaseStatus = 'pending' | 'running' | 'complete' | 'invalid' | 'stale';
 
 type SerializableParamKey = {
@@ -68,6 +72,7 @@ export interface DensityBenchmarkCase {
   realtimeCompatibilityOnly: boolean;
   screenshotPath: string;
   producer?: BenchmarkProducer;
+  storage?: BenchmarkStorage;
 }
 
 export interface DensityBenchmarkManifest {
@@ -241,6 +246,22 @@ function createScenes(): BenchmarkScene[] {
     benchmarkFootprintBody(cirrocumulus, 'w8-ripple-center', 0, 0, 1250, 0.58),
     benchmarkFootprintBody(cirrocumulus, 'w8-ripple-east', 3200, 0, 1250, 0.58),
   ];
+  const brickLodSweep = [
+    benchmarkFootprintBody(cirrocumulus, 'w9-lod-near-cc', -4200, 0, 900, 0.58),
+    benchmarkFootprintBody(altocumulus, 'w9-lod-mid-ac', -1400, 0, 1200, 0.6),
+    benchmarkFootprintBody(stratocumulus, 'w9-lod-mid-sc', 1600, 0, 1600, 0.62),
+    benchmarkFootprintBody(cumulus, 'w9-lod-far-cu', 4600, 0, 850, 0.58),
+  ];
+  const brickOverflow = [
+    benchmarkFootprintBody(stratocumulus, 'w9-overflow-sc', 0, 0, 1900, 0.62),
+    benchmarkFootprintBody(altocumulus, 'w9-overflow-ac', 0, 0, 1850, 0.6),
+    benchmarkFootprintBody(cirrocumulus, 'w9-overflow-cc', 0, 0, 1800, 0.58),
+    benchmarkFootprintBody(stratus, 'w9-overflow-st', 0, 0, 1950, 0.62),
+    benchmarkFootprintBody(cumulus, 'w9-overflow-cu', 0, 0, 1700, 0.58),
+  ];
+  const thinRidge = [benchmarkFootprintBody(cirrocumulus, 'w9-thin-ridge-cc', 0, 0, 1200, 0.58)];
+  thinRidge[0].bounds = [-6200, -650, 6200, 650];
+  thinRidge[0].feather = 260;
 
   return [
     ...singleScenes,
@@ -328,6 +349,35 @@ function createScenes(): BenchmarkScene[] {
       camera: {
         eye: [0, 10, 13],
         target: [0, 7, 0],
+        up: [0, 1, 0],
+        fovYRadians: Math.PI / 5,
+        near: 0.05,
+        far: 220,
+      },
+    },
+    {
+      id: 'w9-brick-lod-sweep',
+      label: 'W9 Body-local brick LOD sweep',
+      sceneTimeSeconds: 12,
+      bodies: brickLodSweep,
+      windSamples: zeroWind(brickLodSweep.length),
+    },
+    {
+      id: 'w9-brick-overflow',
+      label: 'W9 K=4 candidate overflow fallback',
+      sceneTimeSeconds: 12,
+      bodies: brickOverflow,
+      windSamples: zeroWind(brickOverflow.length),
+    },
+    {
+      id: 'w9-thin-ridge-proxy',
+      label: 'W9 high-aspect thin ridge proxy',
+      sceneTimeSeconds: 12,
+      bodies: thinRidge,
+      windSamples: zeroWind(thinRidge.length),
+      camera: {
+        eye: [0, 9.5, 14],
+        target: [0, 6.5, 0],
         up: [0, 1, 0],
         fovYRadians: Math.PI / 5,
         near: 0.05,
@@ -505,6 +555,41 @@ function createCases(): DensityBenchmarkCase[] {
       }
     }
   }
+  const w9Scenes: readonly BenchmarkSceneId[] = [
+    'single-stratocumulus', 'single-altocumulus', 'single-cirrocumulus',
+    'w8-cellular-scale', 'w8-cellular-overlap', 'w8-wave-ripple',
+    'w9-brick-lod-sweep', 'w9-brick-overflow', 'w9-thin-ridge-proxy',
+  ];
+  for (const sceneId of w9Scenes) {
+    for (const quality of ['cached', 'hybrid'] as const) {
+      for (const view of ['normal', 'density-debug'] as const) {
+        const id = `w9--${sceneId}--legacy--global-only--${quality}--${view}`;
+        cases.push({
+          id, sceneId, producer: 'legacy', storage: 'global-only', quality, view,
+          gateRequired: quality === 'cached' && view === 'normal',
+          timingRequired: quality === 'cached' && view === 'normal',
+          screenshotRequired: true,
+          realtimeCompatibilityOnly: false,
+          screenshotPath: screenshotPath(id),
+        });
+      }
+    }
+    for (const storage of ['global-only', 'hierarchical'] as const) {
+      for (const quality of ['cached', 'hybrid'] as const) {
+        for (const view of ['normal', 'density-debug'] as const) {
+          const id = `w9--${sceneId}--recipe-v2--${storage}--${quality}--${view}`;
+          cases.push({
+            id, sceneId, producer: 'recipe-v2', storage, quality, view,
+            gateRequired: quality === 'cached' && view === 'normal',
+            timingRequired: quality === 'cached' && view === 'normal',
+            screenshotRequired: true,
+            realtimeCompatibilityOnly: false,
+            screenshotPath: screenshotPath(id),
+          });
+        }
+      }
+    }
+  }
   return cases;
 }
 
@@ -556,6 +641,11 @@ export function createDensityBenchmarkManifest(
         status: 'implementation-complete-validation-pending',
         authoritativeSetting: 'densityProducerMode=1',
         compatibilityAnchor: 'densityProducerMode=0',
+      },
+      'add-hierarchical-body-local-density-bricks': {
+        status: 'implementation-complete-manual-gate-pending',
+        authoritativeSetting: 'densityStorageMode=1',
+        compatibilityAnchor: 'densityStorageMode=0',
       },
     },
     viewport: { width: 1280, height: 720 },
@@ -609,6 +699,7 @@ export function caseParams(manifest: DensityBenchmarkManifest, benchmarkCase: De
     debugView: VIEW_MODE[benchmarkCase.view],
     taaEnabled: benchmarkCase.view === 'normal' && manifest.params.taaEnabled,
     densityProducerMode: benchmarkCase.producer === 'recipe-v2' ? 1 : 0,
+    densityStorageMode: benchmarkCase.storage === 'hierarchical' ? 1 : 0,
   };
 }
 

@@ -18,7 +18,7 @@ W8 需要证明现有共享 Base Atlas 的有界 Worley 信号足以支撑从低
 
 ## Non-Goals
 
-- 不实现 Cirrus Fiber、Cumulonimbus Convective 或 Recipe-aware Hybrid；它们分别属于 W9–W11。
+- 不实现分层 body-local brick 架构、Cirrus Fiber、Cumulonimbus Convective 或 Recipe-aware Hybrid；它们分别属于 W9–W12 的独立 change。
 - 不实现 lenticularis、castellanus、floccus、stratiformis、volutus 的完整云种/变种系统，不扩展 scenario/import schema。
 - 不实现 turret、roll attachment、precipitation、virga、mamma、fractus 或 Cumulus breakup。
 - 不增加新的 atlas、texture、buffer class、bind group、compute pass、workgroup storage、atomics、compaction 或 indirect dispatch。

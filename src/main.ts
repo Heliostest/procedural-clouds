@@ -363,6 +363,13 @@ async function main(): Promise<void> {
       return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
     }).join(' ');
     lines.push(`quality pipelines: ${qualityPipelineSummary}`);
+    const hierarchyPipelineSummary = (['cached', 'hybrid'] as const).map((kind) => {
+      const state = s.densityHierarchicalPipelines[kind];
+      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
+      return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
+    }).join(' ');
+    lines.push(`W9 storage: requested=${s.densityStorageRequested} active=${s.densityStorageActive} lifecycle=${s.densityStorageLifecycle}${s.densityStorageFallbackReason ? ` fallback=${s.densityStorageFallbackReason}` : ''}`);
+    lines.push(`hierarchical pipelines: ${hierarchyPipelineSummary}`);
     lines.push(`density producer: requested=${s.densityProducerRequested} active=${s.densityProducerActive} gen=${s.densityProducerActiveGeneration} lifecycle=${s.densityProducerLifecycle}${s.densityProducerFallbackReason ? ` fallback=${s.densityProducerFallbackReason}` : ''}`);
     if (s.densityProducerRequested !== s.densityProducerActive || s.densityProducerCandidateReason) {
       lines.push(`density candidate: ${s.densityProducerCandidateLifecycle}${s.densityProducerCandidateReason ? ` (${s.densityProducerCandidateReason})` : ''}`);
@@ -391,6 +398,17 @@ async function main(): Promise<void> {
         lines.push(`W5 shared-fields: ${shared.status} ${shared.format} atlas=${shared.atlasDimension}³ macro=${shared.macroDimension}² resources=${shared.resourceCount} bytes=${(shared.payloadBytes / 1048576).toFixed(2)}/${(shared.peakBudgetBytes / 1048576).toFixed(0)}MiB`);
         lines.push(`field builds: atlas=${shared.atlasBuildCount}/gen${shared.atlasGeneration}/${atlasGpu} macro=${shared.macroBuildCount}/gen${shared.macroGeneration}/${macroGpu} encodeCPU=${shared.buildEncodeCpuMs.toFixed(2)}ms`);
         lines.push(`field formats: ${shared.formatEvidence.map((item) => `${item.format}:${item.storageWritable && item.filterSampled ? 'ok' : 'unavailable'}/${(item.bytes / 1048576).toFixed(2)}MiB/${item.channelCount}ch`).join(' ')}`);
+      }
+      const bricks = s.densityProducerBricks;
+      if (bricks) {
+        const brickGpu = bricks.brickGpuMs === null ? 'n/a' : `${bricks.brickGpuMs.toFixed(2)}ms`;
+        lines.push(`W9 bricks: ${bricks.lifecycle} ${bricks.profile || 'unavailable'} ${bricks.dimensions.join('x')} resident=${bricks.residentBodyCount} nonresident=${bricks.nonresidentBodyCount} lod=${bricks.lods.join('/') || '-'} gen=${bricks.allocationGeneration}/${bricks.contentRevision}`);
+        lines.push(`brick budget: atlas=${(bricks.residentBytes / 1048576).toFixed(2)}MiB peak=${(bricks.rebuildPeakBytes / 1048576).toFixed(2)}MiB totalDensity=${(bricks.totalDensityBytes / 1048576).toFixed(2)}MiB records=${bricks.recordBytes}B candidates=${bricks.candidateBytes}B${bricks.profileFallbackReason ? ` profileFallback=${bricks.profileFallbackReason}` : ''}`);
+        lines.push(`brick update: dispatch=${bricks.dispatchCount}/${bricks.residentBodyCount} voxels=${bricks.voxelCount} sample=${bricks.sampleId} gpu=${brickGpu} rebuild=${bricks.rebuildCount}/${bricks.rebuildCpuMs.toFixed(2)}ms${bricks.reason ? ` reason=${bricks.reason}` : ''}`);
+        if (bricks.candidate) {
+          const candidate = bricks.candidate;
+          lines.push(`K=4 candidates: grid=${candidate.grid.join('x')} complete=${candidate.completeTiles} overflow=${candidate.overflowTiles} incomplete=${candidate.incompleteTiles} avg=${candidate.averageCandidates.toFixed(2)} max=${candidate.maxCandidates}`);
+        }
       }
     }
     if (s.densityProducerFailureReason) lines.push(`density failure: ${s.densityProducerFailureReason}`);

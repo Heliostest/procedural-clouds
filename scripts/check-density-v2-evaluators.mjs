@@ -179,7 +179,7 @@ for (const contract of [
 ]) {
   if (!common.includes(contract)) throw new Error(`W6 common evaluator contract missing: ${contract}`);
 }
-if (!manifest.includes('DENSITY_BENCHMARK_SCHEMA_VERSION = 4')
+if (!manifest.includes('DENSITY_BENCHMARK_SCHEMA_VERSION = 5')
   || !manifest.includes("'density-debug': 10") || !manifest.includes('eye: [10.5, 13.5, 10.5]')) {
   throw new Error('W7 benchmark must use raw-density debug and keep the camera outside Cirrostratus');
 }

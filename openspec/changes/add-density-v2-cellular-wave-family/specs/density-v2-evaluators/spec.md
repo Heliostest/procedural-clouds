@@ -109,7 +109,7 @@ W8 SHALL 使用固定 Sc/Ac/Cc single、cellular-scale、cellular-overlap 与 wa
 #### Scenario: W8 正常继续
 
 - **WHEN** 三属形态、source/sample budget、Support、finite RGBA、metadata、资源、回退与不可豁免视觉项全部通过，且性能为 pass 或项目所有者显式 owner-waived
-- **THEN** W8 Gate report MAY 标记 Continue，项目所有者批准后 MAY 归档并创建 W9
+- **THEN** W8 Gate report MAY标记Continue，项目所有者批准后 MAY归档并允许已起草的W9分层缓存change进入批准/实施阶段
 
 #### Scenario: 不可豁免失败
 

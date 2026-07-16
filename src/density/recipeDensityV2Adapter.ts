@@ -32,6 +32,8 @@ import {
   densityV2TileMaskSignature,
   type DensityV2TileMaskResult,
 } from './recipeV2TileMask';
+import { BodyLocalBrickCache } from './bodyLocalBrickCache';
+import type { DensityStorageMode } from './bodyLocalBricks';
 
 export interface RecipeDensityV2AdapterOptions {
   device: GPUDevice;
@@ -102,6 +104,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
   private tileMaskRebuildCpuMs = 0;
   private tileMaskRebuildReason = 'initial';
   private pendingTileMaskReason = 'initial';
+  private readonly bricks: BodyLocalBrickCache;
 
   constructor(options: RecipeDensityV2AdapterOptions) {
     const started = performance.now();
@@ -137,6 +140,13 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.device.queue.writeBuffer(this.recipeBuffer, 0, packDensityRecipeV2Table());
     this.maskBuffer = this.createMaskBuffer(4);
     this.inputBindGroup = this.createInputBindGroup();
+    this.bricks = new BodyLocalBrickCache({
+      device: this.device,
+      createPipelineResources: (workgroup) => this.pipelineResources.createBrickPipeline(workgroup),
+      getInputBindGroup: () => this.inputBindGroup,
+      getSharedFieldBindGroup: () => this.sharedFields.getSamplingBindGroup(),
+    });
+    this.bricks.setWorkgroup(this.workgroup);
     this.rebuildTextures();
     this.createCpuMs = performance.now() - started;
   }
@@ -210,6 +220,15 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       this.lastCachedWindOffsets = input.windSamples.map((sample) => [sample.offsetM[0], sample.offsetM[1]]);
       this.pendingEncode = true;
     }
+    this.bricks.prepare({
+      packed,
+      cameraPosition: input.cameraPosition,
+      resolution: this.resolution,
+      workgroup: this.workgroup,
+      cacheIndex: this.cacheIndex,
+      cacheWillEncode: willEncode,
+      nextContentRevision: this.contentRevision + 1,
+    });
 
     if (this.cacheValidCount <= 1) {
       this.cacheBlend = this.cacheIndex === 0 ? 0 : 1;
@@ -266,6 +285,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       Math.ceil(this.resolution / this.workgroup[2]),
     );
     pass.end();
+    const brickRan = this.bricks.encode(encoder, context.brickTimestampWrites);
 
     this.pendingEncode = false;
     this.forceRefresh = false;
@@ -278,12 +298,14 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       cacheRan: true,
       contentRevision: this.contentRevision,
       reason: '',
+      brickRan,
     };
   }
 
   getOutput(): DensityCacheOutput {
     const sampledViews = this.requireViews();
     return {
+      contractVersion: 2,
       format: DENSITY_CACHE_FORMAT,
       resolution: [this.resolution, this.resolution, this.resolution],
       sampledViews,
@@ -293,7 +315,13 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       contentRevision: this.contentRevision,
       validSampleCount: this.cacheValidCount,
       valid: this.lifecycle === 'ready' && this.cacheValidCount > 0,
+      storageMode: this.bricks.getOutput() ? 'hierarchical' : 'global-only',
+      hierarchical: this.bricks.getOutput(),
     };
+  }
+
+  requestStorageMode(mode: DensityStorageMode, cacheRequired: boolean): void {
+    this.bricks.request(mode, cacheRequired);
   }
 
   setResolution(resolution: number): void {
@@ -303,6 +331,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.resolution = next;
     this.invalidateTileMask('resolution');
     this.rebuildTextures();
+    this.bricks.invalidate('resolution');
   }
 
   setWorkgroup(size: readonly [number, number, number]): void {
@@ -312,6 +341,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     const started = performance.now();
     this.pipeline = this.pipelineResources.createPipeline(next);
     this.workgroup = next;
+    this.bricks.setWorkgroup(next);
     this.invalidateTileMask('workgroup');
     this.forceRefresh = true;
     this.rebuildCpuMs += performance.now() - started;
@@ -321,6 +351,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.forceRefresh = true;
     this.lastCachedWindOffsets = [];
     this.invalidateTileMask('producer-activation');
+    this.bricks.invalidate('producer-activation');
   }
 
   getStats(): DensityProducerStats {
@@ -373,6 +404,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
         actualEvaluatorCalls: null,
         evaluatorCallUpperBound: this.tileMaskResult?.maskedVoxelBodyUpperBound ?? 0,
       },
+      bricks: this.bricks.getStats(this.resolution ** 3 * 8 * 2),
     };
   }
 
@@ -384,6 +416,10 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.sharedFields.recordGpuTiming(atlasMs, macroMs, error);
   }
 
+  recordBrickGpuTiming(brickMs: number | null, error = ''): void {
+    this.bricks.recordGpuTiming(brickMs, error);
+  }
+
   handleDeviceLost(reason: GPUDeviceLostInfo): void {
     if (this.lifecycle === 'destroyed') return;
     this.lifecycle = 'device-lost';
@@ -392,6 +428,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.destroyTextures();
     this.destroyMaskBuffer();
     this.sharedFields.markDeviceLost(this.failureReason);
+    this.bricks.handleDeviceLost(this.failureReason);
   }
 
   destroy(): void {
@@ -402,6 +439,7 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     this.recipeBuffer.destroy();
     this.destroyMaskBuffer();
     this.sharedFields.destroy();
+    this.bricks.destroy();
     this.lifecycle = 'destroyed';
     this.failureReason = 'producer-destroyed';
     this.pendingEncode = false;

@@ -1,0 +1,92 @@
+[
+  {
+    "step": "wave-base",
+    "state": "ready-for-screenshot",
+    "caseId": "w9--w8-wave-ripple--recipe-v2--hierarchical--cached--density-debug",
+    "warmupFrames": 60,
+    "requiredWarmupFrames": 60,
+    "cloudSamples": 0,
+    "cacheSamples": 0,
+    "requiredGpuSamples": 60,
+    "message": "Case complete. Capture screenshots/w9--w8-wave-ripple--recipe-v2--hierarchical--cached--density-debug.png."
+  },
+  {
+    "step": "camera-api",
+    "camApi": {
+      "keys": [
+        "manifest",
+        "isActive",
+        "getFrameOverride",
+        "getCamera",
+        "setCamera",
+        "followInteractiveCamera",
+        "resetCamera",
+        "start",
+        "cancel",
+        "observe",
+        "markScreenshot",
+        "getStatus",
+        "getResults",
+        "getEvidence",
+        "exportJson",
+        "downloadJson"
+      ],
+      "moved": true
+    }
+  },
+  {
+    "step": "lod-base",
+    "state": "ready-for-screenshot",
+    "caseId": "w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal",
+    "warmupFrames": 106,
+    "requiredWarmupFrames": 60,
+    "cloudSamples": 150,
+    "cacheSamples": 60,
+    "requiredGpuSamples": 60,
+    "message": "Case complete. Capture screenshots/w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal.png."
+  },
+  {
+    "step": "switch-w9--w8-cellular-scale--recipe-v2--global-only--cached--density-debug",
+    "state": "ready-for-screenshot",
+    "message": "Case complete. Capture screenshots/w9--w8-cellular-scale--recipe-v2--global-only--cached--density-debug.png."
+  },
+  {
+    "step": "switch-w9--w8-cellular-scale--recipe-v2--hierarchical--cached--density-debug",
+    "state": "ready-for-screenshot",
+    "message": "Case complete. Capture screenshots/w9--w8-cellular-scale--recipe-v2--hierarchical--cached--density-debug.png."
+  },
+  {
+    "step": "switch-w9--w8-cellular-scale--legacy--global-only--cached--density-debug",
+    "state": "ready-for-screenshot",
+    "message": "Case complete. Capture screenshots/w9--w8-cellular-scale--legacy--global-only--cached--density-debug.png."
+  },
+  {
+    "step": "overflow-recheck",
+    "state": "ready-for-screenshot",
+    "candidate": {
+      "grid": [
+        12,
+        12,
+        24
+      ],
+      "entryCount": 3456,
+      "bytes": 27648,
+      "completeTiles": 3456,
+      "overflowTiles": 0,
+      "incompleteTiles": 0,
+      "candidateMemberships": 144,
+      "averageCandidates": 0.041666666666666664,
+      "maxCandidates": 3
+    }
+  },
+  {
+    "step": "adapter",
+    "adapterInfo": {
+      "hasGPU": true,
+      "vendor": "nvidia",
+      "architecture": "ampere",
+      "description": null,
+      "device": null
+    }
+  }
+]

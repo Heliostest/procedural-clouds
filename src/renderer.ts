@@ -27,6 +27,7 @@ import {
   type DensitySharedFieldStats,
   type DensityTileMaskStats,
   type DensityV2EvaluatorStats,
+  type DensityBrickStats,
 } from './density/contracts';
 import { createLegacyDensityPipelineResources } from './density/legacyDensityPipeline';
 import {
@@ -425,11 +426,13 @@ export interface RenderStats {
   gpuTimingError: string;
   gpuSampleId: number;
   cacheSampleId: number;
+  brickSampleId: number;
   shadowSampleId: number;
   cacheRan: boolean;
   shadowRan: boolean;
   cloudMs: number;
   cacheMs: number;
+  brickMs: number;
   shadowMs: number;
   postMs: number;
   activeBodyCount: number;
@@ -444,6 +447,11 @@ export interface RenderStats {
   densityQualityFallbackReason: string;
   densityQualityActiveGeneration: number;
   densityQualityPipelines: Record<DensityQualityKind, DensityQualityPipelineState>;
+  densityHierarchicalPipelines: Record<'cached' | 'hybrid', DensityQualityPipelineState>;
+  densityStorageRequested: 'global-only' | 'hierarchical';
+  densityStorageActive: 'global-only' | 'hierarchical';
+  densityStorageLifecycle: string;
+  densityStorageFallbackReason: string;
   densityProducerRequested: DensityProducerKind;
   densityProducerActive: DensityProducerKind;
   densityProducerActiveGeneration: number;
@@ -466,6 +474,7 @@ export interface RenderStats {
   densityProducerTileMask: DensityTileMaskStats | null;
   densityProducerSharedFields: DensitySharedFieldStats | null;
   densityProducerEvaluator: DensityV2EvaluatorStats | null;
+  densityProducerBricks: DensityBrickStats | null;
   densitySharedFieldDebugReason: string;
   shadowMapResolution: number;
   shadowUpdated: boolean;
@@ -600,6 +609,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       device,
       kind: 'realtime',
       colorFormat: OFFSCREEN_FORMAT,
+    }),
+    createHierarchical: (kind) => createDensityQualityPipelineBundle({
+      device,
+      kind,
+      colorFormat: OFFSCREEN_FORMAT,
+      storageMode: 'hierarchical',
     }),
   });
   for (const bundle of [cachedBundle, hybridBundle]) {
@@ -894,6 +909,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let shadowRevision = 0;
   let densitySceneRevision = 0;
   let densityConsumerGeneration = -1;
+  let densityConsumerHierarchyGeneration = -1;
   let densityConsumerProducerGeneration = -1;
   let qualityConsumerGeneration = -1;
 
@@ -988,6 +1004,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       && qualityConsumerGeneration === selection.activeGeneration
       && densityConsumerProducerGeneration === producerSelection.activeGeneration
       && (!bundle.usesDensityCache || densityConsumerGeneration === densityOutput.resourceGeneration)
+      && (bundle.storageMode !== 'hierarchical'
+        || densityConsumerHierarchyGeneration === densityOutput.hierarchical?.layoutGeneration)
     ) {
       return;
     }
@@ -1006,6 +1024,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     qualityConsumerGeneration = selection.activeGeneration;
     densityConsumerProducerGeneration = producerSelection.activeGeneration;
     densityConsumerGeneration = bundle.usesDensityCache ? densityOutput.resourceGeneration : -1;
+    densityConsumerHierarchyGeneration = bundle.storageMode === 'hierarchical'
+      ? densityOutput.hierarchical?.layoutGeneration ?? -1
+      : -1;
     shadowRevision++;
   }
 
@@ -1214,7 +1235,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let prevSceneTime = 0.0;
   let rendererDestroyed = false;
 
-  const TS_COUNT = 16; // + W5 one-shot shared atlas and macro generation
+  const TS_COUNT = 18; // + W5 shared fields and W9 body-local brick cache
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -1228,11 +1249,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     gpuTimingError: '',
     gpuSampleId: 0,
     cacheSampleId: 0,
+    brickSampleId: 0,
     shadowSampleId: 0,
     cacheRan: false,
     shadowRan: false,
     cloudMs: 0,
     cacheMs: 0,
+    brickMs: 0,
     shadowMs: 0,
     postMs: 0,
     activeBodyCount: 0,
@@ -1247,6 +1270,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityQualityFallbackReason: initialQualitySelection.reason,
     densityQualityActiveGeneration: initialQualitySelection.activeGeneration,
     densityQualityPipelines: densityQualityPipelineManager.getStates(),
+    densityHierarchicalPipelines: densityQualityPipelineManager.getHierarchicalStates(),
+    densityStorageRequested: initialQualitySelection.requestedStorage,
+    densityStorageActive: initialQualitySelection.activeStorage,
+    densityStorageLifecycle: initialQualitySelection.storageLifecycle,
+    densityStorageFallbackReason: initialQualitySelection.storageReason,
     densityProducerRequested: initialDensitySelection.requested,
     densityProducerActive: initialDensitySelection.active,
     densityProducerActiveGeneration: initialDensitySelection.activeGeneration,
@@ -1269,6 +1297,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityProducerTileMask: initialDensityStats.tileMask,
     densityProducerSharedFields: initialDensityStats.sharedFields,
     densityProducerEvaluator: initialDensityStats.evaluator,
+    densityProducerBricks: initialDensityStats.bricks,
     densitySharedFieldDebugReason: '',
     shadowMapResolution: groundShadowResolution,
     shadowUpdated: false,
@@ -1460,22 +1489,27 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineVertCount = 0;
     }
 
-    const qualitySelection = densityQualityPipelineManager.request(densityQualityKindFromMode(params.qualityMode));
-    const activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
-    const qualityChanged = qualityConsumerGeneration !== qualitySelection.activeGeneration;
+    const requestedQualityKind = densityQualityKindFromMode(params.qualityMode);
+    const requestedProducerKind = requestedDensityProducer(params.densityProducerMode);
+    const requestedStorage = Math.round(params.densityStorageMode) === 1 ? 'hierarchical' : 'global-only';
+    const bundleStorageRequest = requestedProducerKind === 'recipe-v2' && requestedQualityKind !== 'realtime'
+      ? requestedStorage
+      : 'global-only';
+    let currentDensityOutput = densityProducerSelector.getActive().getOutput();
+    let qualitySelection = densityQualityPipelineManager.request(
+      requestedQualityKind,
+      bundleStorageRequest,
+      currentDensityOutput.hierarchical?.valid === true,
+    );
+    let activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
     const effectiveParams = activeQualityMode === Math.round(params.qualityMode)
       ? params
       : { ...params, qualityMode: activeQualityMode };
-    if (qualityChanged) {
-      groundShadowHistoryValid = false;
-      groundShadowPhaseIndex = 0;
-      groundShadowResetReason = 'quality';
-      historyValid = false;
-    }
 
     const cacheRequired = activeQualityMode !== 2;
+    densityProducerSelector.requestStorageMode(requestedStorage, cacheRequired && requestedProducerKind === 'recipe-v2');
     const densityProducer = densityProducerSelector.request(
-      requestedDensityProducer(params.densityProducerMode),
+      requestedProducerKind,
       cacheRequired,
     );
     const densityFrameInput: DensityFrameInput = {
@@ -1487,9 +1521,24 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       bodyMods: currentMods,
       windSamples: currentWindSamples,
       sceneRevision: densitySceneRevision,
+      cameraPosition: [cam.eye[0], cam.eye[1], cam.eye[2]],
     };
     const densityPlan = densityProducer.prepareFrame(densityFrameInput);
     densityProducerSelector.prepareTransition(densityFrameInput, cacheRequired);
+    currentDensityOutput = densityProducerSelector.getActive().getOutput();
+    qualitySelection = densityQualityPipelineManager.request(
+      requestedQualityKind,
+      bundleStorageRequest,
+      currentDensityOutput.hierarchical?.valid === true,
+    );
+    activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
+    const qualityChanged = qualityConsumerGeneration !== qualitySelection.activeGeneration;
+    if (qualityChanged) {
+      groundShadowHistoryValid = false;
+      groundShadowPhaseIndex = 0;
+      groundShadowResetReason = qualitySelection.activeStorage === 'hierarchical' ? 'storage' : 'quality';
+      historyValid = false;
+    }
     const producerSelection = densityProducerSelector.getSelection();
     const producerChanged = densityConsumerProducerGeneration !== producerSelection.activeGeneration;
     if (producerChanged) {
@@ -1586,10 +1635,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const commandEncoder = device.createCommandEncoder();
     let shadowRan = false;
     const cacheEncode = densityProducer.encode(commandEncoder, timestampEnabled && tsQuerySet
-      ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 } }
+      ? {
+          timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 0, endOfPassWriteIndex: 1 },
+          brickTimestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 16, endOfPassWriteIndex: 17 },
+        }
       : undefined);
     const cacheRan = cacheEncode.cacheRan;
-    densityProducerSelector.encodeTransition(commandEncoder, timestampEnabled && tsQuerySet
+    const transitionEncode = densityProducerSelector.encodeTransition(commandEncoder, timestampEnabled && tsQuerySet
       ? {
           sharedFieldAtlasTimestampWrites: {
             querySet: tsQuerySet,
@@ -1601,8 +1653,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
             beginningOfPassWriteIndex: 14,
             endOfPassWriteIndex: 15,
           },
+          brickTimestampWrites: {
+            querySet: tsQuerySet,
+            beginningOfPassWriteIndex: 16,
+            endOfPassWriteIndex: 17,
+          },
         }
       : {});
+    const brickRan = cacheEncode.brickRan === true || transitionEncode?.brickRan === true;
     const transitionSharedStats = densityProducerSelector.getRecipeV2Stats()?.sharedFields;
     const sharedAtlasRan = transitionSharedStats?.atlasRan === true;
     const sharedMacroRan = transitionSharedStats?.macroRan === true;
@@ -1890,6 +1948,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityQualityFallbackReason = currentQualitySelection.reason;
     stats.densityQualityActiveGeneration = currentQualitySelection.activeGeneration;
     stats.densityQualityPipelines = densityQualityPipelineManager.getStates();
+    stats.densityHierarchicalPipelines = densityQualityPipelineManager.getHierarchicalStates();
+    stats.densityStorageRequested = currentQualitySelection.requestedStorage;
+    stats.densityStorageActive = currentQualitySelection.activeStorage;
+    stats.densityStorageLifecycle = currentQualitySelection.storageLifecycle;
+    stats.densityStorageFallbackReason = currentQualitySelection.storageReason;
     stats.densityProducerRequested = densitySelection.requested;
     stats.densityProducerActive = densitySelection.active;
     stats.densityProducerActiveGeneration = densitySelection.activeGeneration;
@@ -1912,6 +1975,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.densityProducerTileMask = densityStats.tileMask;
     stats.densityProducerSharedFields = densityStats.sharedFields;
     stats.densityProducerEvaluator = densityStats.evaluator;
+    stats.densityProducerBricks = densityStats.bricks;
     stats.cacheRan = cacheRan;
     stats.shadowRan = shadowRan;
     stats.shadowMapResolution = groundShadowResolution;
@@ -1931,6 +1995,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           const cacheNs = Number(ts[1] - ts[0]);
           if (cacheNs >= 0) stats.cacheMs = cacheNs / 1e6;
           stats.cacheSampleId++;
+        }
+        if (brickRan) {
+          const brickNs = Number(ts[17] - ts[16]);
+          if (brickNs >= 0) stats.brickMs = brickNs / 1e6;
+          stats.brickSampleId++;
+          densityProducerSelector.recordRecipeV2BrickGpuTiming(
+            brickNs >= 0 ? brickNs / 1e6 : null,
+          );
         }
         if (shadowRan) {
           const integrationNs = Number(ts[3] - ts[2]);

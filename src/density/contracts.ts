@@ -2,6 +2,12 @@ import type { CloudBody } from '../body';
 import type { BodyMod } from '../lifecycle';
 import type { CloudParams } from '../params';
 import type { WindAdvectionSample } from '../wind';
+import type {
+  DensityBrickAtlasFormat,
+  DensityBrickCandidateStats,
+  DensityBrickLogicalEdge,
+  DensityStorageMode,
+} from './bodyLocalBricks';
 
 export const DENSITY_CACHE_FORMAT = 'rgba16float' as const;
 
@@ -30,6 +36,7 @@ export interface DensityFrameInput {
   bodyMods: readonly BodyMod[];
   windSamples: readonly WindAdvectionSample[];
   sceneRevision: number;
+  cameraPosition: readonly [number, number, number];
 }
 
 export interface DensityFramePlan {
@@ -43,6 +50,7 @@ export interface DensityFramePlan {
 
 export interface DensityEncodeContext {
   timestampWrites?: GPUComputePassTimestampWrites;
+  brickTimestampWrites?: GPUComputePassTimestampWrites;
   sharedFieldAtlasTimestampWrites?: GPUComputePassTimestampWrites;
   sharedFieldMacroTimestampWrites?: GPUComputePassTimestampWrites;
 }
@@ -52,9 +60,26 @@ export interface DensityEncodeResult {
   cacheRan: boolean;
   contentRevision: number;
   reason: string;
+  brickRan?: boolean;
+}
+
+export interface DensityHierarchicalCacheOutput {
+  format: DensityBrickAtlasFormat;
+  profile: string;
+  dimensions: readonly [number, number, number];
+  sampledViews: readonly [GPUTextureView, GPUTextureView];
+  sampler: GPUSampler;
+  recordBuffer: GPUBuffer;
+  candidateBuffer: GPUBuffer;
+  candidateGrid: readonly [number, number, number];
+  layoutGeneration: number;
+  allocationGeneration: number;
+  contentRevision: number;
+  valid: boolean;
 }
 
 export interface DensityCacheOutput {
+  contractVersion: 2;
   format: typeof DENSITY_CACHE_FORMAT;
   resolution: readonly [number, number, number];
   sampledViews: readonly [GPUTextureView, GPUTextureView];
@@ -64,6 +89,41 @@ export interface DensityCacheOutput {
   contentRevision: number;
   validSampleCount: number;
   valid: boolean;
+  storageMode: DensityStorageMode;
+  hierarchical: DensityHierarchicalCacheOutput | null;
+}
+
+export type DensityStorageLifecycle = 'idle' | 'creating' | 'warming' | 'ready' | 'failed' | 'destroyed';
+
+export interface DensityBrickStats {
+  requested: DensityStorageMode;
+  active: DensityStorageMode;
+  lifecycle: DensityStorageLifecycle;
+  reason: string;
+  profileFallbackReason: string;
+  profile: string;
+  format: DensityBrickAtlasFormat | '';
+  dimensions: readonly [number, number, number];
+  residentBytes: number;
+  rebuildPeakBytes: number;
+  totalDensityBytes: number;
+  recordBytes: number;
+  candidateBytes: number;
+  allocationGeneration: number;
+  contentRevision: number;
+  rebuildCount: number;
+  rebuildCpuMs: number;
+  residentBodyCount: number;
+  nonresidentBodyCount: number;
+  lods: readonly DensityBrickLogicalEdge[];
+  dispatchCount: number;
+  voxelCount: number;
+  sampleId: number;
+  candidate: DensityBrickCandidateStats | null;
+  fallbackSamples: number | null;
+  createCpuMs: number;
+  brickGpuMs: number | null;
+  gpuTimingError: string;
 }
 
 export interface DensityTileMaskStats {
@@ -190,6 +250,7 @@ export interface DensityProducerStats {
   tileMask: DensityTileMaskStats | null;
   sharedFields: DensitySharedFieldStats | null;
   evaluator: DensityV2EvaluatorStats | null;
+  bricks: DensityBrickStats | null;
 }
 
 export interface DensityProducerSelection {
@@ -212,12 +273,14 @@ export interface DensityCacheProducer {
   prepareFrame(input: DensityFrameInput): DensityFramePlan;
   encode(encoder: GPUCommandEncoder, context?: DensityEncodeContext): DensityEncodeResult;
   getOutput(): DensityCacheOutput;
+  requestStorageMode(mode: DensityStorageMode, cacheRequired: boolean): void;
   setResolution(resolution: number): void;
   setWorkgroup(size: readonly [number, number, number]): void;
   invalidate(reason: string): void;
   getStats(): DensityProducerStats;
   getSharedFieldDiagnostics(): DensitySharedFieldDiagnostics | null;
   recordSharedFieldGpuTiming(atlasMs: number | null, macroMs: number | null, error?: string): void;
+  recordBrickGpuTiming(brickMs: number | null, error?: string): void;
   handleDeviceLost(reason: GPUDeviceLostInfo): void;
   destroy(): void;
 }

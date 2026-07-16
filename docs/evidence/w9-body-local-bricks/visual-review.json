@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceGeneratedAt": "2026-07-16T13:33:40.657Z",
+  "reviewer": "AI visual proxy (W9 WebGPU capture)",
+  "reviewedAt": "2026-07-16T14:00:00.000Z",
+  "ownerApproval": "pending",
+  "scenes": {
+    "single-stratocumulus": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "hierarchical denser mid-scale texture vs global-only blob: w9--single-stratocumulus--recipe-v2--hierarchical--cached--density-debug--clean.png vs ...global-only...--clean.png. seam/LOD/wind only static+limited cam; Support/RGBA metadata unresolved like W8."
+    },
+    "single-altocumulus": {
+      "hierarchicalVsGlobal": "review",
+      "normal": "review",
+      "densityDebug": "review",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "W8: Ac too small. hierarchical (...hierarchical--cached--density-debug--clean.png) still tiny diamond with grain; improvement vs global-only (...global-only--cached--density-debug--clean.png) ambiguous, not clear mid-scale Ac cells."
+    },
+    "single-cirrocumulus": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "review",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "hierarchical density-debug (...hierarchical--cached--density-debug--clean.png) recovers speckled mid-scale vs smooth global-only (...global-only--cached--density-debug--clean.png). Ripple continuity/wind not fully proven; metadata unresolved."
+    },
+    "w8-cellular-scale": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "review",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "hierarchical (...hierarchical--cached--density-debug--clean.png / ...normal--clean.png) restores vertical cellular structure vs global-only blobs (...global-only--cached--density-debug--clean.png). Sc>Ac>Cc cell-size and thickness ordering still not clearly separable in stills → review. Ground dither/checkered shadow patches on normal raise seam concern."
+    },
+    "w8-cellular-overlap": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Overlap stacks visible in ...hierarchical--cached--density-debug--clean.png vs softer ...global-only--cached--density-debug--clean.png; no obvious black-hole/double-density hole in stills. Support/RGBA metadata attribution still unresolved (same W8 gap)."
+    },
+    "w8-wave-ripple": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "review",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "hierarchical restores banded ripple vs smooth global-only: ...hierarchical--cached--density-debug--clean.png vs ...global-only--cached--density-debug--clean.png. Supplemental cam yaw/orbit (supplemental/wave-ripple-hierarchical-*.png) keeps body-local stripe orientation (not screen-locked). Fixed-wind phase continuity not re-proven; stripe vs true ripple still ambiguous on normal (...hierarchical--cached--normal--clean.png)."
+    },
+    "w9-brick-lod-sweep": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Four LOD bodies with increasing detail: ...hierarchical--cached--density-debug--clean.png; pullback supplemental/lod-sweep-hierarchical-pullback.png shows distinct bodies without obvious old-allocation residue. Static pair cannot prove no LOD popping during continuous motion."
+    },
+    "w9-brick-overflow": {
+      "hierarchicalVsGlobal": "fail",
+      "normal": "fail",
+      "densityDebug": "fail",
+      "seamAndPhase": "fail",
+      "metadataAndSupport": "review",
+      "note": "FAIL: overflowTiles=0, maxCandidates=3, completeTiles=3456 for all hierarchical overflow cases (results.raw.json + supplemental recheck). 5 bodies present but no tile reports overflow/incomplete coarse fallback. Evidence: w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal--hud.png / --density-debug--clean.png. maxCandidates≠5 source-set diagnosis unmet for Gate."
+    },
+    "w9-thin-ridge-proxy": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "hierarchical density-debug (...hierarchical--cached--density-debug--clean.png) keeps segmented thin ridge more continuous than soft global-only streak (...global-only--cached--density-debug--clean.png); normal (...hierarchical--cached--normal--clean.png) shows chained blobs. Stretch/waste of single cubic brick not quantified; Support evidence unresolved."
+    }
+  }
+}

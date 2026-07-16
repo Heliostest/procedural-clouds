@@ -39,6 +39,8 @@ export interface BenchmarkGpuTiming {
   unit: 'gpu-ms';
   cloud?: BenchmarkPassStatistics;
   cache?: BenchmarkPassStatistics;
+  brick?: BenchmarkPassStatistics;
+  combinedCache?: BenchmarkPassStatistics;
   shadow?: BenchmarkPassStatistics;
   post?: BenchmarkPassStatistics;
 }
@@ -68,6 +70,11 @@ export interface DensityBenchmarkCaseResult {
     outputBytes: number;
     evaluator: RenderStats['densityProducerEvaluator'];
     sharedFields: RenderStats['densityProducerSharedFields'];
+    storageRequested: RenderStats['densityStorageRequested'];
+    storageActive: RenderStats['densityStorageActive'];
+    storageLifecycle: string;
+    storageReason: string;
+    bricks: RenderStats['densityProducerBricks'];
   };
   startupTiming: RendererStartupTiming;
   deviceInfo: RendererDeviceInfo;
@@ -136,10 +143,13 @@ interface RunningCase {
   renderedFrames: number;
   lastGpuSampleId: number;
   lastCacheSampleId: number;
+  lastBrickSampleId: number;
   lastShadowSampleId: number;
   samples: {
     cloud: number[];
     cache: number[];
+    brick: number[];
+    combinedCache: number[];
     shadow: number[];
     post: number[];
   };
@@ -187,6 +197,13 @@ function producerDiagnostics(stats: RenderStats): DensityBenchmarkCaseResult['pr
       : null,
     sharedFields: stats.densityProducerSharedFields
       ? JSON.parse(JSON.stringify(stats.densityProducerSharedFields)) as RenderStats['densityProducerSharedFields']
+      : null,
+    storageRequested: stats.densityStorageRequested,
+    storageActive: stats.densityStorageActive,
+    storageLifecycle: stats.densityStorageLifecycle,
+    storageReason: stats.densityStorageFallbackReason,
+    bricks: stats.densityProducerBricks
+      ? JSON.parse(JSON.stringify(stats.densityProducerBricks)) as RenderStats['densityProducerBricks']
       : null,
   };
 }
@@ -307,6 +324,8 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
           unit: 'gpu-ms',
           cloud: passStatistics(active.samples.cloud),
           cache: passStatistics(active.samples.cache),
+          brick: passStatistics(active.samples.brick),
+          combinedCache: passStatistics(active.samples.combinedCache),
           shadow: passStatistics(active.samples.shadow),
           post: passStatistics(active.samples.post),
         }
@@ -455,8 +474,9 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       renderedFrames: 0,
       lastGpuSampleId: stats.gpuSampleId,
       lastCacheSampleId: stats.cacheSampleId,
+      lastBrickSampleId: stats.brickSampleId,
       lastShadowSampleId: stats.shadowSampleId,
-      samples: { cloud: [], cache: [], shadow: [], post: [] },
+      samples: { cloud: [], cache: [], brick: [], combinedCache: [], shadow: [], post: [] },
       warnings: cameraPinned ? ['camera override pinned via setCamera'] : [],
     };
     displayedFrameOverride = running.frameOverride;
@@ -491,8 +511,22 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     if (stats.densityProducerRequested !== expectedProducer || stats.densityProducerActive !== expectedProducer) {
       active.lastGpuSampleId = stats.gpuSampleId;
       active.lastCacheSampleId = stats.cacheSampleId;
+      active.lastBrickSampleId = stats.brickSampleId;
       active.lastShadowSampleId = stats.shadowSampleId;
       publish(statusFor(active, `Waiting for density producer ${expectedProducer}; active=${stats.densityProducerActive}.`));
+      return;
+    }
+    const expectedStorage = active.definition.storage ?? 'global-only';
+    if (expectedStorage === 'hierarchical' && stats.densityStorageLifecycle === 'failed') {
+      invalidate(`Density storage hierarchical failed: ${stats.densityStorageFallbackReason || stats.densityProducerBricks?.reason || 'unknown'}`);
+      return;
+    }
+    if (stats.densityStorageRequested !== expectedStorage || stats.densityStorageActive !== expectedStorage) {
+      active.lastGpuSampleId = stats.gpuSampleId;
+      active.lastCacheSampleId = stats.cacheSampleId;
+      active.lastBrickSampleId = stats.brickSampleId;
+      active.lastShadowSampleId = stats.shadowSampleId;
+      publish(statusFor(active, `Waiting for density storage ${expectedStorage}; active=${stats.densityStorageActive}.`));
       return;
     }
     const warmupFramesDone = active.warmupFrames >= manifest.warmupFrames;
@@ -506,6 +540,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
         active.lastCacheSampleId = stats.cacheSampleId;
       }
       active.lastShadowSampleId = stats.shadowSampleId;
+      active.lastBrickSampleId = stats.brickSampleId;
       publish(statusFor(active, `Warming ${active.definition.id}.`));
       return;
     }
@@ -527,6 +562,13 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     if (stats.cacheSampleId !== active.lastCacheSampleId) {
       active.lastCacheSampleId = stats.cacheSampleId;
       active.samples.cache.push(stats.cacheMs);
+      if (expectedStorage === 'hierarchical' && stats.brickSampleId !== active.lastBrickSampleId) {
+        active.lastBrickSampleId = stats.brickSampleId;
+        active.samples.brick.push(stats.brickMs);
+        active.samples.combinedCache.push(stats.cacheMs + stats.brickMs);
+      } else if (expectedStorage === 'global-only') {
+        active.samples.combinedCache.push(stats.cacheMs);
+      }
     }
     if (stats.shadowSampleId !== active.lastShadowSampleId) {
       active.lastShadowSampleId = stats.shadowSampleId;
@@ -534,6 +576,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     }
     const enough = active.samples.cloud.length >= manifest.minimumGpuSamples
       && active.samples.cache.length >= manifest.minimumGpuSamples
+      && (expectedStorage !== 'hierarchical' || active.samples.brick.length >= manifest.minimumGpuSamples)
       && active.samples.post.length >= manifest.minimumGpuSamples;
     if (enough) {
       complete(active, stats);

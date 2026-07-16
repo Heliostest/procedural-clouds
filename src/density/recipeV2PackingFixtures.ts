@@ -48,6 +48,7 @@ export function densityV2FixtureInput(bodies: readonly CloudBody[]): DensityFram
     bodyMods: bodies.map(() => DENSITY_V2_FIXTURE_MOD),
     windSamples: bodies.map(() => DENSITY_V2_FIXTURE_WIND),
     sceneRevision: 1,
+    cameraPosition: [0, 0, 0],
   };
 }
 

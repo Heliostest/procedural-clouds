@@ -1,4 +1,5 @@
-import type { DensityCacheOutput } from '../density/contracts';
+import type { DensityCacheOutput, DensityStorageLifecycle } from '../density/contracts';
+import type { DensityStorageMode } from '../density/bodyLocalBricks';
 
 export const DENSITY_QUALITY_MODE = Object.freeze({
   cached: 0,
@@ -18,6 +19,7 @@ export interface DensityQualityPipelineCreationStats {
 
 export interface DensityQualityPipelineBundle {
   readonly kind: DensityQualityKind;
+  readonly storageMode: DensityStorageMode;
   readonly generation: number;
   readonly cloudPipeline: GPURenderPipeline;
   readonly groundShadowPipeline: GPUComputePipeline;
@@ -27,6 +29,7 @@ export interface DensityQualityPipelineBundle {
 
 export interface DensityQualityPipelineState {
   kind: DensityQualityKind;
+  storageMode: DensityStorageMode;
   lifecycle: DensityQualityPipelineLifecycle;
   reason: string;
   creation: DensityQualityPipelineCreationStats;
@@ -38,6 +41,10 @@ export interface DensityQualitySelection {
   activeGeneration: number;
   lifecycle: DensityQualityPipelineLifecycle;
   reason: string;
+  requestedStorage: DensityStorageMode;
+  activeStorage: DensityStorageMode;
+  storageLifecycle: DensityStorageLifecycle;
+  storageReason: string;
 }
 
 export interface DensityQualityBindingResources {

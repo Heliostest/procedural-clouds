@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 1,
+  "changeId": "add-hierarchical-body-local-density-bricks",
+  "generatedAt": "2026-07-16T13:57:34.638Z",
+  "evidenceGeneratedAt": "2026-07-16T13:33:40.657Z",
+  "sourceEvidence": {
+    "revision": "3179c5d3350d4d7069c4c9a697f18337be00cdf2",
+    "dirty": true,
+    "status": [
+      "MM docs/roadmap-refactor.md",
+      " M openspec/changes/add-density-v2-cellular-wave-family/design.md",
+      " M openspec/changes/add-density-v2-cellular-wave-family/proposal.md",
+      " M openspec/changes/add-density-v2-cellular-wave-family/specs/density-v2-evaluators/spec.md",
+      " M openspec/changes/add-density-v2-cellular-wave-family/tasks.md",
+      " M package.json",
+      " M scripts/check-density-shared-fields.mjs",
+      " M scripts/check-density-v2-evaluators.mjs",
+      " M src/density/contracts.ts",
+      " M src/density/densityProducerSelector.ts",
+      " M src/density/legacyDensityAdapter.ts",
+      " M src/density/recipeDensityV2Adapter.ts",
+      " M src/density/recipeV2PackingFixtures.ts",
+      " M src/density/recipeV2Pipeline.ts",
+      " M src/densityBenchmark.ts",
+      " M src/densityBenchmarkManifest.ts",
+      " M src/gui.ts",
+      " M src/i18n.ts",
+      " M src/main.ts",
+      " M src/params.ts",
+      " M src/renderer.ts",
+      " M src/rendering/densityQualityContracts.ts",
+      " M src/rendering/densityQualityPipelines.ts",
+      " M src/rendering/densityShaderSources.ts",
+      "?? docs/evidence/w9-body-local-bricks/build-gate.mjs",
+      "?? docs/evidence/w9-body-local-bricks/capture-w9.mjs",
+      "?? docs/evidence/w9-body-local-bricks/visual-review.template.json",
+      "?? docs/w9-body-local-bricks-validation.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/design.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/proposal.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/specs/cloud-params/spec.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/specs/cloud-rendering/spec.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/specs/density-body-local-bricks/spec.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/specs/density-cache-production/spec.md",
+      "?? openspec/changes/add-hierarchical-body-local-density-bricks/tasks.md",
+      "?? scripts/capture-w9-visual-smoke.mjs",
+      "?? scripts/check-w9-body-local-bricks.mjs",
+      "?? scripts/smoke-w9-runtime.mjs",
+      "?? shaders/density-v2-brick.wgsl",
+      "?? src/density/bodyLocalBrickCache.ts",
+      "?? src/density/bodyLocalBrickFixtures.ts",
+      "?? src/density/bodyLocalBricks.ts"
+    ],
+    "diffSha256": "55654ec8ebded54a4af1f0b256f7a596300cf6614d11021f29ebbff15ca534be",
+    "fingerprintKind": "git-diff-and-untracked-sha256"
+  },
+  "decision": "stop",
+  "archiveAllowed": false,
+  "runtime": {
+    "status": "pass",
+    "expectedCases": 108,
+    "completedCases": 108,
+    "issues": []
+  },
+  "protocol": {
+    "status": "fail",
+    "failedCases": [
+      {
+        "caseId": "w9--single-altocumulus--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-altocumulus--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-altocumulus--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-altocumulus--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal",
+        "status": "fail",
+        "notes": [
+          "five-body overflow scene did not produce overflow tiles"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "five-body overflow scene did not produce overflow tiles"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "five-body overflow scene did not produce overflow tiles"
+        ]
+      },
+      {
+        "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "five-body overflow scene did not produce overflow tiles"
+        ]
+      },
+      {
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--hybrid--normal",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      },
+      {
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--hybrid--density-debug",
+        "status": "fail",
+        "notes": [
+          "global-only retained brick resources or work"
+        ]
+      }
+    ]
+  },
+  "visual": {
+    "status": "fail",
+    "reviewCurrent": true,
+    "checks": [
+      {
+        "scene": "single-stratocumulus",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "single-altocumulus",
+        "status": "review",
+        "notes": [
+          "hierarchicalVsGlobal=unresolved",
+          "normal=unresolved",
+          "densityDebug=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "single-cirrocumulus",
+        "status": "review",
+        "notes": [
+          "normal=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-cellular-scale",
+        "status": "review",
+        "notes": [
+          "normal=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-cellular-overlap",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-wave-ripple",
+        "status": "review",
+        "notes": [
+          "normal=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-brick-lod-sweep",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-brick-overflow",
+        "status": "fail",
+        "notes": [
+          "hierarchicalVsGlobal=fail",
+          "normal=fail",
+          "densityDebug=fail",
+          "seamAndPhase=fail",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-thin-ridge-proxy",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      }
+    ]
+  },
+  "performance": {
+    "status": "review",
+    "checks": [
+      {
+        "scene": "single-stratocumulus",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "single-altocumulus",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "single-cirrocumulus",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w8-cellular-scale",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w8-cellular-overlap",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w8-wave-ripple",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w9-brick-lod-sweep",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w9-brick-overflow",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      },
+      {
+        "scene": "w9-thin-ridge-proxy",
+        "status": "review",
+        "reason": "one or more GPU timestamp ranges have fewer than 60 valid samples"
+      }
+    ]
+  },
+  "ownerApproval": "pending",
+  "automatedChecks": [
+    "test:genus-dispatch",
+    "test:pipeline-isolation",
+    "test:density-v2-layout",
+    "test:density-v2-tiles",
+    "test:density-v2-fields",
+    "test:density-v2-evaluators",
+    "test:w9-bricks",
+    "test:ground-shadow-hash",
+    "typecheck",
+    "build",
+    "openspec-strict-w8",
+    "openspec-strict-w9"
+  ]
+}

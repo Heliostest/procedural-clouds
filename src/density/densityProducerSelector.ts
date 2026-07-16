@@ -8,6 +8,7 @@ import type {
   DensityProducerSelection,
   DensityProducerStats,
 } from './contracts';
+import type { DensityStorageMode } from './bodyLocalBricks';
 
 export interface DensityProducerSelectorOptions {
   legacy: DensityCacheProducer;
@@ -31,6 +32,7 @@ export class DensityProducerSelector {
   private desiredResolution: number;
   private desiredWorkgroup: [number, number, number];
   private destroyed = false;
+  private desiredStorageMode: DensityStorageMode = 'global-only';
 
   constructor(options: DensityProducerSelectorOptions) {
     this.legacy = options.legacy;
@@ -49,6 +51,13 @@ export class DensityProducerSelector {
     return this.active;
   }
 
+  requestStorageMode(mode: DensityStorageMode, cacheRequired: boolean): void {
+    this.assertAlive();
+    this.desiredStorageMode = mode;
+    this.legacy.requestStorageMode('global-only', cacheRequired);
+    this.recipeV2?.requestStorageMode(mode, cacheRequired);
+  }
+
   prepareTransition(input: DensityFrameInput, cacheRequired: boolean): void {
     this.assertAlive();
     this.transitionPrepared = false;
@@ -61,6 +70,7 @@ export class DensityProducerSelector {
       target.setResolution(this.desiredResolution);
       target.setWorkgroup(this.desiredWorkgroup);
       target.invalidate('producer-activation');
+      target.requestStorageMode(this.desiredStorageMode, cacheRequired);
       const plan = target.prepareFrame(input);
       if (!plan.willEncode) {
         this.candidateLifecycle = 'warming';
@@ -145,6 +155,10 @@ export class DensityProducerSelector {
     this.recipeV2?.recordSharedFieldGpuTiming(atlasMs, macroMs, error);
   }
 
+  recordRecipeV2BrickGpuTiming(brickMs: number | null, error = ''): void {
+    this.recipeV2?.recordBrickGpuTiming(brickMs, error);
+  }
+
   setResolution(resolution: number): void {
     this.assertAlive();
     this.desiredResolution = Math.max(32, Math.min(256, Math.round(resolution)));
@@ -187,6 +201,7 @@ export class DensityProducerSelector {
       }
       producer.setResolution(this.desiredResolution);
       producer.setWorkgroup(this.desiredWorkgroup);
+      producer.requestStorageMode(this.desiredStorageMode, true);
       this.recipeV2 = producer;
       this.candidateLifecycle = 'warming';
       this.candidateReason = 'recipe-v2-warming';
