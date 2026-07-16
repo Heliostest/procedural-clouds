@@ -38,56 +38,45 @@ viewport：1400×900
 | benign | 仅 `http://127.0.0.1:5173/favicon.ico` 404 |
 | 其他 console error | 无 |
 
-## 按 scene（Recipe V2；Legacy 仅参考）
+## 按 scene（Recipe V2；含人工复查）
 
-### single-stratocumulus — **review**
+### single-stratocumulus — **review**（raw pass）
 
-- raw density：胞状孔隙与一定连接可见；非方垫/硬洞；大尺度厚层证据不足  
-- normal：软团簇，形态未决  
-- Legacy：有云，仅参考  
+人工：density-debug **比较符合**。normal 未单独确认 → review。  
 
-关键图：  
-`screenshots/w8--single-stratocumulus--recipe-v2--cached--density-debug--clean.png`  
-`screenshots/w8--single-stratocumulus--recipe-v2--cached--normal--clean.png`
+`screenshots/w8--single-stratocumulus--recipe-v2--cached--density-debug--clean.png`
 
 ### single-altocumulus — **fail**
 
-孤立 puff，缺中等 cell/连接；与 Sc/Cc 难区分。  
+人工：normal / density-debug **确实只是很小的一朵**。  
 
-失败证据：  
 `screenshots/w8--single-altocumulus--recipe-v2--cached--normal--clean.png`  
 `screenshots/w8--single-altocumulus--recipe-v2--cached--density-debug--clean.png`
 
 ### single-cirrocumulus — **fail**
 
-无清晰小尺度 ripple；光滑薄斑。  
+人工：density-debug **确实平滑**，无清晰 ripple。  
 
-失败证据：  
-`screenshots/w8--single-cirrocumulus--recipe-v2--cached--density-debug--clean.png`  
-`screenshots/w8--single-cirrocumulus--recipe-v2--cached--normal--clean.png`
+`screenshots/w8--single-cirrocumulus--recipe-v2--cached--density-debug--clean.png`
 
 ### w8-cellular-scale — **fail**
 
-内部 cell 与层厚 `Sc > Ac > Cc` 排序不清晰。  
+人工：normal / density-debug **都看不出哪个是哪个**。  
 
-失败证据：  
-`screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--clean.png`  
 `screenshots/w8--w8-cellular-scale--recipe-v2--cached--normal--clean.png`  
-`screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--hud.png`
+`screenshots/w8--w8-cellular-scale--recipe-v2--cached--density-debug--clean.png`
 
-### w8-cellular-overlap — **review**
+### w8-cellular-overlap — **pass**（形态；support/metadata unresolved）
 
-未见饱和板/黑洞/硬切/缺块；metadata 与 Support containment **unresolved**。  
+人工：**确实叠在一起**。Support / RGBA metadata 仍 unresolved。  
 
-`screenshots/w8--w8-cellular-overlap--recipe-v2--cached--density-debug--clean.png`  
-`screenshots/w8--w8-cellular-overlap--recipe-v2--cached--normal--clean.png`
+`screenshots/w8--w8-cellular-overlap--recipe-v2--cached--density-debug--clean.png`
 
-### w8-wave-ripple — **review**
+### w8-wave-ripple — **fail**
 
-三 Cc 同高水平排列；弱内部起伏；单帧不能证明风连续/无锁纹。  
+人工：**波纹不连续**。  
 
-`screenshots/w8--w8-wave-ripple--recipe-v2--cached--normal--clean.png`  
-`screenshots/w8--w8-wave-ripple--recipe-v2--cached--density-debug--clean.png`
+`screenshots/w8--w8-wave-ripple--recipe-v2--cached--normal--clean.png`
 
 ### Cb / Ci 回退 — **pass**
 
@@ -101,9 +90,9 @@ viewport：1400×900
 
 | 项 | 结论 |
 | --- | --- |
-| finite-nonnegative-density-and-metadata | unresolved（无 NaN/Inf 运行时迹象，但无 RGBA metadata 证明） |
+| finite-nonnegative-density-and-metadata | unresolved |
 | support-and-tile-mask-containment | unresolved |
-| no-checkerboard-camera-lock-or-wind-discontinuity | unresolved（单帧未见棋盘；风/锁纹未证） |
+| no-checkerboard-camera-lock-or-wind-discontinuity | **fail**（人工：波纹不连续） |
 
 ## Timing（cached + normal，Sc/Ac/Cc）
 

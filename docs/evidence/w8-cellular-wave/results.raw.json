@@ -502,7 +502,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "density-debug 可见胞状孔隙与一定连接，非实心方垫/硬洞；但大尺度厚层状 Cellular 证据不足。normal 呈软团簇。无 RGBA metadata readback。"
+      "note": "人工复查 density-debug：比较符合大 cell / 连接 / 孔隙的 Sc。normal 未单独确认，保持 review。"
     },
     {
       "caseId": "w8--single-stratocumulus--recipe-v2--cached--density-debug",
@@ -687,7 +687,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "pass",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
@@ -699,7 +699,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "density-debug 可见胞状孔隙与一定连接，非实心方垫/硬洞；但大尺度厚层状 Cellular 证据不足。normal 呈软团簇。无 RGBA metadata readback。"
+      "note": "人工复查 density-debug：比较符合大 cell / 连接 / 孔隙的 Sc。normal 未单独确认，保持 review。"
     },
     {
       "caseId": "w8--single-stratocumulus--recipe-v2--hybrid--normal",
@@ -896,7 +896,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "density-debug 可见胞状孔隙与一定连接，非实心方垫/硬洞；但大尺度厚层状 Cellular 证据不足。normal 呈软团簇。无 RGBA metadata readback。"
+      "note": "人工复查 density-debug：比较符合大 cell / 连接 / 孔隙的 Sc。normal 未单独确认，保持 review。"
     },
     {
       "caseId": "w8--single-stratocumulus--recipe-v2--hybrid--density-debug",
@@ -1081,7 +1081,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "pass",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
@@ -1093,7 +1093,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "density-debug 可见胞状孔隙与一定连接，非实心方垫/硬洞；但大尺度厚层状 Cellular 证据不足。normal 呈软团簇。无 RGBA metadata readback。"
+      "note": "人工复查 density-debug：比较符合大 cell / 连接 / 孔隙的 Sc。normal 未单独确认，保持 review。"
     },
     {
       "caseId": "w8--single-altocumulus--legacy--cached--normal",
@@ -1536,7 +1536,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "normal/density-debug 均为孤立小 puff，缺中等 cell/中等连接层；与 Sc/Cc 尺度区分不足。"
+      "note": "人工复查：确实只是很小的一朵，不是中等 cell / 中等连接的高积云层。"
     },
     {
       "caseId": "w8--single-altocumulus--recipe-v2--cached--density-debug",
@@ -1733,7 +1733,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "normal/density-debug 均为孤立小 puff，缺中等 cell/中等连接层；与 Sc/Cc 尺度区分不足。"
+      "note": "人工复查：确实只是很小的一朵，不是中等 cell / 中等连接的高积云层。"
     },
     {
       "caseId": "w8--single-altocumulus--recipe-v2--hybrid--normal",
@@ -1930,7 +1930,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "normal/density-debug 均为孤立小 puff，缺中等 cell/中等连接层；与 Sc/Cc 尺度区分不足。"
+      "note": "人工复查：确实只是很小的一朵，不是中等 cell / 中等连接的高积云层。"
     },
     {
       "caseId": "w8--single-altocumulus--recipe-v2--hybrid--density-debug",
@@ -2127,7 +2127,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "normal/density-debug 均为孤立小 puff，缺中等 cell/中等连接层；与 Sc/Cc 尺度区分不足。"
+      "note": "人工复查：确实只是很小的一朵，不是中等 cell / 中等连接的高积云层。"
     },
     {
       "caseId": "w8--single-cirrocumulus--legacy--cached--normal",
@@ -2543,7 +2543,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "薄层小斑可见，但无清晰小尺度 ripple/纹理；呈光滑模糊块，不满足可辨识 Cc ripple。"
+      "note": "人工复查：确实平滑，缺少可辨小尺度 ripple。"
     },
     {
       "caseId": "w8--single-cirrocumulus--recipe-v2--cached--density-debug",
@@ -2740,7 +2740,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "薄层小斑可见，但无清晰小尺度 ripple/纹理；呈光滑模糊块，不满足可辨识 Cc ripple。"
+      "note": "人工复查：确实平滑，缺少可辨小尺度 ripple。"
     },
     {
       "caseId": "w8--single-cirrocumulus--recipe-v2--hybrid--normal",
@@ -2937,7 +2937,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "薄层小斑可见，但无清晰小尺度 ripple/纹理；呈光滑模糊块，不满足可辨识 Cc ripple。"
+      "note": "人工复查：确实平滑，缺少可辨小尺度 ripple。"
     },
     {
       "caseId": "w8--single-cirrocumulus--recipe-v2--hybrid--density-debug",
@@ -3134,7 +3134,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "薄层小斑可见，但无清晰小尺度 ripple/纹理；呈光滑模糊块，不满足可辨识 Cc ripple。"
+      "note": "人工复查：确实平滑，缺少可辨小尺度 ripple。"
     },
     {
       "caseId": "w8--w8-cellular-scale--legacy--cached--normal",
@@ -3577,7 +3577,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 body 同 footprint 前提下，内部 cell 尺度与物理层厚 Sc>Ac>Cc 排序不可严格辨认；不可勉强 pass。"
+      "note": "人工复查：normal 与 density-debug 都看不出哪个是 Sc/Ac/Cc，排序失败。"
     },
     {
       "caseId": "w8--w8-cellular-scale--recipe-v2--cached--density-debug",
@@ -3774,7 +3774,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 body 同 footprint 前提下，内部 cell 尺度与物理层厚 Sc>Ac>Cc 排序不可严格辨认；不可勉强 pass。"
+      "note": "人工复查：normal 与 density-debug 都看不出哪个是 Sc/Ac/Cc，排序失败。"
     },
     {
       "caseId": "w8--w8-cellular-scale--recipe-v2--hybrid--normal",
@@ -3971,7 +3971,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 body 同 footprint 前提下，内部 cell 尺度与物理层厚 Sc>Ac>Cc 排序不可严格辨认；不可勉强 pass。"
+      "note": "人工复查：normal 与 density-debug 都看不出哪个是 Sc/Ac/Cc，排序失败。"
     },
     {
       "caseId": "w8--w8-cellular-scale--recipe-v2--hybrid--density-debug",
@@ -4168,7 +4168,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 body 同 footprint 前提下，内部 cell 尺度与物理层厚 Sc>Ac>Cc 排序不可严格辨认；不可勉强 pass。"
+      "note": "人工复查：normal 与 density-debug 都看不出哪个是 Sc/Ac/Cc，排序失败。"
     },
     {
       "caseId": "w8--w8-cellular-overlap--legacy--cached--normal",
@@ -4600,7 +4600,7 @@
       "cacheTiming": "collected",
       "timingClassification": "collected",
       "rawDensityVerdict": "n/a",
-      "normalOpticalVerdict": "review",
+      "normalOpticalVerdict": "pass",
       "supportTileVerdict": "unresolved",
       "metadataVerdict": "unresolved",
       "recipeV2Checks": {
@@ -4611,7 +4611,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "未见饱和实心板/明显黑洞/硬切边/缺块；但无 RGBA metadata 与精确 Support containment 证据，保持 unresolved。"
+      "note": "人工复查：确实叠在一起。Support containment / RGBA metadata 仍无读回证据，保持 unresolved。"
     },
     {
       "caseId": "w8--w8-cellular-overlap--recipe-v2--cached--density-debug",
@@ -4796,7 +4796,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "pass",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "unresolved",
       "metadataVerdict": "unresolved",
@@ -4808,7 +4808,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "未见饱和实心板/明显黑洞/硬切边/缺块；但无 RGBA metadata 与精确 Support containment 证据，保持 unresolved。"
+      "note": "人工复查：确实叠在一起。Support containment / RGBA metadata 仍无读回证据，保持 unresolved。"
     },
     {
       "caseId": "w8--w8-cellular-overlap--recipe-v2--hybrid--normal",
@@ -4994,7 +4994,7 @@
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
       "rawDensityVerdict": "n/a",
-      "normalOpticalVerdict": "review",
+      "normalOpticalVerdict": "pass",
       "supportTileVerdict": "unresolved",
       "metadataVerdict": "unresolved",
       "recipeV2Checks": {
@@ -5005,7 +5005,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "未见饱和实心板/明显黑洞/硬切边/缺块；但无 RGBA metadata 与精确 Support containment 证据，保持 unresolved。"
+      "note": "人工复查：确实叠在一起。Support containment / RGBA metadata 仍无读回证据，保持 unresolved。"
     },
     {
       "caseId": "w8--w8-cellular-overlap--recipe-v2--hybrid--density-debug",
@@ -5190,7 +5190,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "pass",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "unresolved",
       "metadataVerdict": "unresolved",
@@ -5202,7 +5202,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "未见饱和实心板/明显黑洞/硬切边/缺块；但无 RGBA metadata 与精确 Support containment 证据，保持 unresolved。"
+      "note": "人工复查：确实叠在一起。Support containment / RGBA metadata 仍无读回证据，保持 unresolved。"
     },
     {
       "caseId": "w8--w8-wave-ripple--legacy--cached--normal",
@@ -5634,7 +5634,7 @@
       "cacheTiming": "collected",
       "timingClassification": "collected",
       "rawDensityVerdict": "n/a",
-      "normalOpticalVerdict": "review",
+      "normalOpticalVerdict": "fail",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
       "recipeV2Checks": {
@@ -5645,7 +5645,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 Cc 同高水平排列；normal 有弱内部密度起伏，density-debug 偏光滑。单帧不能证明风连续/相机无锁纹，相关不可豁免项 unresolved。"
+      "note": "人工复查：波纹不连续。"
     },
     {
       "caseId": "w8--w8-wave-ripple--recipe-v2--cached--density-debug",
@@ -5830,7 +5830,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "fail",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
@@ -5842,7 +5842,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 Cc 同高水平排列；normal 有弱内部密度起伏，density-debug 偏光滑。单帧不能证明风连续/相机无锁纹，相关不可豁免项 unresolved。"
+      "note": "人工复查：波纹不连续。"
     },
     {
       "caseId": "w8--w8-wave-ripple--recipe-v2--hybrid--normal",
@@ -6028,7 +6028,7 @@
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
       "rawDensityVerdict": "n/a",
-      "normalOpticalVerdict": "review",
+      "normalOpticalVerdict": "fail",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
       "recipeV2Checks": {
@@ -6039,7 +6039,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 Cc 同高水平排列；normal 有弱内部密度起伏，density-debug 偏光滑。单帧不能证明风连续/相机无锁纹，相关不可豁免项 unresolved。"
+      "note": "人工复查：波纹不连续。"
     },
     {
       "caseId": "w8--w8-wave-ripple--recipe-v2--hybrid--density-debug",
@@ -6224,7 +6224,7 @@
       },
       "cacheTiming": "not-applicable",
       "timingClassification": "not-applicable",
-      "rawDensityVerdict": "review",
+      "rawDensityVerdict": "fail",
       "normalOpticalVerdict": "n/a",
       "supportTileVerdict": "review",
       "metadataVerdict": "unresolved",
@@ -6236,7 +6236,7 @@
       "consoleErrorCount": 0,
       "webgpuValidationError": false,
       "hudHasNan": false,
-      "note": "三 Cc 同高水平排列；normal 有弱内部密度起伏，density-debug 偏光滑。单帧不能证明风连续/相机无锁纹，相关不可豁免项 unresolved。"
+      "note": "人工复查：波纹不连续。"
     },
     {
       "caseId": "w8--single-cumulonimbus--legacy--cached--normal",
@@ -9025,7 +9025,7 @@
       "t": "2026-07-15T13:14:10.318Z"
     }
   ],
-  "classifiedAt": "2026-07-15T13:21:11.612Z",
+  "classifiedAt": "2026-07-15T15:13:32.454Z",
   "performancePairs": [
     {
       "scene": "single-stratocumulus",
@@ -9070,8 +9070,8 @@
     "ac": "fail",
     "cc": "fail",
     "scale": "fail",
-    "overlap": "review",
-    "wave": "review",
+    "overlap": "pass",
+    "wave": "fail",
     "cbCiV2Empty": "pass",
     "legacyRollback": "pass"
   }

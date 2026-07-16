@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "changeId": "add-density-v2-cellular-wave-family",
-  "generatedAt": "2026-07-15T13:21:11.651Z",
+  "generatedAt": "2026-07-15T15:13:32.476Z",
   "evidenceGeneratedAt": "2026-07-15T13:18:23.052Z",
   "sourceEvidence": {
     "revision": "3187a4be76ec1057f7d4d8faf91ce7f7678d3715",
@@ -123,7 +123,7 @@
       "cell-scale-and-profile-order": "fail",
       "finite-nonnegative-density-and-metadata": "unresolved",
       "support-and-tile-mask-containment": "unresolved",
-      "no-checkerboard-camera-lock-or-wind-discontinuity": "unresolved",
+      "no-checkerboard-camera-lock-or-wind-discontinuity": "fail",
       "w7-legacy-realtime-optical-regression": "not-in-scope-w8-matrix"
     },
     "sceneVerdicts": {
@@ -131,8 +131,8 @@
       "ac": "fail",
       "cc": "fail",
       "scale": "fail",
-      "overlap": "review",
-      "wave": "review",
+      "overlap": "pass",
+      "wave": "fail",
       "cbCiV2Empty": "pass",
       "legacyRollback": "pass"
     },
@@ -148,7 +148,11 @@
       "w8--w8-cellular-scale--recipe-v2--cached--normal",
       "w8--w8-cellular-scale--recipe-v2--cached--density-debug",
       "w8--w8-cellular-scale--recipe-v2--hybrid--normal",
-      "w8--w8-cellular-scale--recipe-v2--hybrid--density-debug"
+      "w8--w8-cellular-scale--recipe-v2--hybrid--density-debug",
+      "w8--w8-wave-ripple--recipe-v2--cached--normal",
+      "w8--w8-wave-ripple--recipe-v2--cached--density-debug",
+      "w8--w8-wave-ripple--recipe-v2--hybrid--normal",
+      "w8--w8-wave-ripple--recipe-v2--hybrid--density-debug"
     ]
   },
   "performance": {
