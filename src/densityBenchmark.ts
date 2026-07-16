@@ -13,6 +13,7 @@ import {
   cloneBenchmarkWind,
   createDensityBenchmarkManifest,
   fingerprintValue,
+  requiresGroundShadowTiming,
   resolveBenchmarkCamera,
   serializableCloudParams,
   stableStringify,
@@ -577,6 +578,8 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     const enough = active.samples.cloud.length >= manifest.minimumGpuSamples
       && active.samples.cache.length >= manifest.minimumGpuSamples
       && (expectedStorage !== 'hierarchical' || active.samples.brick.length >= manifest.minimumGpuSamples)
+      && (!requiresGroundShadowTiming(active.definition)
+        || active.samples.shadow.length >= manifest.minimumGpuSamples)
       && active.samples.post.length >= manifest.minimumGpuSamples;
     if (enough) {
       complete(active, stats);
@@ -625,6 +628,10 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       return result?.gpuTiming.availability === 'available'
         && (result.gpuTiming.cloud?.count ?? 0) >= manifest.minimumGpuSamples
         && (result.gpuTiming.cache?.count ?? 0) >= manifest.minimumGpuSamples
+        && (candidate.storage !== 'hierarchical'
+          || (result.gpuTiming.brick?.count ?? 0) >= manifest.minimumGpuSamples)
+        && (!requiresGroundShadowTiming(candidate)
+          || (result.gpuTiming.shadow?.count ?? 0) >= manifest.minimumGpuSamples)
         && (result.gpuTiming.post?.count ?? 0) >= manifest.minimumGpuSamples;
     }));
     return {

@@ -15,6 +15,8 @@ const params = read('src/params.ts');
 const cloud = read('shaders/cloud.wgsl');
 const fixtures = read('src/density/bodyLocalBrickFixtures.ts');
 const manifest = read('src/densityBenchmarkManifest.ts');
+const benchmark = read('src/densityBenchmark.ts');
+const gate = read('docs/evidence/w9-body-local-bricks/build-gate.mjs');
 
 for (const token of [
   'DENSITY_BRICK_RECORD_STRIDE = 160',
@@ -93,6 +95,28 @@ if (!manifest.includes('w9--${sceneId}--legacy--global-only--${quality}--${view}
   || !manifest.includes('w9--${sceneId}--recipe-v2--${storage}--${quality}--${view}')
   || !manifest.includes("'w9-brick-lod-sweep', 'w9-brick-overflow', 'w9-thin-ridge-proxy'")) {
   throw new Error('W9 Legacy/global-only/hierarchical A/B manifest matrix is incomplete');
+}
+
+if (!manifest.includes('body.base = overflowSupportBase')
+  || !manifest.includes('body.thickness = overflowSupportThickness')) {
+  throw new Error('W9 browser overflow scene does not align all five bodies in 3D support space');
+}
+
+if (!manifest.includes('GROUND_SHADOW_MODE.transmittance')
+  || !benchmark.includes('requiresGroundShadowTiming(active.definition)')
+  || !benchmark.includes('active.samples.shadow.length >= manifest.minimumGpuSamples')
+  || !benchmark.includes('(result.gpuTiming.shadow?.count ?? 0) >= manifest.minimumGpuSamples')) {
+  throw new Error('W9 benchmark does not require the 60-sample ground-shadow timing range');
+}
+
+const globalGateStart = gate.indexOf('if (globalOnly)');
+const globalGateEnd = gate.indexOf('if (hierarchical)', globalGateStart);
+const globalGate = gate.slice(globalGateStart, globalGateEnd);
+if (globalGateStart < 0 || globalGateEnd < 0
+  || globalGate.includes('sampleId')
+  || !globalGate.includes('bricks.residentBytes !== 0')
+  || !globalGate.includes('bricks.dispatchCount !== 0')) {
+  throw new Error('W9 global-only gate must inspect current resources/work, not historical counters');
 }
 
 if (!contracts.includes('contractVersion: 2')

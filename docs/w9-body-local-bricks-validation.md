@@ -2,7 +2,7 @@
 
 OpenSpec change：`add-hierarchical-body-local-density-bricks`
 
-当前状态：实现、静态检查、TypeScript、production build、OpenSpec strict validation 与小范围 WebGPU smoke 已完成；完整 108-case 截图、运动/失败路径检查、60+ GPU timestamp 性能对比和项目所有者批准尚未完成。完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
+当前状态：2026-07-16 首轮完整验收已完成 108/108 case 与 216 张截图，但报告为 Stop。复盘确认并已修复三项验收代码问题：global-only 历史 sample 误判为当前资源、overflow 场景没有形成五体同一 3D tile、W9 没有强制采集 ground-shadow timestamp。修复后完整 WebGPU/视觉/性能复验和项目所有者批准尚未完成；完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
 
 ## 固定矩阵
 
@@ -24,7 +24,7 @@ W9 manifest 含 9 个 scene：
 - Recipe V2/global-only × Cached/Hybrid × normal/density-debug：4 case；
 - Recipe V2/hierarchical × Cached/Hybrid × normal/density-debug：4 case。
 
-总计 108 case、216 张 HUD/clean 截图。固定 viewport 为 `1280×720`，coarse cache 为 `96³`，workgroup 为 `8×8×4`；性能 case 先完成 5+ cache warmup，再取得 60+ 有效 GPU timestamp 样本。
+总计 108 case、216 张 HUD/clean 截图。固定 viewport 为 `1280×720`，coarse cache 为 `96³`，workgroup 为 `8×8×4`。W9 case 固定使用 Transmittance ground shadow；性能 case 先完成 5+ cache warmup，再分别取得 60+ cloud、coarse cache、hierarchical brick、ground-shadow 与 post GPU timestamp 样本。
 
 ## 执行命令
 
@@ -72,7 +72,7 @@ node docs/evidence/w9-body-local-bricks/build-gate.mjs
 - normal、density-debug、主 ray、light march 与 ground shadow 必须一致；不能 raw density 正常而 normal/阴影出现缺块。
 - overlap 中无双重增密、黑洞、NaN/Inf、metadata 错属或 Support leak。
 - `w9-brick-overflow` 必须报告 overflow tile 并整点回退 coarse；`maxCandidates=5` 是源集合诊断，不代表 renderer 扫描 5 个 Body。renderer 上限仍为 K=4。
-- global-only、Legacy、Realtime 不得常驻或编码 W9 atlas/record/candidate/pipeline 资源。
+- global-only、Legacy、Realtime 不得常驻或编码 W9 atlas/record/candidate/pipeline 资源。global-only 只检查当前 lifecycle/profile/dimensions/bytes/body counts/dispatch/voxel/candidate 均为空或为零；累计的 allocation generation、content revision、rebuild count、sample ID 与历史 timing 可以保留，不能把它们误判为当前资源或工作。
 - atlas resident `<=16 MiB`，rebuild peak `<=32 MiB`，record `=1,920 B`，默认 candidate payload `=27,648 B`。
 - GPU 性能必须由 timestamp-query 证明；FPS、CPU timing、主观“看起来流畅”都不能替代。样本不足保持 Review。
 - 视觉代理不得把 `ownerApproval` 改为 `approved`，不得归档、commit、push 或修改 Recipe/renderer 代码来掩盖失败。
@@ -92,7 +92,7 @@ OpenSpec：openspec/changes/add-hierarchical-body-local-density-bricks/
 1. 先读取验收说明、W9 proposal/design/specs/tasks、W8 Stop 报告和当前 git status。记录 HEAD、dirty 状态；不要清理或覆盖现有代码修改。
 2. 运行全部自动检查：test:genus-dispatch、test:pipeline-isolation、test:density-v2-layout、test:density-v2-tiles、test:density-v2-fields、test:density-v2-evaluators、test:w9-bricks、test:ground-shadow-hash、typecheck、build，以及 W8/W9 两个 openspec strict validation。任一失败就保留输出并停止把 Gate 写成 pass。
 3. 用支持 WebGPU 的本机 Chrome 启动 http://127.0.0.1:5173/procedural-clouds/?benchmark=1。必须使用真实 WebGPU；不要用静态 HTML、Canvas mock 或软件截图替代。
-4. 运行 node docs/evidence/w9-body-local-bricks/capture-w9.mjs。它应采集 108/108 case、216 张 HUD/clean 截图，并生成 docs/evidence/w9-body-local-bricks/results.raw.json。若 timeout、invalid、console/page/WebGPU error、producer/storage fallback 或截图缺失，保留证据，不要跳过后伪报完成。
+4. 运行 node docs/evidence/w9-body-local-bricks/capture-w9.mjs。它应采集 108/108 case、216 张 HUD/clean 截图，并生成 docs/evidence/w9-body-local-bricks/results.raw.json。W9 case 的 groundShadowMode 应为 Transmittance；每个 timing case 必须等到 60+ ground-shadow 样本后才能完成。若 timeout、invalid、console/page/WebGPU error、producer/storage fallback、timestamp 样本不足或截图缺失，保留证据，不要跳过后伪报完成。
 5. 逐 scene 对比 Legacy、Recipe V2 global-only、Recipe V2 hierarchical；分别检查 Cached/Hybrid 与 normal/density-debug。重点判断：
    - hierarchical 是否真实恢复中尺度形态，而不是增加棋盘、条纹、屏幕锁纹或噪点；
    - w8-cellular-scale 是否稳定满足 Sc > Ac > Cc 的 cell 尺度和层厚；
@@ -106,8 +106,8 @@ OpenSpec：openspec/changes/add-hierarchical-body-local-density-bricks/
 8. 运行 node docs/evidence/w9-body-local-bricks/build-gate.mjs。检查 gate-report.json 和 report.md：
    - runtime 必须 108/108 且截图完整；
    - hierarchical atlas resident<=16 MiB、peak<=32 MiB、record=1920 B、candidate=27648 B；
-   - global-only/Legacy 不得保留 brick GPU 资源；
-   - 每个性能配对必须 60+ GPU timestamp 样本；不足写 Review；
+   - global-only/Legacy 不得保留当前 brick GPU 资源；历史 generation/sample/timing 计数不等于资源仍驻留；
+   - 每个性能配对的 cloud、combined cache-update 与 ground-shadow 必须各有 60+ GPU timestamp 样本；hierarchical brick pass 也必须有 60+；不足写 Review；
    - cloud median<=1.25x、p90<=1.35x；ground-shadow median<=1.35x、p90<=1.50x；combined cache-update 满足说明中的相对/绝对阈值。
 9. 最终回复中列出：自动检查结果、浏览器/GPU/viewport、108 case与216截图完成数、每个 scene 的判定、所有失败/Review项、性能比值、资源预算、console/WebGPU错误、证据文件路径，以及建议 Stop/Review/Continue。没有项目所有者批准时最终决策至多是 Review。
 

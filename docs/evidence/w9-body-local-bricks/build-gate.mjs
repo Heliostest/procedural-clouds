@@ -70,8 +70,14 @@ for (const item of raw.results || []) {
     if (diagnostics?.requested !== 'recipe-v2' || diagnostics?.active !== 'recipe-v2') notes.push('Recipe V2 producer mismatch');
     if (diagnostics?.storageRequested !== 'global-only' || diagnostics?.storageActive !== 'global-only') notes.push('global-only storage mismatch');
     const bricks = diagnostics?.bricks;
-    if (!bricks || bricks.residentBytes !== 0 || bricks.recordBytes !== 0 || bricks.candidateBytes !== 0
-      || bricks.dispatchCount !== 0 || bricks.sampleId !== 0) notes.push('global-only retained brick resources or work');
+    if (!bricks || bricks.lifecycle !== 'idle' || bricks.profile !== ''
+      || bricks.dimensions?.some((value) => value !== 0)
+      || bricks.residentBytes !== 0 || bricks.rebuildPeakBytes !== 0
+      || bricks.recordBytes !== 0 || bricks.candidateBytes !== 0
+      || bricks.residentBodyCount !== 0 || bricks.nonresidentBodyCount !== 0
+      || bricks.dispatchCount !== 0 || bricks.voxelCount !== 0 || bricks.candidate !== null) {
+      notes.push('global-only retained current brick resources or work');
+    }
   }
   if (hierarchical) {
     const bricks = diagnostics?.bricks;

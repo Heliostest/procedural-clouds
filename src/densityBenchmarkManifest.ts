@@ -1,6 +1,6 @@
 import { createDefaultBodies, type CloudBody } from './body';
 import { CLOUD_GENERA, type CloudGenus } from './genusProfile';
-import { createDefaultParams, type CloudParams } from './params';
+import { createDefaultParams, GROUND_SHADOW_MODE, type CloudParams } from './params';
 import type { WindAdvectionSample } from './wind';
 
 export const DENSITY_BENCHMARK_SCHEMA_VERSION = 5 as const;
@@ -259,6 +259,15 @@ function createScenes(): BenchmarkScene[] {
     benchmarkFootprintBody(stratus, 'w9-overflow-st', 0, 0, 1950, 0.62),
     benchmarkFootprintBody(cumulus, 'w9-overflow-cu', 0, 0, 1700, 0.58),
   ];
+  // Candidate classification is three-dimensional. Align the five diagnostic
+  // bodies to one mid-level vertical support so the fixture really exercises
+  // K=4 overflow instead of merely overlapping in the top-down projection.
+  const overflowSupportBase = altocumulus.base;
+  const overflowSupportThickness = altocumulus.thickness;
+  for (const body of brickOverflow) {
+    body.base = overflowSupportBase;
+    body.thickness = overflowSupportThickness;
+  }
   const thinRidge = [benchmarkFootprintBody(cirrocumulus, 'w9-thin-ridge-cc', 0, 0, 1200, 0.58)];
   thinRidge[0].bounds = [-6200, -650, 6200, 650];
   thinRidge[0].feather = 260;
@@ -698,9 +707,22 @@ export function caseParams(manifest: DensityBenchmarkManifest, benchmarkCase: De
     qualityMode: QUALITY_MODE[benchmarkCase.quality],
     debugView: VIEW_MODE[benchmarkCase.view],
     taaEnabled: benchmarkCase.view === 'normal' && manifest.params.taaEnabled,
+    // W9 gates compare both cloud and cached ground-shadow GPU ranges. Force
+    // the cache-backed mode so every W9 capture produces comparable samples.
+    groundShadowMode: isW9BenchmarkCase(benchmarkCase)
+      ? GROUND_SHADOW_MODE.transmittance
+      : manifest.params.groundShadowMode,
     densityProducerMode: benchmarkCase.producer === 'recipe-v2' ? 1 : 0,
     densityStorageMode: benchmarkCase.storage === 'hierarchical' ? 1 : 0,
   };
+}
+
+export function isW9BenchmarkCase(benchmarkCase: DensityBenchmarkCase): boolean {
+  return benchmarkCase.id.startsWith('w9--');
+}
+
+export function requiresGroundShadowTiming(benchmarkCase: DensityBenchmarkCase): boolean {
+  return benchmarkCase.timingRequired && isW9BenchmarkCase(benchmarkCase);
 }
 
 export function benchmarkScene(manifest: DensityBenchmarkManifest, sceneId: BenchmarkSceneId): BenchmarkScene {
