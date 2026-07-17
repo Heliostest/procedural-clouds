@@ -131,12 +131,22 @@ const performanceChecks = SCENES.map((scene) => {
   const shadowP90Ratio = hShadow.p90 / gShadow.p90;
   const cacheMedianLimit = Math.max(gCache.median * 1.75, gCache.median + 0.50);
   const cacheP90Limit = Math.max(gCache.p90 * 2.00, gCache.p90 + 0.75);
-  const pass = cloudMedianRatio <= 1.25 && cloudP90Ratio <= 1.35
-    && shadowMedianRatio <= 1.35 && shadowP90Ratio <= 1.50
-    && hCache.median <= cacheMedianLimit && hCache.p90 <= cacheP90Limit;
+  const failedMetrics = [
+    cloudMedianRatio > 1.25 ? `cloud median ${cloudMedianRatio.toFixed(3)}x > 1.250x` : '',
+    cloudP90Ratio > 1.35 ? `cloud p90 ${cloudP90Ratio.toFixed(3)}x > 1.350x` : '',
+    shadowMedianRatio > 1.35 ? `ground-shadow median ${shadowMedianRatio.toFixed(3)}x > 1.350x` : '',
+    shadowP90Ratio > 1.50 ? `ground-shadow p90 ${shadowP90Ratio.toFixed(3)}x > 1.500x` : '',
+    hCache.median > cacheMedianLimit
+      ? `combined cache median ${hCache.median.toFixed(3)}ms > ${cacheMedianLimit.toFixed(3)}ms`
+      : '',
+    hCache.p90 > cacheP90Limit
+      ? `combined cache p90 ${hCache.p90.toFixed(3)}ms > ${cacheP90Limit.toFixed(3)}ms`
+      : '',
+  ].filter(Boolean);
   return {
     scene,
-    status: pass ? 'pass' : 'fail',
+    status: failedMetrics.length === 0 ? 'pass' : 'fail',
+    failedMetrics,
     cloudMedianRatio, cloudP90Ratio, shadowMedianRatio, shadowP90Ratio,
     combinedCache: {
       globalMedian: gCache.median, hierarchicalMedian: hCache.median, medianLimit: cacheMedianLimit,
@@ -185,7 +195,7 @@ ${visualChecks.map((item) => `- ${item.scene}: ${item.status}${item.notes.length
 
 ## Performance
 
-${performanceChecks.map((item) => `- ${item.scene}: ${item.status}${item.reason ? ` — ${item.reason}` : ''}`).join('\n')}
+${performanceChecks.map((item) => `- ${item.scene}: ${item.status}${item.reason ? ` — ${item.reason}` : item.failedMetrics?.length ? ` — ${item.failedMetrics.join('; ')}` : ''}`).join('\n')}
 
 ## Remaining blockers
 

@@ -146,10 +146,7 @@ ${buildDensityBrickWgslAbi()}
 @group(1) @binding(6) var<storage, read> densityBrickRecords : array<DensityBrickRecordGPU, 12>;
 @group(1) @binding(7) var<storage, read> densityBrickCandidates : array<vec2u>;
 
-fn densityBrickCandidateIndex(pos : vec3f) -> u32 {
-  let bmin = boxMin();
-  let bmax = getBoxMax();
-  let uvw = (pos - bmin) / (bmax - bmin);
+fn densityBrickCandidateIndex(uvw : vec3f) -> u32 {
   let resolution = max(u32(round(params.g.densityResolution)), 1u);
   let workgroup = max(vec3u(
     u32(round(params.g.cacheWorkgroupX)),
@@ -162,6 +159,25 @@ fn densityBrickCandidateIndex(pos : vec3f) -> u32 {
   return tile.x + grid.x * (tile.y + grid.y * tile.z);
 }
 
+fn densityBrickCoarseFallback(pos : vec3f) -> vec4f {
+  return sampleDensityTyped(pos);
+}
+
+fn sampleDensityBrickAtlas(atlasUv : vec3f) -> f32 {
+  let blend = clamp(params.g.cacheBlend, 0.0, 1.0);
+  // cacheBlend is uniform. During fixed/static scenes it normally sits on an
+  // endpoint, so avoid fetching the atlas that cannot contribute.
+  if (blend <= 0.0) {
+    return max(textureSampleLevel(densityBrickTex0, densityBrickSampler, atlasUv, 0.0).r, 0.0);
+  }
+  if (blend >= 1.0) {
+    return max(textureSampleLevel(densityBrickTex1, densityBrickSampler, atlasUv, 0.0).r, 0.0);
+  }
+  let da = textureSampleLevel(densityBrickTex0, densityBrickSampler, atlasUv, 0.0).r;
+  let db = textureSampleLevel(densityBrickTex1, densityBrickSampler, atlasUv, 0.0).r;
+  return max(mix(da, db, blend), 0.0);
+}
+
 fn densityBrickRecordLocal(record : DensityBrickRecordGPU, pos : vec3f) -> vec3f {
   return vec3f(
     dot(record.worldToLocal0.xyz, pos) + record.worldToLocal0.w,
@@ -171,21 +187,21 @@ fn densityBrickRecordLocal(record : DensityBrickRecordGPU, pos : vec3f) -> vec3f
 }
 
 fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
-  let coarse = sampleDensityTyped(pos);
   let bmin = boxMin();
   let bmax = getBoxMax();
   let uvw = (pos - bmin) / (bmax - bmin);
   if (any(uvw < vec3f(0.0)) || any(uvw > vec3f(1.0))) {
-    return coarse;
+    return densityBrickCoarseFallback(pos);
   }
-  let entry = densityBrickCandidates[densityBrickCandidateIndex(pos)];
+  let entry = densityBrickCandidates[densityBrickCandidateIndex(uvw)];
   let count = entry.y & 7u;
   let overflow = (entry.y & 8u) != 0u;
   let complete = (entry.y & 16u) != 0u;
   let generation = entry.y >> 8u;
   if (!complete || overflow || count > DENSITY_BRICK_CANDIDATE_LIMIT) {
-    return coarse;
+    return densityBrickCoarseFallback(pos);
   }
+  if (count == 0u) { return vec4f(0.0); }
 
   var totalDensity = 0.0;
   var bestDensity = 0.0;
@@ -195,10 +211,10 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   for (var i = 0u; i < 4u; i++) {
     if (i >= count) { break; }
     let recordIndex = (entry.x >> (i * 8u)) & 0xffu;
-    if (recordIndex >= DENSITY_BRICK_RECORD_COUNT) { return coarse; }
+    if (recordIndex >= DENSITY_BRICK_RECORD_COUNT) { return densityBrickCoarseFallback(pos); }
     let record = densityBrickRecords[recordIndex];
     if (record.header.x == 0u || record.header.y != recordIndex || record.header.w != generation) {
-      return coarse;
+      return densityBrickCoarseFallback(pos);
     }
     if (any(pos < record.supportMin.xyz) || any(pos > record.supportMax.xyz)) {
       continue;
@@ -208,9 +224,7 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
       continue;
     }
     let atlasUv = local * record.atlasScale.xyz + record.atlasBias.xyz;
-    let da = textureSampleLevel(densityBrickTex0, densityBrickSampler, atlasUv, 0.0).r;
-    let db = textureSampleLevel(densityBrickTex1, densityBrickSampler, atlasUv, 0.0).r;
-    let density = max(mix(da, db, clamp(params.g.cacheBlend, 0.0, 1.0)), 0.0);
+    let density = sampleDensityBrickAtlas(atlasUv);
     totalDensity += density;
     if (density > bestDensity) {
       secondDensity = bestDensity;

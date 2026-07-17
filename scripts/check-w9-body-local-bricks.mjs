@@ -60,11 +60,16 @@ const hierarchyEnd = shaderSources.indexOf('const hierarchicalCachedQualityAdapt
 const hierarchy = shaderSources.slice(hierarchyStart, hierarchyEnd);
 if (hierarchyStart < 0 || hierarchyEnd < 0
   || !hierarchy.includes('for (var i = 0u; i < 4u; i++)')
-  || !hierarchy.includes('return coarse;')
+  || !hierarchy.includes('fn densityBrickCoarseFallback(pos : vec3f) -> vec4f')
+  || !hierarchy.includes('return densityBrickCoarseFallback(pos);')
+  || hierarchy.includes('let coarse = sampleDensityTyped(pos);')
+  || !hierarchy.includes('densityBrickCandidateIndex(uvw)')
+  || !hierarchy.includes('if (count == 0u) { return vec4f(0.0); }')
+  || !hierarchy.includes('fn sampleDensityBrickAtlas(atlasUv : vec3f) -> f32')
   || hierarchy.includes('MAX_BODIES')
   || hierarchy.includes('softDensity + coarse')
   || hierarchy.includes('coarse + softDensity')) {
-  throw new Error('W9 hierarchical render closure is not fixed-K/coarse-fallback/replace-only');
+  throw new Error('W9 hierarchical render closure is not fixed-K/deferred-coarse/replace-only');
 }
 
 if (!pipeline.includes('async createBrickPipeline(nextWorkgroup)')
@@ -117,6 +122,12 @@ if (globalGateStart < 0 || globalGateEnd < 0
   || !globalGate.includes('bricks.residentBytes !== 0')
   || !globalGate.includes('bricks.dispatchCount !== 0')) {
   throw new Error('W9 global-only gate must inspect current resources/work, not historical counters');
+}
+
+if (!gate.includes('const failedMetrics = [')
+  || !gate.includes('cloud median ${cloudMedianRatio.toFixed(3)}x > 1.250x')
+  || !gate.includes('ground-shadow median ${shadowMedianRatio.toFixed(3)}x > 1.350x')) {
+  throw new Error('W9 performance report must identify each breached metric and threshold');
 }
 
 if (!contracts.includes('contractVersion: 2')

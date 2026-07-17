@@ -2,7 +2,7 @@
 
 OpenSpec change：`add-hierarchical-body-local-density-bricks`
 
-当前状态：2026-07-16 首轮完整验收已完成 108/108 case 与 216 张截图，但报告为 Stop。复盘确认并已修复三项验收代码问题：global-only 历史 sample 误判为当前资源、overflow 场景没有形成五体同一 3D tile、W9 没有强制采集 ground-shadow timestamp。修复后完整 WebGPU/视觉/性能复验和项目所有者批准尚未完成；完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
+当前状态：2026-07-16 第二轮完整验收已完成 108/108 case 与 216 张截图；runtime/protocol/overflow 已通过，视觉仍为 Review，九个场景的 hierarchical cloud 性能均超过 Gate。复盘确认渲染闭包在完整 Brick tile 中仍无条件采样 coarse，现已改为仅在 overflow/incomplete/generation/record 失败时延迟回退，并复用已计算的 candidate UV、跳过空 tile 与无贡献的 ping-pong atlas。该优化不改变密度、metadata、Support 或 fallback 数学语义，仍需在新 revision 上重新采集完整 WebGPU/视觉/性能证据并取得项目所有者批准；完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
 
 ## 固定矩阵
 
