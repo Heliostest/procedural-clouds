@@ -359,7 +359,7 @@ export class BodyLocalBrickCache {
     this.recordBuffer = this.device.createBuffer({
       label: 'density-body-local-records',
       size: DENSITY_BRICK_RECORD_BYTES,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.dispatchBuffer = this.device.createBuffer({
       label: 'density-body-local-dispatches',

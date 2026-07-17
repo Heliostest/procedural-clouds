@@ -61,15 +61,23 @@ const hierarchy = shaderSources.slice(hierarchyStart, hierarchyEnd);
 if (hierarchyStart < 0 || hierarchyEnd < 0
   || !hierarchy.includes('for (var i = 0u; i < 4u; i++)')
   || !hierarchy.includes('fn densityBrickCoarseFallback(pos : vec3f) -> vec4f')
+  || !hierarchy.includes('@binding(6) var<uniform> densityBrickRecords')
+  || !hierarchy.includes('fn sampleDensityBrickRecord(recordIndex : u32, generation : u32, pos : vec3f) -> vec4f')
   || !hierarchy.includes('return densityBrickCoarseFallback(pos);')
   || hierarchy.includes('let coarse = sampleDensityTyped(pos);')
   || !hierarchy.includes('densityBrickCandidateIndex(uvw)')
   || !hierarchy.includes('if (count == 0u) { return vec4f(0.0); }')
+  || !hierarchy.includes('if (count == 1u)')
   || !hierarchy.includes('fn sampleDensityBrickAtlas(atlasUv : vec3f) -> f32')
   || hierarchy.includes('MAX_BODIES')
   || hierarchy.includes('softDensity + coarse')
   || hierarchy.includes('coarse + softDensity')) {
   throw new Error('W9 hierarchical render closure is not fixed-K/deferred-coarse/replace-only');
+}
+
+if (!cache.includes("label: 'density-body-local-records'")
+  || !cache.includes('usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST')) {
+  throw new Error('W9 compact brick record table must use the uniform read path');
 }
 
 if (!pipeline.includes('async createBrickPipeline(nextWorkgroup)')

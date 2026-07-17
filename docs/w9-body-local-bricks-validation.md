@@ -2,7 +2,7 @@
 
 OpenSpec change：`add-hierarchical-body-local-density-bricks`
 
-当前状态：2026-07-16 第二轮完整验收已完成 108/108 case 与 216 张截图；runtime/protocol/overflow 已通过，视觉仍为 Review，九个场景的 hierarchical cloud 性能均超过 Gate。复盘确认渲染闭包在完整 Brick tile 中仍无条件采样 coarse，现已改为仅在 overflow/incomplete/generation/record 失败时延迟回退，并复用已计算的 candidate UV、跳过空 tile 与无贡献的 ping-pong atlas。该优化不改变密度、metadata、Support 或 fallback 数学语义，仍需在新 revision 上重新采集完整 WebGPU/视觉/性能证据并取得项目所有者批准；完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
+当前状态：2026-07-16 第二轮完整验收已完成 108/108 case 与 216 张截图；runtime/protocol/overflow 已通过，视觉仍为 Review，当时九个场景的 hierarchical cloud 性能均超过 Gate。延迟 coarse、复用 candidate UV、空 tile 与单 atlas 采样优化后的 2026-07-17 定向复测见 `docs/evidence/w9-body-local-bricks/results.failing-recapture.json`：九个场景的 ground-shadow 全部通过，Ac、overflow 与 thin-ridge 的 cloud 通过；Sc、Cc、scale、overlap、ripple、LOD 的 cloud median 分别为 1.259×、1.256×、1.285×、1.306×、1.302×、1.278×，仍超过 1.25×。当前代码进一步把 1,920-byte brick record 表改为 uniform 读取，并为最常见的单候选 tile 增加数学等价快路径；这两项尚未完成 WebGPU 复测。定向结果不能替代同 revision 的完整 Gate，仍需重新采集完整 WebGPU/视觉/性能证据并取得项目所有者批准；完成前不得归档 W9，也不得据此把 W8 旧 Stop 报告改成 pass。
 
 ## 固定矩阵
 
@@ -91,7 +91,7 @@ OpenSpec：openspec/changes/add-hierarchical-body-local-density-bricks/
 
 1. 先读取验收说明、W9 proposal/design/specs/tasks、W8 Stop 报告和当前 git status。记录 HEAD、dirty 状态；不要清理或覆盖现有代码修改。
 2. 运行全部自动检查：test:genus-dispatch、test:pipeline-isolation、test:density-v2-layout、test:density-v2-tiles、test:density-v2-fields、test:density-v2-evaluators、test:w9-bricks、test:ground-shadow-hash、typecheck、build，以及 W8/W9 两个 openspec strict validation。任一失败就保留输出并停止把 Gate 写成 pass。
-3. 用支持 WebGPU 的本机 Chrome 启动 http://127.0.0.1:5173/procedural-clouds/?benchmark=1。必须使用真实 WebGPU；不要用静态 HTML、Canvas mock 或软件截图替代。
+3. 用支持 WebGPU 的本机 Chrome 启动 http://127.0.0.1:5173/procedural-clouds/?benchmark=1。必须使用真实 WebGPU；不要用静态 HTML、Canvas mock 或软件截图替代。先确认 hierarchical Cached/Hybrid 能成功创建管线和 bind group，控制台中没有 binding 6 uniform record buffer 的 WGSL、layout、usage 或 minBindingSize 验证错误，再开始完整采集。
 4. 运行 node docs/evidence/w9-body-local-bricks/capture-w9.mjs。它应采集 108/108 case、216 张 HUD/clean 截图，并生成 docs/evidence/w9-body-local-bricks/results.raw.json。W9 case 的 groundShadowMode 应为 Transmittance；每个 timing case 必须等到 60+ ground-shadow 样本后才能完成。若 timeout、invalid、console/page/WebGPU error、producer/storage fallback、timestamp 样本不足或截图缺失，保留证据，不要跳过后伪报完成。
 5. 逐 scene 对比 Legacy、Recipe V2 global-only、Recipe V2 hierarchical；分别检查 Cached/Hybrid 与 normal/density-debug。重点判断：
    - hierarchical 是否真实恢复中尺度形态，而不是增加棋盘、条纹、屏幕锁纹或噪点；

@@ -143,7 +143,7 @@ ${buildDensityBrickWgslAbi()}
 @group(1) @binding(3) var densityBrickSampler : sampler;
 @group(1) @binding(4) var densityBrickTex0 : texture_3d<f32>;
 @group(1) @binding(5) var densityBrickTex1 : texture_3d<f32>;
-@group(1) @binding(6) var<storage, read> densityBrickRecords : array<DensityBrickRecordGPU, 12>;
+@group(1) @binding(6) var<uniform> densityBrickRecords : array<DensityBrickRecordGPU, 12>;
 @group(1) @binding(7) var<storage, read> densityBrickCandidates : array<vec2u>;
 
 fn densityBrickCandidateIndex(uvw : vec3f) -> u32 {
@@ -186,6 +186,26 @@ fn densityBrickRecordLocal(record : DensityBrickRecordGPU, pos : vec3f) -> vec3f
   );
 }
 
+// xyz = density/genus/reserved, w = invalid-record fallback flag.
+fn sampleDensityBrickRecord(recordIndex : u32, generation : u32, pos : vec3f) -> vec4f {
+  if (recordIndex >= DENSITY_BRICK_RECORD_COUNT) {
+    return vec4f(0.0, 0.0, 0.0, 1.0);
+  }
+  let record = densityBrickRecords[recordIndex];
+  if (record.header.x == 0u || record.header.y != recordIndex || record.header.w != generation) {
+    return vec4f(0.0, 0.0, 0.0, 1.0);
+  }
+  if (any(pos < record.supportMin.xyz) || any(pos > record.supportMax.xyz)) {
+    return vec4f(0.0);
+  }
+  let local = densityBrickRecordLocal(record, pos);
+  if (any(local < vec3f(0.0)) || any(local > vec3f(1.0))) {
+    return vec4f(0.0);
+  }
+  let atlasUv = local * record.atlasScale.xyz + record.atlasBias.xyz;
+  return vec4f(sampleDensityBrickAtlas(atlasUv), f32(record.header.z), 0.0, 0.0);
+}
+
 fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   let bmin = boxMin();
   let bmax = getBoxMax();
@@ -203,6 +223,16 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   }
   if (count == 0u) { return vec4f(0.0); }
 
+  // The common case is one body per candidate tile. Preserve the exact
+  // single-contributor result without entering the fixed-K/top-two reducer.
+  if (count == 1u) {
+    let recordIndex = entry.x & 0xffu;
+    let sampled = sampleDensityBrickRecord(recordIndex, generation, pos);
+    if (sampled.w > 0.5) { return densityBrickCoarseFallback(pos); }
+    if (sampled.x <= 0.0) { return vec4f(0.0); }
+    return vec4f(sampled.x, sampled.y, 0.0, 0.0);
+  }
+
   var totalDensity = 0.0;
   var bestDensity = 0.0;
   var secondDensity = 0.0;
@@ -211,29 +241,19 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   for (var i = 0u; i < 4u; i++) {
     if (i >= count) { break; }
     let recordIndex = (entry.x >> (i * 8u)) & 0xffu;
-    if (recordIndex >= DENSITY_BRICK_RECORD_COUNT) { return densityBrickCoarseFallback(pos); }
-    let record = densityBrickRecords[recordIndex];
-    if (record.header.x == 0u || record.header.y != recordIndex || record.header.w != generation) {
-      return densityBrickCoarseFallback(pos);
-    }
-    if (any(pos < record.supportMin.xyz) || any(pos > record.supportMax.xyz)) {
-      continue;
-    }
-    let local = densityBrickRecordLocal(record, pos);
-    if (any(local < vec3f(0.0)) || any(local > vec3f(1.0))) {
-      continue;
-    }
-    let atlasUv = local * record.atlasScale.xyz + record.atlasBias.xyz;
-    let density = sampleDensityBrickAtlas(atlasUv);
+    let sampled = sampleDensityBrickRecord(recordIndex, generation, pos);
+    if (sampled.w > 0.5) { return densityBrickCoarseFallback(pos); }
+    let density = sampled.x;
+    let genus = u32(round(sampled.y));
     totalDensity += density;
     if (density > bestDensity) {
       secondDensity = bestDensity;
       secondGenus = bestGenus;
       bestDensity = density;
-      bestGenus = record.header.z;
+      bestGenus = genus;
     } else if (density > secondDensity) {
       secondDensity = density;
-      secondGenus = record.header.z;
+      secondGenus = genus;
     }
   }
   if (bestDensity <= 0.0) { return vec4f(0.0); }
