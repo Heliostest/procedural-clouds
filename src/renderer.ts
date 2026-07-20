@@ -1533,23 +1533,31 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     );
     activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
     const qualityChanged = qualityConsumerGeneration !== qualitySelection.activeGeneration;
-    if (qualityChanged) {
-      groundShadowHistoryValid = false;
-      groundShadowPhaseIndex = 0;
-      groundShadowResetReason = qualitySelection.activeStorage === 'hierarchical' ? 'storage' : 'quality';
-      historyValid = false;
-    }
     const producerSelection = densityProducerSelector.getSelection();
     const producerChanged = densityConsumerProducerGeneration !== producerSelection.activeGeneration;
-    if (producerChanged) {
+    const bindingQualityBundle = densityQualityPipelineManager.getActiveBundle();
+    const densityGenerationChanged = qualityBindingsReady
+      && !qualityChanged
+      && !producerChanged
+      && (
+        (bindingQualityBundle.usesDensityCache
+          && densityConsumerGeneration !== currentDensityOutput.resourceGeneration)
+        || (bindingQualityBundle.storageMode === 'hierarchical'
+          && densityConsumerHierarchyGeneration !== (currentDensityOutput.hierarchical?.layoutGeneration ?? -1))
+      );
+    if (qualityChanged || producerChanged || densityGenerationChanged) {
       groundShadowHistoryValid = false;
       groundShadowPhaseIndex = 0;
-      groundShadowResetReason = 'producer';
+      groundShadowResetReason = densityGenerationChanged
+        ? 'density-generation'
+        : producerChanged
+          ? 'producer'
+          : qualitySelection.activeStorage === 'hierarchical' ? 'storage' : 'quality';
       historyValid = false;
     }
     const densityResolution = densityProducer.getStats().resolution;
     const cacheWillRun = densityPlan.willEncode;
-    rebuildQualityBindings(qualityChanged || producerChanged);
+    rebuildQualityBindings(qualityChanged || producerChanged || densityGenerationChanged);
 
     const deltaTime = clock - prevSceneTime;
     prevSceneTime = clock;
@@ -1592,7 +1600,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const shadowWindMotion = groundShadowWindMotionMeters();
     const shadowWindExceeded = shadowWindMotion > shadowTexelMeters * 0.5;
     let shadowResetThisFrame = '';
-    if (transmittanceMode && qualityChanged) shadowResetThisFrame = 'quality';
+    if (transmittanceMode && densityGenerationChanged) shadowResetThisFrame = 'density-generation';
+    else if (transmittanceMode && qualityChanged) shadowResetThisFrame = 'quality';
     else if (transmittanceMode && shadowResourcesChanged) shadowResetThisFrame = 'resolution';
     else if (transmittanceMode && shadowSignatureChanged) shadowResetThisFrame = 'scene';
     else if (transmittanceMode && shadowTimeDiscontinuity) shadowResetThisFrame = 'time';
@@ -1660,6 +1669,52 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           },
         }
       : {});
+    const postEncodeDensityOutput = densityProducerSelector.getActive().getOutput();
+    const postEncodeQualitySelection = densityQualityPipelineManager.request(
+      requestedQualityKind,
+      bundleStorageRequest,
+      postEncodeDensityOutput.hierarchical?.valid === true,
+    );
+    const postEncodeDensityResourcesChanged = postEncodeQualitySelection.active !== 'realtime'
+      && (densityConsumerGeneration !== postEncodeDensityOutput.resourceGeneration
+        || densityConsumerHierarchyGeneration !== (postEncodeQualitySelection.activeStorage === 'hierarchical'
+          ? postEncodeDensityOutput.hierarchical?.layoutGeneration ?? -1
+          : -1));
+    if (postEncodeQualitySelection.activeGeneration !== qualitySelection.activeGeneration
+      || postEncodeDensityResourcesChanged) {
+      currentDensityOutput = postEncodeDensityOutput;
+      qualitySelection = postEncodeQualitySelection;
+      activeQualityMode = densityQualityModeFromKind(qualitySelection.active);
+      groundShadowHistoryValid = false;
+      groundShadowPhaseIndex = 0;
+      shadowResetThisFrame = postEncodeDensityOutput.hierarchical?.valid === true
+        ? 'density-generation'
+        : 'density-fallback';
+      groundShadowResetReason = shadowResetThisFrame;
+      historyValid = false;
+      rebuildQualityBindings(true);
+      // This frame already discards and regenerates the shadow history with the
+      // new density bindings. Account for the shadowRevision increment from the
+      // rebuild so the same generation change is not mistaken for a new scene
+      // change and reset again on the following frame.
+      if (transmittanceMode) {
+        lastGroundShadowSignature = groundShadowSignature(params, qualitySelection.active);
+      }
+      device.queue.writeBuffer(paramsBuffer, 0, buildParams(
+        params,
+        activeQualityMode,
+        densityPlan.cacheBlend,
+        densityResolution,
+        clock,
+        deltaTime,
+        frameIndex,
+        jitterX,
+        jitterY,
+        taaOn,
+        groundShadowWillBeValid,
+        groundShadowPhaseIndex,
+      ));
+    }
     const brickRan = cacheEncode.brickRan === true || transitionEncode?.brickRan === true;
     const transitionSharedStats = densityProducerSelector.getRecipeV2Stats()?.sharedFields;
     const sharedAtlasRan = transitionSharedStats?.atlasRan === true;
@@ -1931,6 +1986,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
 
     device.queue.submit([commandEncoder.finish()]);
+    densityProducerSelector.afterSubmit();
     densityProducerSelector.commitTransition();
 
     stats.width = canvas.width;

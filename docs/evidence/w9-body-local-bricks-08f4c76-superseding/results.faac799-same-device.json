@@ -1,0 +1,6035 @@
+{
+  "schemaVersion": 1,
+  "kind": "w9-reverse-order-performance-probe",
+  "generatedAt": "2026-07-18T13:28:29.017Z",
+  "sourceEvidence": {
+    "revision": "faac7998f66602cabe8a182c15cd611d8a4b803a",
+    "status": []
+  },
+  "baseUrl": "http://127.0.0.1:5174/procedural-clouds/?benchmark=1",
+  "order": "hierarchical-then-global-only-per-scene",
+  "browserEnvironment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+    "devicePixelRatio": 1,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "screen": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "url": "http://127.0.0.1:5174/favicon.ico",
+      "benign": true
+    }
+  ],
+  "pageErrors": [],
+  "performance": {
+    "single-stratocumulus": {
+      "cloudMedianRatio": 1.4206306468018908,
+      "cloudP90Ratio": 1.4270536562203229,
+      "shadowMedianRatio": 1.4560174552135965,
+      "shadowP90Ratio": 1.448884335154827,
+      "counts": {
+        "globalCloud": 120,
+        "hierarchicalCloud": 120,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "single-altocumulus": {
+      "cloudMedianRatio": 1.3813762199987722,
+      "cloudP90Ratio": 1.394881505008551,
+      "shadowMedianRatio": 1.459285632249914,
+      "shadowP90Ratio": 1.4520501138952164,
+      "counts": {
+        "globalCloud": 120,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "single-cirrocumulus": {
+      "cloudMedianRatio": 1.40767194138292,
+      "cloudP90Ratio": 1.417785132070846,
+      "shadowMedianRatio": 1.4632158843107999,
+      "shadowP90Ratio": 1.4564400409976084,
+      "counts": {
+        "globalCloud": 119,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w8-cellular-scale": {
+      "cloudMedianRatio": 1.4357538461538462,
+      "cloudP90Ratio": 1.460347455044194,
+      "shadowMedianRatio": 1.4622706422018348,
+      "shadowP90Ratio": 1.4582290006829046,
+      "counts": {
+        "globalCloud": 119,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w8-cellular-overlap": {
+      "cloudMedianRatio": 1.5666273584905661,
+      "cloudP90Ratio": 1.580394221208399,
+      "shadowMedianRatio": 1.4728566509812924,
+      "shadowP90Ratio": 1.4701245287330056,
+      "counts": {
+        "globalCloud": 119,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w8-wave-ripple": {
+      "cloudMedianRatio": 1.4888669673055241,
+      "cloudP90Ratio": 1.5025544124851284,
+      "shadowMedianRatio": 1.4738292011019285,
+      "shadowP90Ratio": 1.4694203560018257,
+      "counts": {
+        "globalCloud": 120,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w9-brick-lod-sweep": {
+      "cloudMedianRatio": 1.466422832473918,
+      "cloudP90Ratio": 1.4754225184479886,
+      "shadowMedianRatio": 1.4676622630672027,
+      "shadowP90Ratio": 1.4673527730131504,
+      "counts": {
+        "globalCloud": 120,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w9-brick-overflow": {
+      "cloudMedianRatio": 1.3919323586401269,
+      "cloudP90Ratio": 1.3980695429701127,
+      "shadowMedianRatio": 1.4512573200137788,
+      "shadowP90Ratio": 1.4468521897810218,
+      "counts": {
+        "globalCloud": 120,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    },
+    "w9-thin-ridge-proxy": {
+      "cloudMedianRatio": 1.4138668949283115,
+      "cloudP90Ratio": 1.4288037330316743,
+      "shadowMedianRatio": 1.46142382207956,
+      "shadowP90Ratio": 1.4567198177676537,
+      "counts": {
+        "globalCloud": 119,
+        "hierarchicalCloud": 119,
+        "globalShadow": 60,
+        "hierarchicalShadow": 60,
+        "globalCombinedCache": 60,
+        "hierarchicalCombinedCache": 60,
+        "hierarchicalBrick": 60
+      }
+    }
+  },
+  "results": [
+    {
+      "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:35.866Z",
+      "configFingerprint": "fnv1a32-d9bbba31",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 433,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.759776,
+          "p90": 0.769376,
+          "p95": 0.772864,
+          "min": 0.73888,
+          "max": 0.787488
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.006912,
+          "p90": 0.0072,
+          "p95": 0.007392,
+          "min": 0.006528,
+          "max": 0.01008
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.005568,
+          "p90": 0.005632,
+          "p95": 0.005664,
+          "min": 0.005472,
+          "max": 0.005952
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.012511999999999999,
+          "p90": 0.012799999999999999,
+          "p95": 0.01312,
+          "min": 0.012032000000000001,
+          "max": 0.016032
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.405728,
+          "p90": 0.407264,
+          "p95": 0.407488,
+          "min": 0.40272,
+          "max": 0.409888
+        },
+        "post": {
+          "count": 120,
+          "median": 0.004096,
+          "p90": 0.004192,
+          "p95": 0.004224,
+          "min": 0.003104,
+          "max": 0.004352
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 6144
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 0.5999999940395355,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 1,
+          "contentRevision": 190,
+          "rebuildCount": 1,
+          "rebuildCpuMs": 51.900000125169754,
+          "residentBodyCount": 1,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            64
+          ],
+          "dispatchCount": 1,
+          "voxelCount": 373248,
+          "sampleId": 190,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 24,
+            "averageCandidates": 0.006944444444444444,
+            "maxCandidates": 1
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.09999999403953552,
+          "brickGpuMs": 0.0056,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--single-stratocumulus--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:38.932Z",
+      "configFingerprint": "fnv1a32-6bc5a41b",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 180,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.534816,
+          "p90": 0.539136,
+          "p95": 0.54,
+          "min": 0.528576,
+          "max": 0.545952
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.00672,
+          "p90": 0.006976,
+          "p95": 0.00704,
+          "min": 0.0064,
+          "max": 0.007328
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.00672,
+          "p90": 0.006976,
+          "p95": 0.00704,
+          "min": 0.0064,
+          "max": 0.007328
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278656,
+          "p90": 0.281088,
+          "p95": 0.281824,
+          "min": 0.276672,
+          "max": 0.282112
+        },
+        "post": {
+          "count": 120,
+          "median": 0.00416,
+          "p90": 0.004288,
+          "p95": 0.00432,
+          "min": 0.003968,
+          "max": 0.00448
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 6144
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 0.800000011920929,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 1,
+          "contentRevision": 192,
+          "rebuildCount": 1,
+          "rebuildCpuMs": 52.30000013113022,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 192,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.09999999403953552,
+          "brickGpuMs": 0.005568,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-stratocumulus--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-stratocumulus--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-stratocumulus--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--single-altocumulus--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:42.032Z",
+      "configFingerprint": "fnv1a32-7bf7141e",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 184,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.720128,
+          "p90": 0.730784,
+          "p95": 0.735616,
+          "min": 0.707424,
+          "max": 0.748928
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.006976,
+          "p90": 0.007488,
+          "p95": 0.007552,
+          "min": 0.006624,
+          "max": 0.007968
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.005408,
+          "p90": 0.005472,
+          "p95": 0.005536,
+          "min": 0.005344,
+          "max": 0.006624
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.012416,
+          "p90": 0.012896,
+          "p95": 0.013024,
+          "min": 0.012032,
+          "max": 0.01344
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.406592,
+          "p90": 0.407968,
+          "p95": 0.409216,
+          "min": 0.404,
+          "max": 0.41008
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004096,
+          "p90": 0.004224,
+          "p95": 0.004288,
+          "min": 0.003936,
+          "max": 0.004384
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 8192
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.0000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 2,
+          "contentRevision": 283,
+          "rebuildCount": 2,
+          "rebuildCpuMs": 76.19999992847443,
+          "residentBodyCount": 1,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            64
+          ],
+          "dispatchCount": 1,
+          "voxelCount": 373248,
+          "sampleId": 283,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 32,
+            "averageCandidates": 0.009259259259259259,
+            "maxCandidates": 1
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.09999999403953552,
+          "brickGpuMs": 0.00544,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-altocumulus--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-altocumulus--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-altocumulus--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--single-altocumulus--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:45.265Z",
+      "configFingerprint": "fnv1a32-37747af6",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 180,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.521312,
+          "p90": 0.523904,
+          "p95": 0.524672,
+          "min": 0.517504,
+          "max": 0.52864
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.006912,
+          "p90": 0.007264,
+          "p95": 0.007648,
+          "min": 0.006528,
+          "max": 0.00784
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.006912,
+          "p90": 0.007264,
+          "p95": 0.007648,
+          "min": 0.006528,
+          "max": 0.00784
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278624,
+          "p90": 0.28096,
+          "p95": 0.281152,
+          "min": 0.276352,
+          "max": 0.283424
+        },
+        "post": {
+          "count": 120,
+          "median": 0.00416,
+          "p90": 0.004352,
+          "p95": 0.004384,
+          "min": 0.004032,
+          "max": 0.004896
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 8192
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.100000023841858,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 2,
+          "contentRevision": 290,
+          "rebuildCount": 2,
+          "rebuildCpuMs": 78.39999997615814,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 290,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.09999999403953552,
+          "brickGpuMs": 0.005408,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-altocumulus--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-altocumulus--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-altocumulus--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:48.366Z",
+      "configFingerprint": "fnv1a32-23f1ee68",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 184,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.731584,
+          "p90": 0.740288,
+          "p95": 0.743328,
+          "min": 0.718368,
+          "max": 0.747264
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.007008,
+          "p90": 0.007488,
+          "p95": 0.007648,
+          "min": 0.006752,
+          "max": 0.007968
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.005472,
+          "p90": 0.005568,
+          "p95": 0.0056,
+          "min": 0.005184,
+          "max": 0.005632
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.01248,
+          "p90": 0.012992,
+          "p95": 0.01312,
+          "min": 0.012128,
+          "max": 0.013472
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.407968,
+          "p90": 0.409248,
+          "p95": 0.409568,
+          "min": 0.405664,
+          "max": 0.410976
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004064,
+          "p90": 0.004224,
+          "p95": 0.004256,
+          "min": 0.003936,
+          "max": 0.004448
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 12288
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.2000000178813934,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 3,
+          "contentRevision": 381,
+          "rebuildCount": 3,
+          "rebuildCpuMs": 99.60000005364418,
+          "residentBodyCount": 1,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            64
+          ],
+          "dispatchCount": 1,
+          "voxelCount": 373248,
+          "sampleId": 381,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 48,
+            "averageCandidates": 0.013888888888888888,
+            "maxCandidates": 1
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.20000001788139343,
+          "brickGpuMs": 0.005312,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:51.566Z",
+      "configFingerprint": "fnv1a32-92ad5e42",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 29,
+      "renderedFrames": 179,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.519712,
+          "p90": 0.522144,
+          "p95": 0.52272,
+          "min": 0.51584,
+          "max": 0.524672
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.006752,
+          "p90": 0.007232,
+          "p95": 0.007392,
+          "min": 0.006272,
+          "max": 0.008032
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.006752,
+          "p90": 0.007232,
+          "p95": 0.007392,
+          "min": 0.006272,
+          "max": 0.008032
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278816,
+          "p90": 0.280992,
+          "p95": 0.28176,
+          "min": 0.276992,
+          "max": 0.282944
+        },
+        "post": {
+          "count": 119,
+          "median": 0.00416,
+          "p90": 0.00432,
+          "p95": 0.004384,
+          "min": 0.004032,
+          "max": 0.004992
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 12288
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.2000000178813934,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 3,
+          "contentRevision": 388,
+          "rebuildCount": 3,
+          "rebuildCpuMs": 101.30000004172325,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 388,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.20000001788139343,
+          "brickGpuMs": 0.005472,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--single-cirrocumulus--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--single-cirrocumulus--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--single-cirrocumulus--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-cellular-scale--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:54.699Z",
+      "configFingerprint": "fnv1a32-bde2f0cd",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 3,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 184,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.746592,
+          "p90": 0.766624,
+          "p95": 0.77136,
+          "min": 0.72064,
+          "max": 0.778592
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.007136,
+          "p90": 0.007392,
+          "p95": 0.00752,
+          "min": 0.006816,
+          "max": 0.007584
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.00944,
+          "p90": 0.009664,
+          "p95": 0.00976,
+          "min": 0.009152,
+          "max": 0.009856
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.016608,
+          "p90": 0.017024,
+          "p95": 0.017183999999999998,
+          "min": 0.016096,
+          "max": 0.017344
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.408032,
+          "p90": 0.409984,
+          "p95": 0.410816,
+          "min": 0.405888,
+          "max": 0.41264
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004096,
+          "p90": 0.004224,
+          "p95": 0.004256,
+          "min": 0.003904,
+          "max": 0.004512
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 13312
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.2000000178813934,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 4,
+          "contentRevision": 479,
+          "rebuildCount": 4,
+          "rebuildCpuMs": 126.39999988675117,
+          "residentBodyCount": 3,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            32,
+            32,
+            48
+          ],
+          "dispatchCount": 3,
+          "voxelCount": 303616,
+          "sampleId": 479,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 52,
+            "averageCandidates": 0.015046296296296295,
+            "maxCandidates": 2
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.30000001192092896,
+          "brickGpuMs": 0.0096,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-cellular-scale--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-cellular-scale--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-cellular-scale--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:27:57.899Z",
+      "configFingerprint": "fnv1a32-706f3fb9",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 3,
+      "warmupFrames": 60,
+      "cacheWarmups": 29,
+      "renderedFrames": 179,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.52,
+          "p90": 0.52496,
+          "p95": 0.527232,
+          "min": 0.510528,
+          "max": 0.529632
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.00688,
+          "p90": 0.007392,
+          "p95": 0.007584,
+          "min": 0.006528,
+          "max": 0.007968
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.00688,
+          "p90": 0.007392,
+          "p95": 0.007584,
+          "min": 0.006528,
+          "max": 0.007968
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.27904,
+          "p90": 0.281152,
+          "p95": 0.282016,
+          "min": 0.275136,
+          "max": 0.283296
+        },
+        "post": {
+          "count": 119,
+          "median": 0.00416,
+          "p90": 0.004288,
+          "p95": 0.00432,
+          "min": 0.003968,
+          "max": 0.004512
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 13312
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.300000011920929,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 4,
+          "contentRevision": 486,
+          "rebuildCount": 4,
+          "rebuildCpuMs": 128.1999998986721,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 486,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.30000001192092896,
+          "brickGpuMs": 0.009376,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-cellular-scale--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-cellular-scale--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-cellular-scale--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-cellular-overlap--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:00.999Z",
+      "configFingerprint": "fnv1a32-28032958",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 5,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 183,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.85024,
+          "p90": 0.86464,
+          "p95": 0.875808,
+          "min": 0.823168,
+          "max": 0.88832
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.010048,
+          "p90": 0.010272,
+          "p95": 0.0104,
+          "min": 0.00976,
+          "max": 0.01056
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.01536,
+          "p90": 0.015584,
+          "p95": 0.015648,
+          "min": 0.014816,
+          "max": 0.01584
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.025408,
+          "p90": 0.025792000000000002,
+          "p95": 0.025888,
+          "min": 0.024672,
+          "max": 0.026144
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.410656,
+          "p90": 0.411776,
+          "p95": 0.412064,
+          "min": 0.407744,
+          "max": 0.412896
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004128,
+          "p90": 0.004224,
+          "p95": 0.004224,
+          "min": 0.003936,
+          "max": 0.004448
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 25600
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.4000000357627869,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 5,
+          "contentRevision": 577,
+          "rebuildCount": 5,
+          "rebuildCpuMs": 157.60000005364418,
+          "residentBodyCount": 5,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            32,
+            32,
+            48,
+            32,
+            32
+          ],
+          "dispatchCount": 5,
+          "voxelCount": 431616,
+          "sampleId": 577,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 100,
+            "averageCandidates": 0.028935185185185185,
+            "maxCandidates": 3
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.4000000059604645,
+          "brickGpuMs": 0.01536,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-cellular-overlap--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-cellular-overlap--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:03.999Z",
+      "configFingerprint": "fnv1a32-05ce3dc6",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 5,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 179,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.54272,
+          "p90": 0.547104,
+          "p95": 0.549088,
+          "min": 0.535616,
+          "max": 0.552256
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.00928,
+          "p90": 0.009792,
+          "p95": 0.010016,
+          "min": 0.008736,
+          "max": 0.011104
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.00928,
+          "p90": 0.009792,
+          "p95": 0.010016,
+          "min": 0.008736,
+          "max": 0.011104
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278816,
+          "p90": 0.280096,
+          "p95": 0.281024,
+          "min": 0.275968,
+          "max": 0.281568
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004128,
+          "p90": 0.00432,
+          "p95": 0.004352,
+          "min": 0.003904,
+          "max": 0.004768
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 25600
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.4000000357627869,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 5,
+          "contentRevision": 578,
+          "rebuildCount": 5,
+          "rebuildCpuMs": 157.80000004172325,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 578,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.4000000059604645,
+          "brickGpuMs": 0.015232,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-cellular-overlap--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-cellular-overlap--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-cellular-overlap--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-wave-ripple--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:07.133Z",
+      "configFingerprint": "fnv1a32-c713b4a9",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 3,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 184,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.67616,
+          "p90": 0.68704,
+          "p95": 0.689472,
+          "min": 0.661952,
+          "max": 0.700544
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.00848,
+          "p90": 0.008896,
+          "p95": 0.00896,
+          "min": 0.00784,
+          "max": 0.009344
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.0096,
+          "p90": 0.00976,
+          "p95": 0.009792,
+          "min": 0.00928,
+          "max": 0.00992
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.018048,
+          "p90": 0.018528,
+          "p95": 0.018592,
+          "min": 0.017312,
+          "max": 0.01904
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.41088,
+          "p90": 0.412096,
+          "p95": 0.412512,
+          "min": 0.408864,
+          "max": 0.413248
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004096,
+          "p90": 0.004224,
+          "p95": 0.004256,
+          "min": 0.003904,
+          "max": 0.004384
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 24576
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.4000000357627869,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 6,
+          "contentRevision": 669,
+          "rebuildCount": 6,
+          "rebuildCpuMs": 180.70000019669533,
+          "residentBodyCount": 3,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            32,
+            48,
+            32
+          ],
+          "dispatchCount": 3,
+          "voxelCount": 303616,
+          "sampleId": 669,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 96,
+            "averageCandidates": 0.027777777777777776,
+            "maxCandidates": 2
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.00976,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-wave-ripple--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-wave-ripple--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-wave-ripple--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:10.366Z",
+      "configFingerprint": "fnv1a32-d74f1871",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 3,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 180,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.454144,
+          "p90": 0.457248,
+          "p95": 0.459264,
+          "min": 0.446272,
+          "max": 0.461888
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.007872,
+          "p90": 0.008288,
+          "p95": 0.008352,
+          "min": 0.00736,
+          "max": 0.008736
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.007872,
+          "p90": 0.008288,
+          "p95": 0.008352,
+          "min": 0.00736,
+          "max": 0.008736
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278784,
+          "p90": 0.280448,
+          "p95": 0.280928,
+          "min": 0.276704,
+          "max": 0.28176
+        },
+        "post": {
+          "count": 120,
+          "median": 0.004192,
+          "p90": 0.00432,
+          "p95": 0.004352,
+          "min": 0.004,
+          "max": 0.0048
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 24576
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 6,
+          "contentRevision": 676,
+          "rebuildCount": 6,
+          "rebuildCpuMs": 182.80000019073486,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 676,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.009536,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w8-wave-ripple--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w8-wave-ripple--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w8-wave-ripple--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:13.433Z",
+      "configFingerprint": "fnv1a32-ca2cd8d8",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 4,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 183,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.782624,
+          "p90": 0.793376,
+          "p95": 0.797856,
+          "min": 0.764576,
+          "max": 0.811008
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.009216,
+          "p90": 0.009536,
+          "p95": 0.0096,
+          "min": 0.008768,
+          "max": 0.00992
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.012832,
+          "p90": 0.013184,
+          "p95": 0.01328,
+          "min": 0.012416,
+          "max": 0.013344
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.022080000000000002,
+          "p90": 0.022528,
+          "p95": 0.022656000000000003,
+          "min": 0.021184,
+          "max": 0.0232
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.408832,
+          "p90": 0.410624,
+          "p95": 0.41088,
+          "min": 0.406592,
+          "max": 0.413696
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004096,
+          "p90": 0.004224,
+          "p95": 0.004256,
+          "min": 0.003936,
+          "max": 0.004416
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 19456
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 7,
+          "contentRevision": 767,
+          "rebuildCount": 7,
+          "rebuildCpuMs": 208.8000001013279,
+          "residentBodyCount": 4,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            32,
+            32,
+            48,
+            32
+          ],
+          "dispatchCount": 4,
+          "voxelCount": 367616,
+          "sampleId": 767,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 76,
+            "averageCandidates": 0.02199074074074074,
+            "maxCandidates": 3
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.013344,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-brick-lod-sweep--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:16.432Z",
+      "configFingerprint": "fnv1a32-00b46320",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 4,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 180,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.533696,
+          "p90": 0.537728,
+          "p95": 0.538816,
+          "min": 0.528352,
+          "max": 0.544352
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.008768,
+          "p90": 0.009504,
+          "p95": 0.009536,
+          "min": 0.008416,
+          "max": 0.009632
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.008768,
+          "p90": 0.009504,
+          "p95": 0.009536,
+          "min": 0.008416,
+          "max": 0.009632
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.27856,
+          "p90": 0.27984,
+          "p95": 0.280544,
+          "min": 0.276576,
+          "max": 0.280992
+        },
+        "post": {
+          "count": 120,
+          "median": 0.004128,
+          "p90": 0.004288,
+          "p95": 0.004288,
+          "min": 0.003968,
+          "max": 0.004352
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 19456
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 7,
+          "contentRevision": 767,
+          "rebuildCount": 7,
+          "rebuildCpuMs": 208.8000001013279,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 767,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.013344,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-brick-lod-sweep--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:19.533Z",
+      "configFingerprint": "fnv1a32-e16b80e4",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 5,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 183,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.758592,
+          "p90": 0.769408,
+          "p95": 0.77312,
+          "min": 0.740288,
+          "max": 0.794176
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.012672,
+          "p90": 0.013152,
+          "p95": 0.013408,
+          "min": 0.01216,
+          "max": 0.014048
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.015296,
+          "p90": 0.015616,
+          "p95": 0.015744,
+          "min": 0.014912,
+          "max": 0.015808
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.028032,
+          "p90": 0.028608,
+          "p95": 0.028768000000000002,
+          "min": 0.027360000000000002,
+          "max": 0.029248
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.404448,
+          "p90": 0.405952,
+          "p95": 0.406272,
+          "min": 0.4024,
+          "max": 0.40672
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004128,
+          "p90": 0.004256,
+          "p95": 0.00432,
+          "min": 0.003936,
+          "max": 0.004864
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 40960
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 8,
+          "contentRevision": 858,
+          "rebuildCount": 8,
+          "rebuildCpuMs": 236.10000011324883,
+          "residentBodyCount": 5,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            48,
+            32,
+            32,
+            32,
+            32
+          ],
+          "dispatchCount": 5,
+          "voxelCount": 431616,
+          "sampleId": 858,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3424,
+            "overflowTiles": 32,
+            "incompleteTiles": 0,
+            "candidateMemberships": 160,
+            "averageCandidates": 0.046296296296296294,
+            "maxCandidates": 5
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.015296,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-brick-overflow--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:22.533Z",
+      "configFingerprint": "fnv1a32-8fed82d0",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 5,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 180,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 120,
+          "median": 0.544992,
+          "p90": 0.550336,
+          "p95": 0.551168,
+          "min": 0.5384,
+          "max": 0.556832
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.012128,
+          "p90": 0.012832,
+          "p95": 0.012928,
+          "min": 0.011296,
+          "max": 0.013504
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.012128,
+          "p90": 0.012832,
+          "p95": 0.012928,
+          "min": 0.011296,
+          "max": 0.013504
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.278688,
+          "p90": 0.280576,
+          "p95": 0.280928,
+          "min": 0.27568,
+          "max": 0.28256
+        },
+        "post": {
+          "count": 120,
+          "median": 0.004192,
+          "p90": 0.00432,
+          "p95": 0.004352,
+          "min": 0.003936,
+          "max": 0.00464
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 40960
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 8,
+          "contentRevision": 858,
+          "rebuildCount": 8,
+          "rebuildCpuMs": 236.10000011324883,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 858,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.5,
+          "brickGpuMs": 0.015296,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-brick-overflow--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-brick-overflow--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 120,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-brick-overflow--recipe-v2--global-only--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:25.633Z",
+      "configFingerprint": "fnv1a32-a65bfcb7",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 30,
+      "renderedFrames": 184,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.634272,
+          "p90": 0.646688,
+          "p95": 0.649472,
+          "min": 0.61872,
+          "max": 0.654752
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.007168,
+          "p90": 0.007488,
+          "p95": 0.007712,
+          "min": 0.006656,
+          "max": 0.007872
+        },
+        "brick": {
+          "count": 60,
+          "median": 0.005312,
+          "p90": 0.005376,
+          "p95": 0.005408,
+          "min": 0.005152,
+          "max": 0.005536
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.012448,
+          "p90": 0.012832,
+          "p95": 0.01296,
+          "min": 0.011872,
+          "max": 0.013248
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.407936,
+          "p90": 0.40928,
+          "p95": 0.409568,
+          "min": 0.405792,
+          "max": 0.40992
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004096,
+          "p90": 0.004224,
+          "p95": 0.004288,
+          "min": 0.003936,
+          "max": 0.004832
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 12288
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "hierarchical",
+        "storageActive": "hierarchical",
+        "storageLifecycle": "ready",
+        "storageReason": "",
+        "bricks": {
+          "requested": "hierarchical",
+          "active": "hierarchical",
+          "lifecycle": "ready",
+          "reason": "",
+          "profileFallbackReason": "r16float-160:The texture usage (TextureUsage::(TextureBinding|StorageBinding)) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"recipe-density-v2-brick-profile-probe-r16float-160\"\"]).\n",
+          "profile": "rgba16float-96",
+          "format": "rgba16float",
+          "dimensions": [
+            96,
+            96,
+            96
+          ],
+          "residentBytes": 14155776,
+          "rebuildPeakBytes": 28311552,
+          "totalDensityBytes": 28346240,
+          "recordBytes": 1920,
+          "candidateBytes": 27648,
+          "allocationGeneration": 9,
+          "contentRevision": 949,
+          "rebuildCount": 9,
+          "rebuildCpuMs": 256.09999987483025,
+          "residentBodyCount": 1,
+          "nonresidentBodyCount": 0,
+          "lods": [
+            64
+          ],
+          "dispatchCount": 1,
+          "voxelCount": 373248,
+          "sampleId": 949,
+          "candidate": {
+            "grid": [
+              12,
+              12,
+              24
+            ],
+            "entryCount": 3456,
+            "bytes": 27648,
+            "completeTiles": 3456,
+            "overflowTiles": 0,
+            "incompleteTiles": 0,
+            "candidateMemberships": 48,
+            "averageCandidates": 0.013888888888888888,
+            "maxCandidates": 1
+          },
+          "fallbackSamples": null,
+          "createCpuMs": 0.5999999940395355,
+          "brickGpuMs": 0.005312,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal.png."
+      }
+    },
+    {
+      "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--normal",
+      "status": "complete",
+      "baselineId": "density-v2-w0-legacy-v1",
+      "manifestVersion": 5,
+      "sourceRevision": "working-tree",
+      "capturedAt": "2026-07-18T13:28:28.833Z",
+      "configFingerprint": "fnv1a32-452a3161",
+      "qualityMode": "cached",
+      "viewMode": "normal",
+      "activeBodyCount": 1,
+      "warmupFrames": 60,
+      "cacheWarmups": 29,
+      "renderedFrames": 179,
+      "gpuTiming": {
+        "availability": "available",
+        "unit": "gpu-ms",
+        "cloud": {
+          "count": 119,
+          "median": 0.448608,
+          "p90": 0.452608,
+          "p95": 0.453984,
+          "min": 0.44112,
+          "max": 0.45584
+        },
+        "cache": {
+          "count": 60,
+          "median": 0.006816,
+          "p90": 0.007136,
+          "p95": 0.007328,
+          "min": 0.006496,
+          "max": 0.007584
+        },
+        "combinedCache": {
+          "count": 60,
+          "median": 0.006816,
+          "p90": 0.007136,
+          "p95": 0.007328,
+          "min": 0.006496,
+          "max": 0.007584
+        },
+        "shadow": {
+          "count": 60,
+          "median": 0.279136,
+          "p90": 0.28096,
+          "p95": 0.281216,
+          "min": 0.277024,
+          "max": 0.282688
+        },
+        "post": {
+          "count": 119,
+          "median": 0.004128,
+          "p90": 0.00432,
+          "p95": 0.004384,
+          "min": 0.003968,
+          "max": 0.004768
+        }
+      },
+      "producerDiagnostics": {
+        "requested": "recipe-v2",
+        "active": "recipe-v2",
+        "pipelineCreateCpuMs": 151.39999997615814,
+        "shaderModuleCreateCpuMs": 0.20000001788139343,
+        "sourceLength": 20065,
+        "recordBytes": 4160,
+        "outputBytes": 14155776,
+        "evaluator": {
+          "enabledGenera": [
+            "cumulus",
+            "stratus",
+            "stratocumulus",
+            "altocumulus",
+            "altostratus",
+            "nimbostratus",
+            "cirrostratus",
+            "cirrocumulus"
+          ],
+          "unsupportedGenera": [
+            "cumulonimbus",
+            "cirrus"
+          ],
+          "sampleLimits": {
+            "cumulus": [
+              3,
+              1,
+              0,
+              0
+            ],
+            "stratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "stratocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altocumulus": [
+              3,
+              0,
+              0,
+              0
+            ],
+            "altostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "nimbostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrostratus": [
+              2,
+              0,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              3,
+              0,
+              0,
+              0
+            ]
+          },
+          "cellularHooks": {
+            "stratocumulus": [
+              0.02,
+              0.03,
+              0,
+              0
+            ],
+            "altocumulus": [
+              0.04,
+              0.08,
+              0,
+              0
+            ],
+            "cirrocumulus": [
+              0.08,
+              0.36,
+              0,
+              0
+            ]
+          },
+          "unsupportedBodyCount": 0,
+          "actualEvaluatorCalls": null,
+          "evaluatorCallUpperBound": 12288
+        },
+        "sharedFields": {
+          "status": "ready",
+          "format": "rgba8unorm",
+          "atlasDimension": 64,
+          "macroDimension": 256,
+          "payloadBytes": 2359296,
+          "peakBudgetBytes": 8388608,
+          "resourceCount": 3,
+          "generation": 1,
+          "atlasGeneration": 1,
+          "macroGeneration": 1,
+          "atlasBuildCount": 1,
+          "macroBuildCount": 1,
+          "atlasBuildReason": "initial",
+          "macroBuildReason": "initial",
+          "atlasRan": false,
+          "macroRan": false,
+          "createCpuMs": 678,
+          "buildEncodeCpuMs": 1.5000000298023224,
+          "atlasGpuMs": 0.071872,
+          "macroGpuMs": 0.007296,
+          "gpuTimingError": "",
+          "failureReason": "",
+          "formatEvidence": [
+            {
+              "format": "rgba8unorm",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 2359296,
+              "channelCount": 4,
+              "reason": ""
+            },
+            {
+              "format": "r16float",
+              "storageWritable": false,
+              "filterSampled": true,
+              "bytes": 1310720,
+              "channelCount": 1,
+              "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+            },
+            {
+              "format": "rgba16float",
+              "storageWritable": true,
+              "filterSampled": true,
+              "bytes": 4456448,
+              "channelCount": 4,
+              "reason": ""
+            }
+          ]
+        },
+        "storageRequested": "global-only",
+        "storageActive": "global-only",
+        "storageLifecycle": "idle",
+        "storageReason": "",
+        "bricks": {
+          "requested": "global-only",
+          "active": "global-only",
+          "lifecycle": "idle",
+          "reason": "not-requested",
+          "profileFallbackReason": "",
+          "profile": "",
+          "format": "",
+          "dimensions": [
+            0,
+            0,
+            0
+          ],
+          "residentBytes": 0,
+          "rebuildPeakBytes": 0,
+          "totalDensityBytes": 14155776,
+          "recordBytes": 0,
+          "candidateBytes": 0,
+          "allocationGeneration": 9,
+          "contentRevision": 956,
+          "rebuildCount": 9,
+          "rebuildCpuMs": 257.69999983906746,
+          "residentBodyCount": 0,
+          "nonresidentBodyCount": 0,
+          "lods": [],
+          "dispatchCount": 0,
+          "voxelCount": 0,
+          "sampleId": 956,
+          "candidate": null,
+          "fallbackSamples": null,
+          "createCpuMs": 0.5999999940395355,
+          "brickGpuMs": 0.005184,
+          "gpuTimingError": ""
+        }
+      },
+      "startupTiming": {
+        "adapterRequestMs": 68.59999999403954,
+        "deviceRequestMs": 28.30000001192093,
+        "shaderModuleCreateMs": 0.4999999701976776,
+        "pipelineCreateMs": 14153.09999999404,
+        "totalCreateRendererMs": 10130.199999988079
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      },
+      "screenshotPath": "screenshots/w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--normal.png",
+      "screenshotCaptured": false,
+      "realtimeCompatibility": "not-applicable",
+      "warnings": [],
+      "stale": false,
+      "probeStatus": {
+        "state": "ready-for-screenshot",
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--normal",
+        "warmupFrames": 60,
+        "requiredWarmupFrames": 60,
+        "cloudSamples": 119,
+        "cacheSamples": 60,
+        "requiredGpuSamples": 60,
+        "message": "Case complete. Capture screenshots/w9--w9-thin-ridge-proxy--recipe-v2--global-only--cached--normal.png."
+      }
+    }
+  ]
+}

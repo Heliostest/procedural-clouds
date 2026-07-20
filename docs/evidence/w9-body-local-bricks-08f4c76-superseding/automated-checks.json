@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-07-18T13:46:45.693Z",
+  "completedAt": "2026-07-18T13:46:55.465Z",
+  "revision": "08f4c7683961da047bdb0c971168b7ac8c168f63",
+  "allPassed": true,
+  "results": [
+    {
+      "command": "npm run test:genus-dispatch",
+      "exitCode": 0,
+      "durationMs": 326.575,
+      "stdout": "\n> procedural-clouds@0.0.0 test:genus-dispatch\n> node scripts/check-genus-dispatch.mjs\n\ngenus dispatch check: 10 genera mapped in preset order\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:pipeline-isolation",
+      "exitCode": 0,
+      "durationMs": 319.341,
+      "stdout": "\n> procedural-clouds@0.0.0 test:pipeline-isolation\n> node scripts/check-density-pipeline-isolation.mjs\n\ndensity pipeline source closures are isolated\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:density-v2-layout",
+      "exitCode": 0,
+      "durationMs": 317.97,
+      "stdout": "\n> procedural-clouds@0.0.0 test:density-v2-layout\n> node scripts/check-density-v2-layout.mjs\n\nDensity V2 layouts, W8 eight-genus recipes, and math fixtures are consistent\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:density-v2-tiles",
+      "exitCode": 0,
+      "durationMs": 299.835,
+      "stdout": "\n> procedural-clouds@0.0.0 test:density-v2-tiles\n> node scripts/check-density-v2-tiles.mjs\n\nDensity V2 tile-mask budgets, fixtures, Support and shader gate are consistent\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:density-v2-fields",
+      "exitCode": 0,
+      "durationMs": 305.583,
+      "stdout": "\n> procedural-clouds@0.0.0 test:density-v2-fields\n> node scripts/check-density-shared-fields.mjs\n\nDensity V2 shared-field budgets, bounded generators, lifecycle and diagnostics are isolated\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:density-v2-evaluators",
+      "exitCode": 0,
+      "durationMs": 566.742,
+      "stdout": "\n> procedural-clouds@0.0.0 test:density-v2-evaluators\n> node scripts/check-density-v2-evaluators.mjs\n\nDensity V2 W8 recipe, Cellular math, source-budget, dispatch, and A/B fixtures passed\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:w9-bricks",
+      "exitCode": 0,
+      "durationMs": 302.284,
+      "stdout": "\n> procedural-clouds@0.0.0 test:w9-bricks\n> node scripts/check-w9-body-local-bricks.mjs\n\nW9 body-local atlas budgets, ABI, allocator, fixed-K fallback, lazy lifecycle and source closures passed\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:ground-shadow-hash",
+      "exitCode": 0,
+      "durationMs": 307.697,
+      "stdout": "\n> procedural-clouds@0.0.0 test:ground-shadow-hash\n> node scripts/check-ground-shadow-hash.mjs\n\nground-shadow hash correlation check passed\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run test:w8-gate",
+      "exitCode": 0,
+      "durationMs": 327.995,
+      "stdout": "\n> procedural-clouds@0.0.0 test:w8-gate\n> node scripts/check-w8-gate.mjs\n\nW8 capture provenance, producer-aware visual verdict, and review-template contracts passed\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run typecheck",
+      "exitCode": 0,
+      "durationMs": 1062.722,
+      "stdout": "\n> procedural-clouds@0.0.0 typecheck\n> tsc --noEmit\n\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "durationMs": 1817.128,
+      "stdout": "\n> procedural-clouds@0.0.0 build\n> tsc --noEmit && vite build\n\nvite v6.4.1 building for production...\ntransforming...\n✓ 79 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                  0.59 kB │ gzip:   0.38 kB\ndist/reference.html             21.61 kB │ gzip:   7.13 kB\ndist/assets/main-BPNWU9z9.css    1.30 kB │ gzip:   0.66 kB\ndist/assets/main-B4uiqtOS.js   456.86 kB │ gzip: 132.97 kB\n✓ built in 482ms\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "C:\\Users\\helio\\AppData\\Roaming\\npm\\openspec.cmd validate add-hierarchical-body-local-density-bricks --strict --no-interactive",
+      "exitCode": 0,
+      "durationMs": 1413.416,
+      "stdout": "Change 'add-hierarchical-body-local-density-bricks' is valid\n",
+      "stderr": "",
+      "spawnError": ""
+    },
+    {
+      "command": "C:\\Users\\helio\\AppData\\Roaming\\npm\\openspec.cmd validate add-density-v2-cellular-wave-family --strict --no-interactive",
+      "exitCode": 0,
+      "durationMs": 2378.715,
+      "stdout": "Change 'add-density-v2-cellular-wave-family' is valid\n",
+      "stderr": "",
+      "spawnError": ""
+    }
+  ]
+}

@@ -97,7 +97,7 @@ fn densityV2FlatBaseDomeProfile(
 }
 
 fn densityV2SamplingCoordinate(ctx : DensityV2Context, body : DensityBodyGPU, recipe : DensityRecipeGPU, frequency : f32, seedDelta : u32) -> vec3f {
-  let seed = ctx.bodyIndex * 37u + body.ids.x * 131u + seedDelta;
+  let seed = body.ids.w ^ (body.ids.x * 131u) ^ seedDelta;
   var coordinate = ctx.normalized * vec3f(recipe.domain1.z, recipe.domain1.w, recipe.domain1.z) * frequency;
   coordinate += densitySharedPeriodicOffset(seed);
   let transport = body.transport.xy * recipe.domain1.x;
@@ -106,7 +106,7 @@ fn densityV2SamplingCoordinate(ctx : DensityV2Context, body : DensityBodyGPU, re
 }
 
 fn densityV2MacroCoordinate(ctx : DensityV2Context, body : DensityBodyGPU, recipe : DensityRecipeGPU) -> vec2f {
-  let offset = densitySharedPeriodicOffset(ctx.bodyIndex * 59u + body.ids.x * 173u).xz;
+  let offset = densitySharedPeriodicOffset(body.ids.w ^ (body.ids.x * 173u) ^ 0x9e3779b9u).xz;
   return ctx.normalized.xz * recipe.domain0.x * 0.5 + offset + body.transport.xy * recipe.domain1.x;
 }
 

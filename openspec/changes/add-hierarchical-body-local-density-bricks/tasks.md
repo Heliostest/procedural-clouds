@@ -4,7 +4,7 @@
 - [x] 0.2 对 W8 当前 `density-cache-production`、`cloud-rendering`、`cloud-params` 八属规范重新核对本 change 的完整 MODIFIED requirements
 - [x] 0.3 项目所有者批准推进本 proposal、design、四个 spec delta、16 MiB/32 MiB预算、K=4 与 W9 Continue/Stop Gate
 - [x] 0.4 确认 W9 不迁移 Fiber/Convective、不增加新 Hybrid detail、不修改 Recipe layout/shared noise fields/scenario schema
-- [ ] 0.5 固定目标 WebGPU设备、浏览器、viewport、`96³`、`8×8×4` 与 Legacy/global-only/hierarchical A/B manifests
+- [x] 0.5 固定目标 WebGPU设备、浏览器、viewport、`96³`、`8×8×4` 与 Legacy/global-only/hierarchical A/B manifests
 
 ## 1. Versioned output and storage-mode seam
 
@@ -59,10 +59,10 @@
 ## 7. Diagnostics, manifests and Gate report
 
 - [x] 7.1 HUD/stats增加 requested/active storage、profile/format/dimensions、resident/peak bytes、allocation档位/residency/generation
-- [x] 7.2 报告 candidate complete/overflow/incomplete tiles、average/max candidates、fallback samples与固定 K=4；理论上限不冒充实际调用
+- [ ] 7.2 报告 candidate complete/overflow/incomplete tiles、average/max candidates、fallback samples与固定 K=4；理论上限不冒充实际调用
 - [ ] 7.3 增加 W8 cellular reuse、`w9-brick-lod-sweep`、`w9-brick-overflow`、`w9-thin-ridge-proxy`、lifecycle/resize/device-loss cases
 - [x] 7.4 固定 Legacy/global-only/hierarchical camera/time/body/wind/viewport，分离 create/warmup、coarse cache、brick cache、cloud、ground-shadow与总 GPU timing
-- [ ] 7.5 输出机器可读 W9 Gate report与 source evidence；不得把 FPS/CPU timing/unavailable/owner-waived写成 GPU pass
+- [x] 7.5 输出机器可读 W9 Gate report与 source evidence；不得把 FPS/CPU timing/unavailable/owner-waived写成 GPU pass
 
 ## 8. Automated validation
 
@@ -74,7 +74,7 @@
 
 ## 9. Manual WebGPU acceptance
 
-- [ ] 9.1 完成 Legacy/global-only/hierarchical、Cached/Hybrid、normal/raw debug的 W8 cellular与 W9新增场景截图矩阵
+- [x] 9.1 完成 Legacy/global-only/hierarchical、Cached/Hybrid、normal/raw debug的 W8 cellular与 W9新增场景截图矩阵
 - [ ] 9.2 确认小型 Cellular尺度/层厚/ripple与 thin-ridge proxy相对 global-only有明确中尺度改善
 - [ ] 9.3 确认 gutter/atlas边界、相机、风、LOD、Body增删和 resize无 seam、popping、锁纹、相位跳变或旧 allocation残留
 - [ ] 9.4 确认 overlap metadata与密度有限非负、无双重增密/Support leak；5+ candidate场景整点回退 coarse
@@ -83,7 +83,7 @@
 ## 10. W9 Gate and handoff
 
 - [ ] 10.1 atlas resident≤16 MiB、brick rebuild peak≤32 MiB、K=4、one-brick/Body与所有协议/生命周期不可豁免项通过
-- [ ] 10.2 每 timing case完成5+ cache warmup与60+有效timestamp；unavailable/不足保持 Review
+- [x] 10.2 每 timing case完成5+ cache warmup与60+有效timestamp；unavailable/不足保持 Review
 - [ ] 10.3 hierarchical cloud median≤1.25×global-only、p90≤1.35×，ground-shadow median≤1.35×、p90≤1.50×；coarse+brick cache-update满足批准的相对/绝对阈值
 - [ ] 10.4 项目所有者确认视觉改善足以证明架构收益，并批准 machine-readable Continue；任一核心失败必须 Stop/Review
 - [ ] 10.5 只有0–10.4全部解决后才能归档，并允许 W10 Fiber提案依赖 body-local bricks；Stop时 W10必须使用/重审 global-only方案

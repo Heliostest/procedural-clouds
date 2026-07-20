@@ -10,6 +10,7 @@ const packing = readFileSync(resolve(root, 'src/density/recipeV2Packing.ts'), 'u
 const fixtures = readFileSync(resolve(root, 'src/density/recipeV2PackingFixtures.ts'), 'utf8');
 const params = readFileSync(resolve(root, 'src/params.ts'), 'utf8');
 const genusProfile = readFileSync(resolve(root, 'src/genusProfile.ts'), 'utf8');
+const commonShader = readFileSync(resolve(root, 'shaders/density-v2-common.wgsl'), 'utf8');
 
 for (const contract of [
   'DENSITY_V2_LAYOUT_VERSION = 2',
@@ -93,6 +94,13 @@ if (!fixtures.includes('verifyDensityV2PackingFixtures')) {
 }
 if (!fixtures.includes('Density V2 lifecycle density must be packed exactly once')) {
   throw new Error('Density V2 lifecycle density packing fixture is missing');
+}
+if (!packing.includes('densityV2StableBodySeed(source.id)')
+  || !fixtures.includes('Density V2 stable Body seed changed after active-prefix reorder')
+  || commonShader.includes('ctx.bodyIndex * 37u')
+  || commonShader.includes('ctx.bodyIndex * 59u')
+  || !commonShader.includes('body.ids.w')) {
+  throw new Error('Density V2 shared-field phase must use stable Body identity instead of compact slot');
 }
 
 console.log('Density V2 layouts, W8 eight-genus recipes, and math fixtures are consistent');

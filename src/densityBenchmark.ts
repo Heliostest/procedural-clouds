@@ -128,6 +128,10 @@ export interface DensityBenchmarkController {
   observe(stats: RenderStats): void;
   markScreenshot(caseId?: string): void;
   getStatus(): DensityBenchmarkStatus;
+  getRuntimeDiagnostics(): {
+    producer: DensityBenchmarkCaseResult['producerDiagnostics'];
+    shadowHistoryResetReason: string;
+  };
   getResults(): DensityBenchmarkCaseResult[];
   getEvidence(): DensityBenchmarkEvidence;
   exportJson(): string;
@@ -606,6 +610,17 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       .map(copyResult);
   }
 
+  function getRuntimeDiagnostics(): {
+    producer: DensityBenchmarkCaseResult['producerDiagnostics'];
+    shadowHistoryResetReason: string;
+  } {
+    const stats = renderer.getStats();
+    return {
+      producer: producerDiagnostics(stats),
+      shadowHistoryResetReason: stats.shadowHistoryResetReason,
+    };
+  }
+
   function getEvidence(): DensityBenchmarkEvidence {
     const stats = renderer.getStats();
     const collected = getResults();
@@ -685,6 +700,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     markScreenshot,
     getStatus: () => ({ ...status }),
     getResults,
+    getRuntimeDiagnostics,
     getEvidence,
     exportJson,
     downloadJson,

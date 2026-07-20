@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceGeneratedAt": "2026-07-18T13:19:10.692Z",
+  "reviewer": "Codex AI static-PNG review (not owner approval)",
+  "reviewedAt": "2026-07-18T13:38:10.8655436Z",
+  "ownerApproval": "pending",
+  "scenes": {
+    "single-stratocumulus": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Hierarchical Cached/Hybrid restore irregular mid-scale clumps and internal gaps relative to global-only without an obvious static atlas boundary. Still PNGs do not establish camera/wind/LOD phase continuity or per-Body Support/metadata ownership."
+    },
+    "single-altocumulus": {
+      "hierarchicalVsGlobal": "fail",
+      "normal": "fail",
+      "densityDebug": "fail",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Hierarchical normal, ground shadow, and density-debug show regular vertical grid/barcode structure. Extra sharpness is not accepted as credible Ac cellular recovery; motion and Support ownership remain unproven."
+    },
+    "single-cirrocumulus": {
+      "hierarchicalVsGlobal": "fail",
+      "normal": "fail",
+      "densityDebug": "fail",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Hierarchical output changes the smooth global-only sheet into a regular lattice with parallel ground-shadow stripes. Static images cannot establish whether it is camera/world locked or validate Support metadata."
+    },
+    "w8-cellular-scale": {
+      "hierarchicalVsGlobal": "fail",
+      "normal": "fail",
+      "densityDebug": "fail",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "The three soft global-only bodies become strong near-equidistant vertical bands/columns, repeated in the ground shadow and density debug. Aggregate diagnostics are healthy but do not prove per-Body attribution or motion stability."
+    },
+    "w8-cellular-overlap": {
+      "hierarchicalVsGlobal": "review",
+      "normal": "review",
+      "densityDebug": "review",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "The hierarchical overlap is visibly fuller/brighter and gains regular fine bands. No static NaN, Support leak, or black hole is obvious, but stills cannot exclude double-density or metadata mis-attribution."
+    },
+    "w8-wave-ripple": {
+      "hierarchicalVsGlobal": "review",
+      "normal": "review",
+      "densityDebug": "review",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Global-only soft patches become very regular stripe columns. One frame cannot distinguish an intended body/world-stable ripple from atlas or screen locking, nor prove phase continuity or Support ownership."
+    },
+    "w9-brick-lod-sweep": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "The fixed LOD scene restores distinct mid-scale detail versus global-only with no obvious static black hole or atlas edge. The benchmark does not move the camera through LOD thresholds, so popping, generation continuity, and per-Body ownership remain unproven."
+    },
+    "w9-brick-overflow": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "The 5-candidate scene remains visually coarse like global-only, consistent with whole-tile fallback; raw diagnostics report overflowTiles=32 and maxCandidates=5. Static evidence does not prove transitions or per-sample metadata correctness."
+    },
+    "w9-thin-ridge-proxy": {
+      "hierarchicalVsGlobal": "pass",
+      "normal": "pass",
+      "densityDebug": "pass",
+      "seamAndPhase": "review",
+      "metadataAndSupport": "review",
+      "note": "Hierarchical Cached/Hybrid keep the thin ridge substantially more continuous than the separated global-only blobs. Motion, layout-generation switching, and Support metadata still require external evidence."
+    }
+  }
+}

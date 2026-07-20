@@ -8,6 +8,8 @@ export const DENSITY_BRICK_PAGE_EDGE = 8;
 export const DENSITY_BRICK_GUTTER = 2;
 export const DENSITY_BRICK_CANDIDATE_LIMIT = 4;
 export const DENSITY_BRICK_CANDIDATE_ENTRY_BYTES = 8;
+export const DENSITY_BRICK_CANDIDATE_META_BYTES = 32;
+export const DENSITY_BRICK_GPU_GENERATION_MASK = 0x00ff_ffff;
 
 export type DensityStorageMode = 'global-only' | 'hierarchical';
 export type DensityBrickLogicalEdge = 24 | 32 | 48 | 64;
@@ -65,6 +67,8 @@ export interface DensityBrickLodState {
 export interface DensityBrickAllocation {
   readonly compactIndex: number;
   readonly genusId: number;
+  readonly bodyId: string;
+  readonly stableSeed: number;
   readonly logicalEdge: DensityBrickLogicalEdge;
   readonly physicalEdge: DensityBrickPhysicalEdge;
   readonly origin: readonly [number, number, number];
@@ -91,6 +95,24 @@ export interface DensityBrickLayout {
   readonly signature: string;
 }
 
+export interface DensityBrickLayoutReconciliation {
+  readonly layout: DensityBrickLayout;
+  readonly allocationChanged: boolean;
+}
+
+export function reconcileDensityBrickLayout(
+  current: DensityBrickLayout | null,
+  next: DensityBrickLayout,
+  currentGeneration: number,
+): DensityBrickLayoutReconciliation {
+  const allocationChanged = current?.signature !== next.signature;
+  if (allocationChanged) return Object.freeze({ layout: next, allocationChanged: true });
+  return Object.freeze({
+    layout: Object.freeze({ ...next, generation: currentGeneration }),
+    allocationChanged: false,
+  });
+}
+
 export interface DensityBrickCandidateStats {
   readonly grid: readonly [number, number, number];
   readonly entryCount: number;
@@ -107,6 +129,25 @@ export interface DensityBrickCandidateGrid {
   readonly words: Uint32Array;
   readonly stats: DensityBrickCandidateStats;
   readonly generation: number;
+  readonly resolution: number;
+  readonly workgroup: readonly [number, number, number];
+}
+
+export function densityBrickEncodedGeneration(generation: number): number {
+  return Math.max(0, Math.round(generation)) & DENSITY_BRICK_GPU_GENERATION_MASK;
+}
+
+export function packDensityBrickCandidateMeta(candidate: DensityBrickCandidateGrid): Uint32Array {
+  return new Uint32Array([
+    candidate.stats.grid[0],
+    candidate.stats.grid[1],
+    candidate.stats.grid[2],
+    densityBrickEncodedGeneration(candidate.generation),
+    candidate.resolution,
+    candidate.workgroup[0],
+    candidate.workgroup[1],
+    candidate.workgroup[2],
+  ]);
 }
 
 function finiteVec3(value: readonly number[]): value is DensityV2Vec3 {
@@ -210,6 +251,9 @@ function allocationSignaturePart(allocation: DensityBrickAllocation | null): str
   if (!allocation) return 'x';
   return [
     allocation.compactIndex,
+    `${allocation.bodyId.length}:${allocation.bodyId}`,
+    allocation.stableSeed,
+    allocation.genusId,
     allocation.logicalEdge,
     allocation.origin.join(','),
   ].join(':');
@@ -316,6 +360,8 @@ export function buildDensityBrickLayout(options: {
     const allocation: DensityBrickAllocation = Object.freeze({
       compactIndex: body.compactIndex,
       genusId: body.genusId,
+      bodyId: body.bodyId,
+      stableSeed: body.stableSeed,
       logicalEdge,
       physicalEdge,
       origin,
@@ -376,15 +422,16 @@ export function packDensityBrickRecords(
   contentRevision: number,
 ): ArrayBuffer {
   const buffer = new ArrayBuffer(DENSITY_BRICK_RECORD_BYTES);
+  const encodedGeneration = densityBrickEncodedGeneration(layout.generation);
   for (const allocation of layout.allocations) {
     if (!allocation) continue;
     const index = allocation.compactIndex;
     const rows = orientedWorldToLocalRows(allocation);
-    const atlasScale = (allocation.logicalEdge - 1) / layout.profile.dimension;
+    const atlasScale = allocation.logicalEdge / layout.profile.dimension;
     const atlasBias = allocation.origin.map((origin) => (
-      origin + allocation.padding + 0.5
+      origin + allocation.padding
     ) / layout.profile.dimension) as [number, number, number];
-    writeU32Lane(buffer, index, 0, [1, index, allocation.genusId, layout.generation]);
+    writeU32Lane(buffer, index, 0, [1, index, allocation.genusId, encodedGeneration]);
     writeU32Lane(buffer, index, 1, [
       allocation.logicalEdge,
       allocation.physicalEdge,
@@ -393,7 +440,7 @@ export function packDensityBrickRecords(
     ]);
     writeU32Lane(buffer, index, 2, [
       allocation.origin[2],
-      layout.generation,
+      encodedGeneration,
       Math.max(0, Math.round(contentRevision)),
       allocation.requestedLogicalEdge,
     ]);
@@ -460,10 +507,10 @@ export function buildDensityBrickCandidateGrid(options: {
   ] as const;
   const entryCount = grid[0] * grid[1] * grid[2];
   const words = new Uint32Array(entryCount * 2);
-  const tileExtent: DensityV2Vec3 = [
-    packed.volumeExtent[0] / grid[0],
-    packed.volumeExtent[1] / grid[1],
-    packed.volumeExtent[2] / grid[2],
+  const voxelExtent: DensityV2Vec3 = [
+    packed.volumeExtent[0] / resolution,
+    packed.volumeExtent[1] / resolution,
+    packed.volumeExtent[2] / resolution,
   ];
   let completeTiles = 0;
   let overflowTiles = 0;
@@ -475,14 +522,14 @@ export function buildDensityBrickCandidateGrid(options: {
     for (let y = 0; y < grid[1]; y++) {
       for (let x = 0; x < grid[0]; x++, entryIndex++) {
         const tileMin: DensityV2Vec3 = [
-          packed.volumeMin[0] + tileExtent[0] * x,
-          packed.volumeMin[1] + tileExtent[1] * y,
-          packed.volumeMin[2] + tileExtent[2] * z,
+          packed.volumeMin[0] + voxelExtent[0] * x * workgroup[0],
+          packed.volumeMin[1] + voxelExtent[1] * y * workgroup[1],
+          packed.volumeMin[2] + voxelExtent[2] * z * workgroup[2],
         ];
         const tileMax: DensityV2Vec3 = [
-          tileMin[0] + tileExtent[0],
-          tileMin[1] + tileExtent[1],
-          tileMin[2] + tileExtent[2],
+          packed.volumeMin[0] + voxelExtent[0] * Math.min((x + 1) * workgroup[0], resolution),
+          packed.volumeMin[1] + voxelExtent[1] * Math.min((y + 1) * workgroup[1], resolution),
+          packed.volumeMin[2] + voxelExtent[2] * Math.min((z + 1) * workgroup[2], resolution),
         ];
         const candidates = packed.activeBodies.filter((body) => (
           supportedGenus(body.genusId)
@@ -506,7 +553,7 @@ export function buildDensityBrickCandidateGrid(options: {
         const metadata = count
           | (overflow ? 1 << 3 : 0)
           | (complete ? 1 << 4 : 0)
-          | ((layout.generation & 0x00ff_ffff) << 8);
+          | (densityBrickEncodedGeneration(layout.generation) << 8);
         words[entryIndex * 2] = packedIndices >>> 0;
         words[entryIndex * 2 + 1] = metadata >>> 0;
         if (complete) completeTiles++;
@@ -518,6 +565,8 @@ export function buildDensityBrickCandidateGrid(options: {
   return Object.freeze({
     words,
     generation: layout.generation,
+    resolution,
+    workgroup: Object.freeze(workgroup),
     stats: Object.freeze({
       grid,
       entryCount,

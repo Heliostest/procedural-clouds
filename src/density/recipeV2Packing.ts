@@ -19,6 +19,8 @@ export interface DensityV2ActiveBody {
   readonly sourceIndex: number;
   readonly compactIndex: number;
   readonly genusId: number;
+  readonly bodyId: string;
+  readonly stableSeed: number;
   readonly supportCenter: DensityV2Vec3;
   readonly supportHalfExtents: DensityV2Vec3;
   readonly supportRotation: DensityV2Mat3;
@@ -36,6 +38,15 @@ export interface DensityV2PackedFrame {
   readonly activeBodies: readonly DensityV2ActiveBody[];
   readonly volumeMin: DensityV2Vec3;
   readonly volumeExtent: DensityV2Vec3;
+}
+
+export function densityV2StableBodySeed(bodyId: string): number {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < bodyId.length; index++) {
+    hash ^= bodyId.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
 }
 
 type Quaternion = readonly [number, number, number, number];
@@ -204,12 +215,20 @@ export function packDensityV2Frame(input: DensityFrameInput, resolution: number)
     writeDensityV2F32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'localScaleAndFeather', [
       width * 0.5, height * 0.5, depth * 0.5, body.feather,
     ]);
-    writeDensityV2U32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'ids', [genusId, genusId, 1, 0]);
+    const stableSeed = densityV2StableBodySeed(source.id);
+    writeDensityV2U32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'ids', [
+      genusId,
+      genusId,
+      1,
+      stableSeed,
+    ]);
     writeDensityV2F32(bodies, DENSITY_BODY_GPU_LAYOUT, compactIndex, 'reserved', [0, 0, 0, 0]);
     activeBodies.push({
       sourceIndex,
       compactIndex,
       genusId,
+      bodyId: source.id,
+      stableSeed,
       supportCenter,
       supportHalfExtents,
       supportRotation: rotation,

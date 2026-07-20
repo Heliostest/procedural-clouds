@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 1,
+  "changeId": "add-hierarchical-body-local-density-bricks",
+  "generatedAt": "2026-07-18T13:47:14.067Z",
+  "evidenceGeneratedAt": "2026-07-18T13:19:10.692Z",
+  "sourceEvidence": {
+    "revision": "08f4c7683961da047bdb0c971168b7ac8c168f63",
+    "dirty": false,
+    "status": [],
+    "diffSha256": "7c8f21d405fd2a34a12eec7cb785c121639f34e56d0ddd3a96d4fdcfea9489fa",
+    "fingerprintKind": "git-diff-and-untracked-sha256"
+  },
+  "decision": "stop",
+  "archiveAllowed": false,
+  "runtime": {
+    "status": "pass",
+    "expectedCases": 108,
+    "completedCases": 108,
+    "issues": []
+  },
+  "protocol": {
+    "status": "pass",
+    "failedCases": []
+  },
+  "visual": {
+    "status": "fail",
+    "reviewCurrent": true,
+    "checks": [
+      {
+        "scene": "single-stratocumulus",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "single-altocumulus",
+        "status": "fail",
+        "notes": [
+          "hierarchicalVsGlobal=fail",
+          "normal=fail",
+          "densityDebug=fail",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "single-cirrocumulus",
+        "status": "fail",
+        "notes": [
+          "hierarchicalVsGlobal=fail",
+          "normal=fail",
+          "densityDebug=fail",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-cellular-scale",
+        "status": "fail",
+        "notes": [
+          "hierarchicalVsGlobal=fail",
+          "normal=fail",
+          "densityDebug=fail",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-cellular-overlap",
+        "status": "review",
+        "notes": [
+          "hierarchicalVsGlobal=unresolved",
+          "normal=unresolved",
+          "densityDebug=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w8-wave-ripple",
+        "status": "review",
+        "notes": [
+          "hierarchicalVsGlobal=unresolved",
+          "normal=unresolved",
+          "densityDebug=unresolved",
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-brick-lod-sweep",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-brick-overflow",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      },
+      {
+        "scene": "w9-thin-ridge-proxy",
+        "status": "review",
+        "notes": [
+          "seamAndPhase=unresolved",
+          "metadataAndSupport=unresolved"
+        ]
+      }
+    ]
+  },
+  "performance": {
+    "status": "fail",
+    "checks": [
+      {
+        "scene": "single-stratocumulus",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.291x > 1.250x",
+          "ground-shadow median 1.377x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.2906166219839141,
+        "cloudP90Ratio": 1.298392814937367,
+        "shadowMedianRatio": 1.37699094763378,
+        "shadowP90Ratio": 1.3709604005461993,
+        "combinedCache": {
+          "globalMedian": 0.006784,
+          "hierarchicalMedian": 0.012704,
+          "medianLimit": 0.506784,
+          "globalP90": 0.007136,
+          "hierarchicalP90": 0.013152,
+          "p90Limit": 0.757136
+        }
+      },
+      {
+        "scene": "single-altocumulus",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.273x > 1.250x",
+          "ground-shadow median 1.382x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.2729385857597257,
+        "cloudP90Ratio": 1.2845577941445008,
+        "shadowMedianRatio": 1.3817303267372296,
+        "shadowP90Ratio": 1.3784865112025606,
+        "combinedCache": {
+          "globalMedian": 0.006688,
+          "hierarchicalMedian": 0.012128,
+          "medianLimit": 0.506688,
+          "globalP90": 0.007008,
+          "hierarchicalP90": 0.012576,
+          "p90Limit": 0.757008
+        }
+      },
+      {
+        "scene": "single-cirrocumulus",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.277x > 1.250x",
+          "ground-shadow median 1.380x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.2766061794997547,
+        "cloudP90Ratio": 1.2791136543495465,
+        "shadowMedianRatio": 1.3804547542489665,
+        "shadowP90Ratio": 1.3722544668259928,
+        "combinedCache": {
+          "globalMedian": 0.00688,
+          "hierarchicalMedian": 0.012672,
+          "medianLimit": 0.50688,
+          "globalP90": 0.007232,
+          "hierarchicalP90": 0.013056,
+          "p90Limit": 0.757232
+        }
+      },
+      {
+        "scene": "w8-cellular-scale",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.325x > 1.250x",
+          "ground-shadow median 1.380x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.3245603246833109,
+        "cloudP90Ratio": 1.3387578472603154,
+        "shadowMedianRatio": 1.3804597701149426,
+        "shadowP90Ratio": 1.375228102189781,
+        "combinedCache": {
+          "globalMedian": 0.006624,
+          "hierarchicalMedian": 0.01632,
+          "medianLimit": 0.506624,
+          "globalP90": 0.006976,
+          "hierarchicalP90": 0.016768,
+          "p90Limit": 0.756976
+        }
+      },
+      {
+        "scene": "w8-cellular-overlap",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.400x > 1.250x",
+          "cloud p90 1.411x > 1.350x",
+          "ground-shadow median 1.383x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.4002232273982258,
+        "cloudP90Ratio": 1.4108472998137802,
+        "shadowMedianRatio": 1.3828394210889041,
+        "shadowP90Ratio": 1.3786928253678568,
+        "combinedCache": {
+          "globalMedian": 0.009184,
+          "hierarchicalMedian": 0.024896,
+          "medianLimit": 0.509184,
+          "globalP90": 0.009696,
+          "hierarchicalP90": 0.025408,
+          "p90Limit": 0.759696
+        }
+      },
+      {
+        "scene": "w8-wave-ripple",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.341x > 1.250x",
+          "ground-shadow median 1.385x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.3411872274581516,
+        "cloudP90Ratio": 1.3489459723579504,
+        "shadowMedianRatio": 1.3854466030578227,
+        "shadowP90Ratio": 1.382497429452759,
+        "combinedCache": {
+          "globalMedian": 0.007808,
+          "hierarchicalMedian": 0.017728,
+          "medianLimit": 0.507808,
+          "globalP90": 0.008128,
+          "hierarchicalP90": 0.01808,
+          "p90Limit": 0.758128
+        }
+      },
+      {
+        "scene": "w9-brick-lod-sweep",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.314x > 1.250x",
+          "ground-shadow median 1.382x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.3143726871194936,
+        "cloudP90Ratio": 1.324300284629981,
+        "shadowMedianRatio": 1.3823529411764706,
+        "shadowP90Ratio": 1.3771109082610682,
+        "combinedCache": {
+          "globalMedian": 0.008512,
+          "hierarchicalMedian": 0.021824,
+          "medianLimit": 0.508512,
+          "globalP90": 0.008896,
+          "hierarchicalP90": 0.022303999999999997,
+          "p90Limit": 0.758896
+        }
+      },
+      {
+        "scene": "w9-brick-overflow",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.305x > 1.250x",
+          "ground-shadow median 1.379x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.3054743244823956,
+        "cloudP90Ratio": 1.3166144200626957,
+        "shadowMedianRatio": 1.3789497874296217,
+        "shadowP90Ratio": 1.3767436542419391,
+        "combinedCache": {
+          "globalMedian": 0.01168,
+          "hierarchicalMedian": 0.027488,
+          "medianLimit": 0.51168,
+          "globalP90": 0.012032,
+          "hierarchicalP90": 0.028096,
+          "p90Limit": 0.762032
+        }
+      },
+      {
+        "scene": "w9-thin-ridge-proxy",
+        "status": "fail",
+        "failedMetrics": [
+          "cloud median 1.297x > 1.250x",
+          "ground-shadow median 1.379x > 1.350x"
+        ],
+        "cloudMedianRatio": 1.296527728466946,
+        "cloudP90Ratio": 1.3012658227848102,
+        "shadowMedianRatio": 1.3786730945821857,
+        "shadowP90Ratio": 1.3731496242313823,
+        "combinedCache": {
+          "globalMedian": 0.006752,
+          "hierarchicalMedian": 0.012032000000000001,
+          "medianLimit": 0.506752,
+          "globalP90": 0.007104,
+          "hierarchicalP90": 0.012384,
+          "p90Limit": 0.757104
+        }
+      }
+    ]
+  },
+  "ownerApproval": "pending",
+  "automatedChecks": [
+    "test:genus-dispatch",
+    "test:pipeline-isolation",
+    "test:density-v2-layout",
+    "test:density-v2-tiles",
+    "test:density-v2-fields",
+    "test:density-v2-evaluators",
+    "test:w9-bricks",
+    "test:ground-shadow-hash",
+    "typecheck",
+    "build",
+    "openspec-strict-w8",
+    "openspec-strict-w9"
+  ]
+}

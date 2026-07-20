@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "changeId": "add-hierarchical-body-local-density-bricks",
+  "evidenceKind": "superseding",
+  "evidenceGeneratedAt": "2026-07-18T13:19:10.692Z",
+  "sourceRevision": "08f4c7683961da047bdb0c971168b7ac8c168f63",
+  "sourceDirtyAtCapture": false,
+  "reportVerdict": "stop",
+  "recommendedFinalDisposition": "stop",
+  "recordedFinalDisposition": "pending",
+  "ownerApproval": "pending",
+  "archiveAllowed": false,
+  "machineGate": {
+    "runtime": "pass",
+    "terminalProtocolMatrix": "pass",
+    "visual": "fail",
+    "performance": "fail"
+  },
+  "auditedGate": {
+    "runtime": "pass",
+    "protocolAndLifecycle": "fail",
+    "visual": "fail",
+    "performance": "fail",
+    "sampleSufficiency": "pass",
+    "externalLifecycleEvidence": "review",
+    "ownerDecision": "pending"
+  },
+  "blockingFindings": [
+    {
+      "code": "atomic-layout-generation-missing",
+      "task": "4.5",
+      "status": "fail",
+      "summary": "Layout rebuild reuses one atlas pair and falls back to global-only during warming; no independent staging generation preserves the old hierarchical payload until atomic promotion."
+    },
+    {
+      "code": "fallback-sample-count-unavailable",
+      "task": "7.2",
+      "status": "fail",
+      "summary": "All hierarchical results report fallbackSamples=null and HUD/Gate do not expose unavailable or an actual diagnostic counter."
+    },
+    {
+      "code": "visual-stripe-lattice",
+      "task": "9.2",
+      "status": "fail",
+      "scenes": [
+        "single-altocumulus",
+        "single-cirrocumulus",
+        "w8-cellular-scale"
+      ]
+    },
+    {
+      "code": "cloud-median-budget",
+      "task": "10.3",
+      "status": "fail",
+      "failedScenes": 9,
+      "thresholdRatio": 1.25,
+      "observedRatioRange": [1.2729385857597257, 1.4002232273982258]
+    },
+    {
+      "code": "ground-shadow-median-budget",
+      "task": "10.3",
+      "status": "fail",
+      "failedScenes": 9,
+      "thresholdRatio": 1.35,
+      "observedRatioRange": [1.37699094763378, 1.3854466030578227]
+    }
+  ],
+  "missingExternalEvidence": [
+    "device-loss injection and asynchronous completion race",
+    "per-frame resize and Body add/remove/reorder allocation recovery",
+    "moving-camera and wind/LOD seam, popping, and phase continuity",
+    "per-Body Support and metadata ownership",
+    "owner approval and recorded final disposition"
+  ]
+}

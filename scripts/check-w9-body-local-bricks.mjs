@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { ModuleKind, ScriptTarget, transpileModule } from 'typescript';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
 const contracts = read('src/density/contracts.ts');
 const bricks = read('src/density/bodyLocalBricks.ts');
 const cache = read('src/density/bodyLocalBrickCache.ts');
+const selector = read('src/density/densityProducerSelector.ts');
+const generationState = read('src/density/bodyLocalBrickGenerationState.ts');
 const adapter = read('src/density/recipeDensityV2Adapter.ts');
 const pipeline = read('src/density/recipeV2Pipeline.ts');
 const brickShader = read('shaders/density-v2-brick.wgsl');
@@ -16,6 +19,7 @@ const cloud = read('shaders/cloud.wgsl');
 const fixtures = read('src/density/bodyLocalBrickFixtures.ts');
 const manifest = read('src/densityBenchmarkManifest.ts');
 const benchmark = read('src/densityBenchmark.ts');
+const renderer = read('src/renderer.ts');
 const gate = read('docs/evidence/w9-body-local-bricks/build-gate.mjs');
 
 for (const token of [
@@ -23,6 +27,8 @@ for (const token of [
   'DENSITY_BRICK_RECORD_BYTES = DENSITY_BRICK_RECORD_STRIDE * MAX_BODIES',
   'DENSITY_BRICK_CANDIDATE_LIMIT = 4',
   'DENSITY_BRICK_CANDIDATE_ENTRY_BYTES = 8',
+  'DENSITY_BRICK_CANDIDATE_META_BYTES = 32',
+  'DENSITY_BRICK_GPU_GENERATION_MASK = 0x00ff_ffff',
   "id: 'r16float-160'",
   "id: 'rgba16float-96'",
   "id: 'rgba8unorm-128-diagnostic'",
@@ -47,6 +53,47 @@ if (!fixtures.includes("candidates.stats.grid.join('x') !== '12x12x24'")
   || !fixtures.includes('candidates.stats.maxCandidates !== 5')) {
   throw new Error('W9 default candidate grid or five-body overflow fixture is incomplete');
 }
+if (!bricks.includes('densityBrickEncodedGeneration(layout.generation)')
+  || !fixtures.includes('Density brick GPU generation encoding diverged at the 24-bit wrap boundary')) {
+  throw new Error('W9 candidate/record generation lanes do not share the same 24-bit encoding');
+}
+
+if (!bricks.includes('const atlasScale = allocation.logicalEdge / layout.profile.dimension')
+  || !bricks.includes('origin + allocation.padding\n    ) / layout.profile.dimension')
+  || !brickShader.includes('(vec3f(logicalIndex) + vec3f(0.5)) / f32(logicalEdge)')
+  || !fixtures.includes('assertTexelCenterRoundTrip')) {
+  throw new Error('W9 brick producer/consumer texel-center mapping fixture is incomplete');
+}
+
+if (!cache.includes('reconcileDensityBrickLayout(')
+  || cache.includes('this.layout = this.layout ?? nextLayout')) {
+  throw new Error('W9 stable allocation must refresh current Support/rotation payload without retaining the old layout');
+}
+if (!bricks.includes('`${allocation.bodyId.length}:${allocation.bodyId}`')
+  || !fixtures.includes('Density brick allocation identity collapsed colliding Body IDs')) {
+  throw new Error('W9 allocation signature must use exact Body identity rather than a collidable GPU phase seed');
+}
+
+if (!cache.includes('new DensityBrickGenerationState<DensityBrickGenerationResources>()')
+  || !cache.includes('this.generations.markAtlasWarm(')
+  || !cache.includes('this.retiredAfterSubmit.push(retiredActive)')
+  || !cache.includes('afterSubmit(): void')
+  || !cache.includes('candidateMetaBuffer')
+  || !generationState.includes('atlasGenerations')
+  || !generationState.includes('mixed generations')) {
+  throw new Error('W9 active/staging generation publication is not atomic across the complete payload');
+}
+
+const generationStateModule = await import(`data:text/javascript;base64,${Buffer.from(transpileModule(
+  generationState,
+  { compilerOptions: { module: ModuleKind.ESNext, target: ScriptTarget.ES2022 } },
+).outputText).toString('base64')}`);
+generationStateModule.verifyDensityBrickGenerationState();
+const selectorModule = await import(`data:text/javascript;base64,${Buffer.from(transpileModule(
+  selector,
+  { compilerOptions: { module: ModuleKind.ESNext, target: ScriptTarget.ES2022 } },
+).outputText).toString('base64')}`);
+await selectorModule.verifyDensityProducerSelectorAsyncFixtures();
 
 if ((brickShader.match(/@compute\b/g) ?? []).length !== 1
   || (brickShader.match(/textureStore\(/g) ?? []).length !== 1
@@ -62,7 +109,13 @@ if (hierarchyStart < 0 || hierarchyEnd < 0
   || !hierarchy.includes('for (var i = 0u; i < 4u; i++)')
   || !hierarchy.includes('fn densityBrickCoarseFallback(pos : vec3f) -> vec4f')
   || !hierarchy.includes('@binding(6) var<uniform> densityBrickRecords')
+  || !hierarchy.includes('@binding(8) var<uniform> densityBrickCandidateMeta')
+  || !hierarchy.includes('let grid = max(densityBrickCandidateMeta.gridAndGeneration.xyz, vec3u(1u))')
+  || !hierarchy.includes('let resolution = max(densityBrickCandidateMeta.resolutionAndWorkgroup.x, 1u)')
+  || !hierarchy.includes('let workgroup = max(densityBrickCandidateMeta.resolutionAndWorkgroup.yzw, vec3u(1u))')
+  || !hierarchy.includes('generation != densityBrickCandidateMeta.gridAndGeneration.w')
   || !hierarchy.includes('fn sampleDensityBrickRecord(recordIndex : u32, generation : u32, pos : vec3f) -> vec4f')
+  || !hierarchy.includes('let atlasUv = local * record.atlasScale.xyz + record.atlasBias.xyz')
   || !hierarchy.includes('return densityBrickCoarseFallback(pos);')
   || hierarchy.includes('let coarse = sampleDensityTyped(pos);')
   || !hierarchy.includes('densityBrickCandidateIndex(uvw)')
@@ -89,8 +142,29 @@ if (!pipeline.includes('async createBrickPipeline(nextWorkgroup)')
 
 if (!cache.includes('brick-prepare-failed:')
   || !cache.includes("this.lifecycle = 'failed'")
-  || !cache.includes('this.pendingEncode = false')) {
+  || !cache.includes('this.outputSuppressed = true')
+  || !cache.includes('this.pendingEncode = null')) {
   throw new Error('W9 CPU builder failure does not preserve a safe global-only fallback');
+}
+if (!cache.includes('const creationWorkgroup = [...this.workgroup]')
+  || !cache.includes('resources.createPipeline(this.workgroup)')
+  || !cache.includes('requestChangedWhileCreating')
+  || !cache.includes('this.assertAtlasBudget();\n      this.outputSuppressed = false;')) {
+  throw new Error('W9 async workgroup compilation or encode-failure publication is not atomic');
+}
+if (!renderer.includes('const postEncodeDensityOutput = densityProducerSelector.getActive().getOutput()')
+  || !renderer.includes("? 'density-generation'\n        : 'density-fallback'")
+  || !renderer.includes('rebuildQualityBindings(true);')
+  || !renderer.includes('lastGroundShadowSignature = groundShadowSignature(params, qualitySelection.active);')
+  || renderer.includes('pendingPostEncodeDensityResetReason')) {
+  throw new Error('W9 renderer does not atomically reselect global-only after a same-frame brick encode failure');
+}
+if (!selector.includes('this.encodedThisFrame.add(target)')
+  || !selector.includes('[this.active, ...this.encodedThisFrame]')
+  || !selector.includes('producer.destroy();\n        } catch {')
+  || !selector.includes('transition fixture skipped post-submit retirement after rejection')
+  || !selector.includes('async fixture leaked a partially initialized Recipe V2 producer')) {
+  throw new Error('W9 selector does not retire rejected or partially initialized async producers safely');
 }
 
 const eagerStart = pipeline.indexOf('const pipelineCreateCpuMs = performance.now() - pipelineStarted;');
@@ -141,7 +215,8 @@ if (!gate.includes('const failedMetrics = [')
 if (!contracts.includes('contractVersion: 2')
   || !contracts.includes('hierarchical: DensityHierarchicalCacheOutput | null')
   || !contracts.includes('recordBuffer: GPUBuffer')
-  || !contracts.includes('candidateBuffer: GPUBuffer')) {
+  || !contracts.includes('candidateBuffer: GPUBuffer')
+  || !contracts.includes('candidateMetaBuffer: GPUBuffer')) {
   throw new Error('DensityCacheOutput v2 hierarchical read-only contract is incomplete');
 }
 

@@ -1,11 +1,11 @@
 // Bounded analytic hook shared by Sc/Ac/Cc. With every strength at zero it
 // returns before evaluating trigonometry and is exactly the identity transform.
-// x = horizontal domain offset, y = density multiplier, z = cell-threshold offset.
+// x = horizontal domain offset, y = density multiplier.
 fn densityV2CellularAnalyticHooks(
   ctx : DensityV2Context,
   macroSample : vec4f,
   recipe : DensityRecipeGPU,
-) -> vec3f {
+) -> vec2f {
   let waveStrength = max(recipe.domain1.y, 0.0);
   let rippleAmplitude = max(recipe.detail0.x, 0.0);
   let lensStrength = max(recipe.detail0.y, 0.0);
@@ -14,31 +14,45 @@ fn densityV2CellularAnalyticHooks(
     && rippleAmplitude <= 0.0
     && lensStrength <= 0.0
     && rollStrength <= 0.0) {
-    return vec3f(0.0, 1.0, 0.0);
+    return vec2f(0.0, 1.0);
   }
 
-  // Keep the carrier body-local and horizontally coherent. Macro wave phase
-  // only perturbs the carrier slightly so it cannot destroy visible bands.
-  let phase = (ctx.normalized.x * recipe.topology2.w
-    + ctx.normalized.z * 0.35
-    + (macroSample.b - 0.5) * 0.25) * 6.28318530718;
-  let carrier = 0.5 + 0.5 * sin(phase);
-  let waveOffset = (carrier * 2.0 - 1.0) * waveStrength;
-  let rippleThresholdOffset = (0.5 - carrier) * rippleAmplitude;
-  let rippleBlend = clamp(rippleAmplitude * 3.0, 0.0, 1.0);
-  let rippleDensity = mix(1.0, 0.35 + carrier * 0.65, rippleBlend);
+  // Four bounded, incommensurate carriers avoid both the rank-one gradient of
+  // a single sine and the separable diamond lattice produced by two orthogonal
+  // waves. Existing Macro wave/cell channels bend the phases without another
+  // texture sample; nested phase terms make the modulation non-separable.
+  let macroWave = macroSample.b - 0.5;
+  let macroCell = macroSample.a - 0.5;
+  let rippleFrequency = max(recipe.topology2.w, 0.0);
+  let phase0 = rippleFrequency * dot(ctx.normalized.xz, vec2f(0.84, 0.54))
+    + macroWave * 0.16 + macroCell * 0.07;
+  let phase1 = rippleFrequency * 0.7861513778 * dot(ctx.normalized.xz, vec2f(-0.37, 0.93))
+    - macroWave * 0.11 + macroCell * 0.13;
+  let phase2 = rippleFrequency * 0.6131471928 * dot(ctx.normalized.xz, vec2f(0.23, -0.97))
+    + macroWave * 0.05 - macroCell * 0.17;
+  let phase3 = rippleFrequency * 0.4370160244 * dot(ctx.normalized.xz, vec2f(-0.91, -0.41))
+    - macroWave * 0.14 - macroCell * 0.03;
+  let carrier0 = sin(phase0 * 6.28318530718);
+  let carrier1 = sin((phase1 + carrier0 * 0.11) * 6.28318530718);
+  let carrier2 = sin((phase2 + carrier1 * 0.09) * 6.28318530718);
+  let carrier3 = sin((phase3 + carrier0 * 0.07 - carrier2 * 0.05) * 6.28318530718);
+  let carrier = (carrier0 * 0.8 + carrier1 * 0.9 + carrier2 + carrier3 * 0.95) / 3.65;
+  let waveOffset = carrier * waveStrength;
+  // Ripple is a centered, bounded modulation of density that already passed
+  // the Cellular gate. It must not move the cell threshold or create bands by
+  // periodically switching otherwise weak cell contributions fully on/off.
+  let rippleDensity = 1.0 + carrier * rippleAmplitude * 0.28;
   let lensAspect = max(recipe.vertical1.z, 1.0);
   let lensDistance = length(ctx.normalized.xz * vec2f(1.0, lensAspect));
   let lens = mix(1.0, max(1.0 - lensDistance * lensDistance, 0.0), clamp(lensStrength, 0.0, 1.0));
-  let roll = 1.0 + cos(phase + ctx.height01 * 6.28318530718) * rollStrength;
-  return vec3f(waveOffset, max(rippleDensity * lens * roll, 0.0), rippleThresholdOffset);
+  let roll = 1.0 + cos((phase0 + ctx.height01) * 6.28318530718) * rollStrength;
+  return vec2f(waveOffset, max(rippleDensity * lens * roll, 0.0));
 }
 
 fn densityV2CellularSignal(
   primary : vec4f,
   secondary : vec4f,
   recipe : DensityRecipeGPU,
-  thresholdOffset : f32,
 ) -> f32 {
   let weights = max(recipe.topology1.xyz, vec3f(0.0));
   let weightSum = max(dot(weights, vec3f(1.0)), 1e-4);
@@ -58,7 +72,7 @@ fn densityV2CellularSignal(
     clamp(recipe.topology1.w, 0.0, 1.0),
   );
   let cellSignal = connectedCell * max(recipe.topology2.x, 0.0);
-  let cellThreshold = clamp(recipe.topology2.y + thresholdOffset, 0.05, 0.95);
+  let cellThreshold = clamp(recipe.topology2.y, 0.05, 0.95);
   let cellSoftness = max(recipe.topology0.w, 1e-4);
   return smoothstep(
     cellThreshold - cellSoftness,
@@ -109,7 +123,7 @@ fn densityV2EvaluateCellular(
     + vec3f(-hooks.x * 0.45, 0.0, hooks.x);
   let primary = densitySharedSampleBase(primaryCoordinate);
   let secondary = densitySharedSampleBase(secondaryCoordinate);
-  let cellular = densityV2CellularSignal(primary, secondary, recipe, hooks.z);
+  let cellular = densityV2CellularSignal(primary, secondary, recipe);
   let rawDensity = footprint * vertical * coverage * cellular * hooks.y;
   return DensityV2Evaluation(densityV2Finalize(rawDensity, body, recipe), body.ids.x);
 }

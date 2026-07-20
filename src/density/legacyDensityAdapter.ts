@@ -189,6 +189,10 @@ export class LegacyDensityAdapter implements DensityCacheProducer {
     };
   }
 
+  afterSubmit(): void {
+    // Legacy publishes its cache writes directly; it has no staged generation.
+  }
+
   getOutput(): DensityCacheOutput {
     const views = this.requireViews();
     return {

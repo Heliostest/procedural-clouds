@@ -302,8 +302,13 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
     };
   }
 
+  afterSubmit(): void {
+    this.bricks.afterSubmit();
+  }
+
   getOutput(): DensityCacheOutput {
     const sampledViews = this.requireViews();
+    const hierarchical = this.bricks.getOutput();
     return {
       contractVersion: 2,
       format: DENSITY_CACHE_FORMAT,
@@ -315,8 +320,8 @@ export class RecipeDensityV2Adapter implements DensityCacheProducer {
       contentRevision: this.contentRevision,
       validSampleCount: this.cacheValidCount,
       valid: this.lifecycle === 'ready' && this.cacheValidCount > 0,
-      storageMode: this.bricks.getOutput() ? 'hierarchical' : 'global-only',
-      hierarchical: this.bricks.getOutput(),
+      storageMode: hierarchical ? 'hierarchical' : 'global-only',
+      hierarchical,
     };
   }
 

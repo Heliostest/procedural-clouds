@@ -71,6 +71,7 @@ export interface DensityHierarchicalCacheOutput {
   sampler: GPUSampler;
   recordBuffer: GPUBuffer;
   candidateBuffer: GPUBuffer;
+  candidateMetaBuffer: GPUBuffer;
   candidateGrid: readonly [number, number, number];
   layoutGeneration: number;
   allocationGeneration: number;
@@ -110,6 +111,11 @@ export interface DensityBrickStats {
   recordBytes: number;
   candidateBytes: number;
   allocationGeneration: number;
+  activeGeneration: number;
+  activeBindingGeneration: number;
+  stagingGeneration: number;
+  stagingWarmMask: number;
+  livePairCount: number;
   contentRevision: number;
   rebuildCount: number;
   rebuildCpuMs: number;
@@ -272,6 +278,7 @@ export interface DensityCacheProducer {
   readonly kind: DensityProducerKind;
   prepareFrame(input: DensityFrameInput): DensityFramePlan;
   encode(encoder: GPUCommandEncoder, context?: DensityEncodeContext): DensityEncodeResult;
+  afterSubmit(): void;
   getOutput(): DensityCacheOutput;
   requestStorageMode(mode: DensityStorageMode, cacheRequired: boolean): void;
   setResolution(resolution: number): void;

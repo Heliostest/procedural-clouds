@@ -4,7 +4,7 @@ import { createDefaultParams } from '../params';
 import type { WindAdvectionSample } from '../wind';
 import type { DensityFrameInput } from './contracts';
 import { DENSITY_BODY_GPU_LAYOUT, densityV2LayoutField } from './recipeV2Layout';
-import { packDensityV2Frame } from './recipeV2Packing';
+import { densityV2StableBodySeed, packDensityV2Frame } from './recipeV2Packing';
 
 export const DENSITY_V2_PACKING_FIXTURE_IDS = Object.freeze([
   'no-cloud',
@@ -60,6 +60,15 @@ function assertZeroTail(buffer: ArrayBuffer, activeBodyCount: number): void {
   }
 }
 
+function packedBodySeed(buffer: ArrayBuffer, compactIndex: number): number {
+  const ids = densityV2LayoutField(DENSITY_BODY_GPU_LAYOUT, 'ids');
+  return new Uint32Array(
+    buffer,
+    compactIndex * DENSITY_BODY_GPU_LAYOUT.stride + ids.byteOffset,
+    4,
+  )[3]!;
+}
+
 export function verifyDensityV2PackingFixtures(): void {
   const invalid = densityV2FixtureBody('X', 'not-a-genus');
   const zeroCoverage = { ...densityV2FixtureBody('Z', 'stratus'), coverage: 0 };
@@ -99,5 +108,16 @@ export function verifyDensityV2PackingFixtures(): void {
   );
   if (Math.abs(heightDensity[2] - 1.4) > 1e-6 || Math.abs(coverageLifecycle[1] - 0.5) > 1e-6) {
     throw new Error('Density V2 lifecycle density must be packed exactly once');
+  }
+  const seedA = densityV2FixtureBody('stable-seed-A', 'cirrocumulus');
+  const seedB = densityV2FixtureBody('stable-seed-B', 'altocumulus');
+  const orderedSeeds = packDensityV2Frame(densityV2FixtureInput([seedA, seedB]), 96);
+  const reorderedSeeds = packDensityV2Frame(densityV2FixtureInput([seedB, seedA]), 96);
+  if (packedBodySeed(orderedSeeds.bodies, 0) !== densityV2StableBodySeed(seedA.id)
+    || packedBodySeed(orderedSeeds.bodies, 1) !== densityV2StableBodySeed(seedB.id)
+    || packedBodySeed(orderedSeeds.bodies, 0) !== packedBodySeed(reorderedSeeds.bodies, 1)
+    || packedBodySeed(orderedSeeds.bodies, 1) !== packedBodySeed(reorderedSeeds.bodies, 0)
+    || packedBodySeed(orderedSeeds.bodies, 0) === packedBodySeed(orderedSeeds.bodies, 1)) {
+    throw new Error('Density V2 stable Body seed changed after active-prefix reorder');
   }
 }

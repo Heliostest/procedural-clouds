@@ -145,16 +145,20 @@ ${buildDensityBrickWgslAbi()}
 @group(1) @binding(5) var densityBrickTex1 : texture_3d<f32>;
 @group(1) @binding(6) var<uniform> densityBrickRecords : array<DensityBrickRecordGPU, 12>;
 @group(1) @binding(7) var<storage, read> densityBrickCandidates : array<vec2u>;
+struct DensityBrickCandidateMetaGPU {
+  gridAndGeneration : vec4u,
+  resolutionAndWorkgroup : vec4u,
+};
+@group(1) @binding(8) var<uniform> densityBrickCandidateMeta : DensityBrickCandidateMetaGPU;
 
 fn densityBrickCandidateIndex(uvw : vec3f) -> u32 {
-  let resolution = max(u32(round(params.g.densityResolution)), 1u);
-  let workgroup = max(vec3u(
-    u32(round(params.g.cacheWorkgroupX)),
-    u32(round(params.g.cacheWorkgroupY)),
-    u32(round(params.g.cacheWorkgroupZ)),
-  ), vec3u(1u));
-  let grid = (vec3u(resolution) + workgroup - vec3u(1u)) / workgroup;
-  let voxel = min(vec3u(floor(clamp(uvw, vec3f(0.0), vec3f(0.999999)) * f32(resolution))), vec3u(resolution - 1u));
+  let grid = max(densityBrickCandidateMeta.gridAndGeneration.xyz, vec3u(1u));
+  let resolution = max(densityBrickCandidateMeta.resolutionAndWorkgroup.x, 1u);
+  let workgroup = max(densityBrickCandidateMeta.resolutionAndWorkgroup.yzw, vec3u(1u));
+  let voxel = min(
+    vec3u(floor(clamp(uvw, vec3f(0.0), vec3f(0.999999)) * f32(resolution))),
+    vec3u(resolution - 1u),
+  );
   let tile = min(voxel / workgroup, grid - vec3u(1u));
   return tile.x + grid.x * (tile.y + grid.y * tile.z);
 }
@@ -218,7 +222,8 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   let overflow = (entry.y & 8u) != 0u;
   let complete = (entry.y & 16u) != 0u;
   let generation = entry.y >> 8u;
-  if (!complete || overflow || count > DENSITY_BRICK_CANDIDATE_LIMIT) {
+  if (!complete || overflow || count > DENSITY_BRICK_CANDIDATE_LIMIT
+    || generation != densityBrickCandidateMeta.gridAndGeneration.w) {
     return densityBrickCoarseFallback(pos);
   }
   if (count == 0u) { return vec4f(0.0); }

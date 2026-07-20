@@ -148,6 +148,7 @@ export function createDensityQualityBindings(
         { binding: 5, resource: hierarchical.sampledViews[1] },
         { binding: 6, resource: { buffer: hierarchical.recordBuffer } },
         { binding: 7, resource: { buffer: hierarchical.candidateBuffer } },
+        { binding: 8, resource: { buffer: hierarchical.candidateMetaBuffer } },
       );
     }
     cloudDensity = device.createBindGroup({

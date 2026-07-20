@@ -117,11 +117,20 @@ for (const contract of [
   'rippleAmplitude <= 0.0',
   'lensStrength <= 0.0',
   'rollStrength <= 0.0',
-  'return vec3f(0.0, 1.0, 0.0)',
-  'recipe.topology2.y + thresholdOffset',
+  'return vec2f(0.0, 1.0)',
+  'let phase0 = rippleFrequency * dot(ctx.normalized.xz, vec2f(0.84, 0.54))',
+  'let phase1 = rippleFrequency * 0.7861513778 * dot(ctx.normalized.xz, vec2f(-0.37, 0.93))',
+  'let phase2 = rippleFrequency * 0.6131471928 * dot(ctx.normalized.xz, vec2f(0.23, -0.97))',
+  'let phase3 = rippleFrequency * 0.4370160244 * dot(ctx.normalized.xz, vec2f(-0.91, -0.41))',
+  'let carrier3 = sin((phase3 + carrier0 * 0.07 - carrier2 * 0.05)',
+  '/ 3.65',
+  'let cellThreshold = clamp(recipe.topology2.y, 0.05, 0.95)',
   'max(weightedCell, bridge)',
 ]) {
   if (!cellular.includes(contract)) throw new Error(`Cellular source contract missing: ${contract}`);
+}
+if (cellular.includes('thresholdOffset')) {
+  throw new Error('Cellular ripple must not shift the cell threshold');
 }
 if (cellular.includes('+ recipe.topology1.w')) {
   throw new Error('Cellular connectivity must not be an additive saturation bias');
