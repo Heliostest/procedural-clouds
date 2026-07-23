@@ -565,6 +565,7 @@ export interface RenderStats {
   stbnFrozenSlice: number;
   stbnBytes: number;
   raymarchConfigGeneration: number;
+  raymarchCurrentFrameIndex: number;
   raymarchCounterSampleId: number;
   raymarchCounterConfigGeneration: number;
   raymarchCounterFrameIndex: number;
@@ -1505,6 +1506,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stbnFrozenSlice: -1,
     stbnBytes: stbnResources.byteLength,
     raymarchConfigGeneration: 0,
+    raymarchCurrentFrameIndex: 0,
     raymarchCounterSampleId: 0,
     raymarchCounterConfigGeneration: 0,
     raymarchCounterFrameIndex: 0,
@@ -2497,6 +2499,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     stats.stbnFrozenSlice = paramsData[WORLD_MARCH_BASE + 12];
     stats.stbnBytes = stbnResources.byteLength;
     stats.raymarchConfigGeneration = raymarchConfigGeneration;
+    stats.raymarchCurrentFrameIndex = frameIndex;
     stats.activeBodyCount = densityStats.activeBodyCount;
     stats.densityRes = densityStats.resolution;
     stats.weatherSize = weatherSize;

@@ -367,6 +367,8 @@ assertIncludes(cloudFrame, [
   'let requestedStepT = worldStepMeters(max(t, 0.0) * rayMetric) / rayMetric',
   'atomicAdd(&raymarchCounters.primaryIterations, 1u)',
   'atomicAdd(&raymarchCounters.densitySamples, 1u)',
+  'let sampleSpacingMeters = max(arrivalStepT, 0.0) * rayMetric',
+  'worldStepSumMeters += sampleSpacingMeters',
   'atomicMax(&raymarchCounters.maxWorldStepMeters',
 ], 'world-step branch, max distance, and max iterations');
 
@@ -628,6 +630,7 @@ assertIncludes(renderStats, [
   'stbnFrozenSlice: number',
   'stbnBytes: number',
   'raymarchConfigGeneration: number',
+  'raymarchCurrentFrameIndex: number',
   'raymarchCounterConfigGeneration: number',
   'raymarchCounterFrameIndex: number',
   'raymarchPrimaryIterationsPerPixel: number',
@@ -658,6 +661,7 @@ assertIncludes(benchmark, [
   'stbnFrozenSlice: stats.stbnFrozenSlice',
   'stbnBytes: stats.stbnBytes',
   'raymarchConfigGeneration: stats.raymarchConfigGeneration',
+  'raymarchCurrentFrameIndex: stats.raymarchCurrentFrameIndex',
   'raymarchCounterConfigGeneration: stats.raymarchCounterConfigGeneration',
   'raymarchCounterFrameIndex: stats.raymarchCounterFrameIndex',
   'raymarchPrimaryIterationsPerPixel: stats.raymarchPrimaryIterationsPerPixel',

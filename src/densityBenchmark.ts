@@ -176,6 +176,7 @@ export interface DensityBenchmarkController {
       | 'stbnFrozenSlice'
       | 'stbnBytes'
       | 'raymarchConfigGeneration'
+      | 'raymarchCurrentFrameIndex'
       | 'raymarchCounterSampleId'
       | 'raymarchCounterConfigGeneration'
       | 'raymarchCounterFrameIndex'
@@ -716,6 +717,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
         stbnFrozenSlice: stats.stbnFrozenSlice,
         stbnBytes: stats.stbnBytes,
         raymarchConfigGeneration: stats.raymarchConfigGeneration,
+        raymarchCurrentFrameIndex: stats.raymarchCurrentFrameIndex,
         raymarchCounterSampleId: stats.raymarchCounterSampleId,
         raymarchCounterConfigGeneration: stats.raymarchCounterConfigGeneration,
         raymarchCounterFrameIndex: stats.raymarchCounterFrameIndex,

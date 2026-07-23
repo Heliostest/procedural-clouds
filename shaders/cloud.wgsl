@@ -1310,13 +1310,15 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
         let outsideStepT = select(requestedStepT, stochasticStepT, params.march.metric.z > 0.5);
         stepT = select(outsideStepT, minWorldStepT, inCloud || refinementActive);
         stepT = min(stepT, max(tExit - t, 0.0));
-        worldStepSumMeters += stepT * rayMetric;
-        worldStepCount++;
-        if (recordCounters) {
-          let stepMeters = stepT * rayMetric;
-          atomicAdd(&raymarchCounters.worldStepSamples, 1u);
-          atomicAdd(&raymarchCounters.worldStepDecameters, u32(round(stepMeters * 0.1)));
-          atomicMax(&raymarchCounters.maxWorldStepMeters, u32(ceil(stepMeters)));
+        let sampleSpacingMeters = max(arrivalStepT, 0.0) * rayMetric;
+        if (sampleSpacingMeters > 0.0) {
+          worldStepSumMeters += sampleSpacingMeters;
+          worldStepCount++;
+          if (recordCounters) {
+            atomicAdd(&raymarchCounters.worldStepSamples, 1u);
+            atomicAdd(&raymarchCounters.worldStepDecameters, u32(round(sampleSpacingMeters * 0.1)));
+            atomicMax(&raymarchCounters.maxWorldStepMeters, u32(ceil(sampleSpacingMeters)));
+          }
         }
       }
       let pos = ro + rd * t;

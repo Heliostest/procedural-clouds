@@ -65,6 +65,9 @@ function assertCounterProvenance(raymarch, label) {
     `${label}: GPU counters belong to a stale raymarch configuration`, raymarch);
   assert(Number.isInteger(raymarch.raymarchCounterFrameIndex) && raymarch.raymarchCounterFrameIndex > 0,
     `${label}: GPU counters have no source frame`, raymarch);
+  assert(Number.isInteger(raymarch.raymarchCurrentFrameIndex)
+    && raymarch.raymarchCurrentFrameIndex >= raymarch.raymarchCounterFrameIndex,
+  `${label}: GPU counter source frame is newer than the current renderer frame`, raymarch);
 }
 
 function assertWorldStep(diagnostics, label) {
@@ -191,7 +194,11 @@ try {
     window.densityBenchmark.manifest.minimumCacheWarmups = 2;
     window.densityBenchmark.manifest.minimumGpuSamples = 3;
   });
-  await page.evaluate((id) => window.densityBenchmark.start(id), caseId);
+  const frameBeforeCase = await page.evaluate((id) => {
+    const currentFrame = window.densityBenchmark.getRuntimeDiagnostics().raymarch.raymarchCurrentFrameIndex;
+    window.densityBenchmark.start(id);
+    return currentFrame;
+  }, caseId);
   await page.waitForFunction(() => {
     const state = window.densityBenchmark.getStatus().state;
     return state === 'ready-for-screenshot' || state === 'complete' || state === 'invalid';
@@ -199,6 +206,11 @@ try {
 
   const status = await page.evaluate(() => window.densityBenchmark.getStatus());
   assert(status.state !== 'invalid', 'benchmark case became invalid', status);
+  await page.waitForFunction((startFrame) => {
+    const raymarch = window.densityBenchmark.getRuntimeDiagnostics().raymarch;
+    return raymarch.raymarchCounterFrameIndex > startFrame
+      && raymarch.raymarchCounterConfigGeneration === raymarch.raymarchConfigGeneration;
+  }, frameBeforeCase, { timeout: 30_000, polling: 100 });
   await waitFrames(page);
   const initial = await page.evaluate(() => window.densityBenchmark.getRuntimeDiagnostics());
   assert(initial.producer?.requested === 'recipe-v2' && initial.producer?.active === 'recipe-v2',
