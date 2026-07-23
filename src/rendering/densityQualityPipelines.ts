@@ -20,6 +20,7 @@ function emptyCreationStats(): DensityQualityPipelineCreationStats {
   return {
     shaderModuleCreateCpuMs: 0,
     renderPipelineCreateCpuMs: 0,
+    cloudFramePipelineCreateCpuMs: 0,
     groundShadowPipelineCreateCpuMs: 0,
     sourceLength: 0,
   };
@@ -82,16 +83,52 @@ export async function createDensityQualityPipelineBundle(
     throw new Error(`${kind}-${storageMode}-pipeline-create-failed: ${messages || reason}`);
   }
 
+  let cloudFramePipeline: GPURenderPipeline | null = null;
+  let cloudFrameFailureReason = '';
+  let cloudFramePipelineCreateCpuMs = 0;
+  const maxAttachments = device.limits.maxColorAttachments;
+  const maxAttachmentBytes = device.limits.maxColorAttachmentBytesPerSample;
+  if (maxAttachments < 3 || maxAttachmentBytes < 24) {
+    cloudFrameFailureReason = `cloud-frame-mrt-unsupported: attachments=${maxAttachments}, bytesPerSample=${maxAttachmentBytes}`;
+  } else {
+    try {
+      const cloudFrame = await createTimed(() => device.createRenderPipelineAsync({
+        label: `density-quality-${kind}-${storageMode}-cloud-frame`,
+        layout: 'auto',
+        vertex: { module, entryPoint: 'vs' },
+        fragment: {
+          module,
+          entryPoint: 'fsCloudFrame',
+          targets: [{ format: colorFormat }, { format: colorFormat }, { format: colorFormat }],
+        },
+        primitive: { topology: 'triangle-list' },
+      }));
+      cloudFramePipeline = cloudFrame.value;
+      cloudFramePipelineCreateCpuMs = cloudFrame.elapsedMs;
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : String(error);
+      const compilation = await module.getCompilationInfo();
+      const messages = compilation.messages
+        .filter((message) => message.type === 'error')
+        .map((message) => `${message.lineNum}:${message.linePos} ${message.message}`)
+        .join(' | ');
+      cloudFrameFailureReason = `cloud-frame-pipeline-create-failed: ${messages || reason}`;
+    }
+  }
+
   return {
     kind,
     storageMode,
     generation: nextBundleGeneration++,
     cloudPipeline: render.value,
+    cloudFramePipeline,
+    cloudFrameFailureReason,
     groundShadowPipeline: groundShadow.value,
     usesDensityCache: kind !== 'realtime',
     creation: {
       shaderModuleCreateCpuMs,
       renderPipelineCreateCpuMs: render.elapsedMs,
+      cloudFramePipelineCreateCpuMs,
       groundShadowPipelineCreateCpuMs: groundShadow.elapsedMs,
       sourceLength: storageMode === 'hierarchical' ? source.length : densityShaderSourceLength(kind),
     },
@@ -121,6 +158,15 @@ export function createDensityQualityBindings(
       ...weatherEntries,
     ],
   });
+  const cloudFrameScene = bundle.cloudFramePipeline ? device.createBindGroup({
+    label: `density-quality-${bundle.kind}-cloud-frame-scene`,
+    layout: bundle.cloudFramePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: resources.cameraBuffer } },
+      ...sharedSceneEntries,
+      ...weatherEntries,
+    ],
+  }) : null;
   const groundShadowScene = device.createBindGroup({
     label: `density-quality-${bundle.kind}-ground-shadow-scene`,
     layout: bundle.groundShadowPipeline.getBindGroupLayout(0),
@@ -132,6 +178,7 @@ export function createDensityQualityBindings(
   });
 
   let cloudDensity: GPUBindGroup | null = null;
+  let cloudFrameDensity: GPUBindGroup | null = null;
   let groundShadowDensity: GPUBindGroup | null = null;
   if (bundle.usesDensityCache) {
     const densityEntries: GPUBindGroupEntry[] = [
@@ -156,6 +203,11 @@ export function createDensityQualityBindings(
       layout: bundle.cloudPipeline.getBindGroupLayout(1),
       entries: densityEntries,
     });
+    cloudFrameDensity = bundle.cloudFramePipeline ? device.createBindGroup({
+      label: `density-quality-${bundle.kind}-cloud-frame-density`,
+      layout: bundle.cloudFramePipeline.getBindGroupLayout(1),
+      entries: densityEntries,
+    }) : null;
     groundShadowDensity = device.createBindGroup({
       label: `density-quality-${bundle.kind}-ground-shadow-density`,
       layout: bundle.groundShadowPipeline.getBindGroupLayout(1),
@@ -174,16 +226,31 @@ export function createDensityQualityBindings(
     entries: [
       { binding: 0, resource: resources.groundShadowSampler },
       { binding: 1, resource: resources.groundShadowView },
+      { binding: 2, resource: resources.stbnView },
+      { binding: 3, resource: { buffer: resources.raymarchCountersBuffer } },
     ],
   });
+  const cloudFrameGroundShadow = bundle.cloudFramePipeline ? device.createBindGroup({
+    label: `density-quality-${bundle.kind}-cloud-frame-ground-shadow`,
+    layout: bundle.cloudFramePipeline.getBindGroupLayout(3),
+    entries: [
+      { binding: 0, resource: resources.groundShadowSampler },
+      { binding: 1, resource: resources.groundShadowView },
+      { binding: 2, resource: resources.stbnView },
+      { binding: 3, resource: { buffer: resources.raymarchCountersBuffer } },
+    ],
+  }) : null;
 
   return {
     cloudScene,
+    cloudFrameScene,
     groundShadowScene,
     cloudDensity,
+    cloudFrameDensity,
     groundShadowDensity,
     groundShadowStore,
     cloudGroundShadow,
+    cloudFrameGroundShadow,
   };
 }
 

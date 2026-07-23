@@ -13,6 +13,7 @@ export type DensityQualityPipelineLifecycle = 'idle' | 'compiling' | 'ready' | '
 export interface DensityQualityPipelineCreationStats {
   shaderModuleCreateCpuMs: number;
   renderPipelineCreateCpuMs: number;
+  cloudFramePipelineCreateCpuMs: number;
   groundShadowPipelineCreateCpuMs: number;
   sourceLength: number;
 }
@@ -22,6 +23,8 @@ export interface DensityQualityPipelineBundle {
   readonly storageMode: DensityStorageMode;
   readonly generation: number;
   readonly cloudPipeline: GPURenderPipeline;
+  readonly cloudFramePipeline: GPURenderPipeline | null;
+  readonly cloudFrameFailureReason: string;
   readonly groundShadowPipeline: GPUComputePipeline;
   readonly usesDensityCache: boolean;
   readonly creation: DensityQualityPipelineCreationStats;
@@ -57,15 +60,20 @@ export interface DensityQualityBindingResources {
   groundShadowStoreView: GPUTextureView;
   groundShadowSampler: GPUSampler;
   groundShadowView: GPUTextureView;
+  stbnView: GPUTextureView;
+  raymarchCountersBuffer: GPUBuffer;
 }
 
 export interface DensityQualityBindings {
   cloudScene: GPUBindGroup;
+  cloudFrameScene: GPUBindGroup | null;
   groundShadowScene: GPUBindGroup;
   cloudDensity: GPUBindGroup | null;
+  cloudFrameDensity: GPUBindGroup | null;
   groundShadowDensity: GPUBindGroup | null;
   groundShadowStore: GPUBindGroup;
   cloudGroundShadow: GPUBindGroup;
+  cloudFrameGroundShadow: GPUBindGroup | null;
 }
 
 export function densityQualityKindFromMode(mode: number): DensityQualityKind {

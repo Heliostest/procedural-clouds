@@ -3,9 +3,11 @@ import densitySharedDebugSource from '../shaders/density-shared-debug.wgsl?raw';
 import {
   packParams,
   packBodies,
+  packWorldMarch,
   packPresetArray,
   PARAMS_FLOAT_COUNT,
   PARAMS_BYTE_SIZE,
+  WORLD_MARCH_BASE,
   PRESET_BYTE_SIZE,
   MAX_BODIES,
   type CloudParams,
@@ -42,8 +44,28 @@ import {
   type DensityQualityKind,
   type DensityQualityPipelineState,
 } from './rendering/densityQualityContracts';
+import { CloudFrameOutputResources } from './rendering/cloudFrameOutput';
+import { createStbnTextureResources } from './rendering/stbnTexture';
+import {
+  buildWorldRaymarchSupports,
+  mergeBodySupportSnapshots,
+  type WorldRaymarchBodySupport,
+} from './rendering/worldRaymarch';
 
 const OFFSCREEN_FORMAT: GPUTextureFormat = 'rgba16float';
+const RAYMARCH_COUNTER_BUFFER_BYTES = 64;
+const RAYMARCH_COUNTER = Object.freeze({
+  sampledPixels: 0,
+  primaryIterations: 1,
+  supportSkips: 2,
+  candidateSkips: 3,
+  densitySamples: 4,
+  lightSamples: 5,
+  worldStepSamples: 6,
+  worldStepDecameters: 7,
+  maxWorldStepMeters: 8,
+  refinements: 9,
+});
 
 function halton(index: number, base: number): number {
   let f = 1, r = 0, i = index;
@@ -177,7 +199,7 @@ fn agx(colIn : vec3f) -> vec3f {
 }
 `;
 
-const taaShaderSource = /* wgsl */ `
+const legacyTaaShaderSource = /* wgsl */ `
 struct TaaU { prevViewProj : mat4x4f, invViewProj : mat4x4f, camPos : vec4f, flags : vec4f };
 @group(0) @binding(0) var sceneTex : texture_2d<f32>;
 @group(0) @binding(1) var historyTex : texture_2d<f32>;
@@ -238,6 +260,87 @@ struct VOut { @builtin(position) pos : vec4f };
   hist = ycocg2rgb(center + dir * tScale);
   let outRgb = mix(cur.rgb, hist, u.flags.y);
   return vec4f(outRgb, cur.a);
+}
+`;
+
+const cloudTaaShaderSource = /* wgsl */ `
+struct TaaU { prevViewProj : mat4x4f, invViewProj : mat4x4f, camPos : vec4f, flags : vec4f };
+@group(0) @binding(0) var currentCloud : texture_2d<f32>;
+@group(0) @binding(1) var historyCloud : texture_2d<f32>;
+@group(0) @binding(2) var samp : sampler;
+@group(0) @binding(3) var<uniform> u : TaaU;
+@group(0) @binding(4) var depthVelocity : texture_2d<f32>;
+fn rgb2ycocg(c : vec3f) -> vec3f {
+  return vec3f(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b, -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
+}
+fn ycocg2rgb(c : vec3f) -> vec3f {
+  let t = c.x - c.z;
+  return vec3f(t + c.y, c.x + c.z, t - c.y);
+}
+struct VOut { @builtin(position) pos : vec4f };
+@vertex fn vsTaa(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+@fragment fn fsTaa(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let dims = vec2f(textureDimensions(currentCloud));
+  let uv = fc.xy / dims;
+  let cur = textureSampleLevel(currentCloud, samp, uv, 0.0);
+  let motion = textureSampleLevel(depthVelocity, samp, uv, 0.0);
+  if (u.flags.x < 0.5 || motion.w < 0.5) { return cur; }
+  let prevUv = uv - motion.yz;
+  if (any(prevUv < vec2f(0.0)) || any(prevUv > vec2f(1.0))) { return cur; }
+  var hist = textureSampleLevel(historyCloud, samp, prevUv, 0.0);
+  let texel = 1.0 / dims;
+  var m1 = vec3f(0.0);
+  var m2 = vec3f(0.0);
+  var minT = 1.0;
+  var maxT = 0.0;
+  for (var y = -1; y <= 1; y = y + 1) {
+    for (var x = -1; x <= 1; x = x + 1) {
+      let sample = textureSampleLevel(currentCloud, samp, uv + vec2f(f32(x), f32(y)) * texel, 0.0);
+      let yc = rgb2ycocg(sample.rgb);
+      m1 += yc;
+      m2 += yc * yc;
+      minT = min(minT, sample.a);
+      maxT = max(maxT, sample.a);
+    }
+  }
+  let mean = m1 / 9.0;
+  let variance = max(m2 / 9.0 - mean * mean, vec3f(0.0));
+  let extent = sqrt(variance);
+  let histY = rgb2ycocg(hist.rgb);
+  let dir = histY - mean;
+  var clipScale = 1.0;
+  if (abs(dir.x) > 1e-5) { clipScale = min(clipScale, extent.x / abs(dir.x)); }
+  if (abs(dir.y) > 1e-5) { clipScale = min(clipScale, extent.y / abs(dir.y)); }
+  if (abs(dir.z) > 1e-5) { clipScale = min(clipScale, extent.z / abs(dir.z)); }
+  hist = vec4f(ycocg2rgb(mean + dir * clamp(clipScale, 0.0, 1.0)), clamp(hist.a, minT, maxT));
+  let reactive = clamp(abs(cur.a - hist.a) * 4.0, 0.0, 1.0);
+  let historyWeight = clamp(u.flags.y * (1.0 - reactive), 0.0, 0.98);
+  return mix(cur, hist, historyWeight);
+}
+`;
+
+const cloudCompositeShaderSource = /* wgsl */ `
+@group(0) @binding(0) var cloudTex : texture_2d<f32>;
+@group(0) @binding(1) var backgroundTex : texture_2d<f32>;
+@group(0) @binding(2) var samp : sampler;
+struct VOut { @builtin(position) pos : vec4f };
+@vertex fn vsComposite(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+@fragment fn fsComposite(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let dims = vec2f(textureDimensions(cloudTex));
+  let uv = fc.xy / dims;
+  let cloud = textureSampleLevel(cloudTex, samp, uv, 0.0);
+  let background = textureSampleLevel(backgroundTex, samp, uv, 0.0).rgb;
+  return vec4f(cloud.rgb + clamp(cloud.a, 0.0, 1.0) * background, 1.0);
 }
 `;
 
@@ -424,6 +527,7 @@ function buildGizmoVerts(body: CloudBody, cloudHeight: number, mode: 'move' | 'r
 export interface RenderStats {
   gpuTiming: boolean;
   gpuTimingError: string;
+  gpuValidationErrors: string[];
   gpuSampleId: number;
   cacheSampleId: number;
   brickSampleId: number;
@@ -431,10 +535,49 @@ export interface RenderStats {
   cacheRan: boolean;
   shadowRan: boolean;
   cloudMs: number;
+  cloudCurrentMs: number;
+  temporalResolveMs: number;
+  compositeMs: number;
   cacheMs: number;
   brickMs: number;
   shadowMs: number;
   postMs: number;
+  cloudFrameRequested: boolean;
+  cloudFrameActivePath: 'cloud-frame' | 'combined-feature-off' | 'combined-emergency';
+  cloudFrameFallbackReason: string;
+  cloudFrameAttachmentBytes: number;
+  cloudFrameHistoryBytes: number;
+  cloudFrameResourceGeneration: number;
+  cloudFrameContentRevision: number;
+  cloudFrameDiscontinuityGeneration: number;
+  worldStepRequested: boolean;
+  worldStepActive: boolean;
+  worldStepMinMeters: number;
+  worldStepMaxMeters: number;
+  worldStepMaxRayDistanceMeters: number;
+  worldStepMaxIterations: number;
+  worldStepSupportCount: number;
+  worldStepSupportSkipping: boolean;
+  worldStepCandidateSkipping: boolean;
+  stochasticSamplingRequested: boolean;
+  stochasticSamplingActive: 'stbn' | 'ign-halton';
+  stochasticSamplingFallbackReason: string;
+  stbnFrozenSlice: number;
+  stbnBytes: number;
+  raymarchConfigGeneration: number;
+  raymarchCounterSampleId: number;
+  raymarchCounterConfigGeneration: number;
+  raymarchCounterFrameIndex: number;
+  raymarchCounterSamplePixels: number;
+  raymarchPrimaryIterationsPerPixel: number;
+  raymarchSupportSkipsPerPixel: number;
+  raymarchCandidateSkipsPerPixel: number;
+  raymarchDensitySamplesPerPixel: number;
+  raymarchLightSamplesPerPixel: number;
+  raymarchAverageStepMeters: number;
+  raymarchMaxStepMeters: number;
+  raymarchRefinementsPerPixel: number;
+  raymarchCoarseHintsPerPixel: number;
   activeBodyCount: number;
   width: number;
   height: number;
@@ -534,7 +677,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const device = await adapter.requestDevice(
     hasTimestamp ? { requiredFeatures: ['timestamp-query'] } : {},
   );
+  const gpuValidationErrors: string[] = [];
+  device.addEventListener('uncapturederror', (event) => {
+    gpuValidationErrors.push(event.error.message);
+    if (gpuValidationErrors.length > 16) gpuValidationErrors.shift();
+  });
   const deviceRequestMs = performance.now() - deviceRequestStarted;
+  const stbnResources = await createStbnTextureResources(device);
   const context = canvas.getContext('webgpu');
   if (!context) throw new Error('Failed to get webgpu context');
 
@@ -621,6 +770,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (!bundle) continue;
     shaderModuleCreateMs += bundle.creation.shaderModuleCreateCpuMs;
     pipelineCreateMs += bundle.creation.renderPipelineCreateCpuMs
+      + bundle.creation.cloudFramePipelineCreateCpuMs
       + bundle.creation.groundShadowPipelineCreateCpuMs;
   }
 
@@ -703,11 +853,25 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
   const dummyBloomView = dummyBloomTexture.createView();
 
-  const taaModule = createShaderModuleTimed({ code: taaShaderSource });
-  const taaPipeline = createRenderPipelineTimed({
+  const legacyTaaModule = createShaderModuleTimed({ code: legacyTaaShaderSource });
+  const legacyTaaPipeline = createRenderPipelineTimed({
     layout: 'auto',
-    vertex: { module: taaModule, entryPoint: 'vsTaa' },
-    fragment: { module: taaModule, entryPoint: 'fsTaa', targets: [{ format: OFFSCREEN_FORMAT }] },
+    vertex: { module: legacyTaaModule, entryPoint: 'vsTaa' },
+    fragment: { module: legacyTaaModule, entryPoint: 'fsTaa', targets: [{ format: OFFSCREEN_FORMAT }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  const cloudTaaModule = createShaderModuleTimed({ code: cloudTaaShaderSource });
+  const cloudTaaPipeline = createRenderPipelineTimed({
+    layout: 'auto',
+    vertex: { module: cloudTaaModule, entryPoint: 'vsTaa' },
+    fragment: { module: cloudTaaModule, entryPoint: 'fsTaa', targets: [{ format: OFFSCREEN_FORMAT }] },
+    primitive: { topology: 'triangle-list' },
+  });
+  const cloudCompositeModule = createShaderModuleTimed({ code: cloudCompositeShaderSource });
+  const cloudCompositePipeline = createRenderPipelineTimed({
+    layout: 'auto',
+    vertex: { module: cloudCompositeModule, entryPoint: 'vsComposite' },
+    fragment: { module: cloudCompositeModule, entryPoint: 'fsComposite', targets: [{ format: OFFSCREEN_FORMAT }] },
     primitive: { topology: 'triangle-list' },
   });
   const taaUniformBuffer = device.createBuffer({
@@ -841,16 +1005,31 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let currentBodies: CloudBody[] = [];
   let currentMods: BodyMod[] = [];
   let currentWindSamples: readonly WindAdvectionSample[] = [];
+  let activeWorldSupports: WorldRaymarchBodySupport[] = [];
+  let cachedWorldSupportSnapshots: WorldRaymarchBodySupport[][] = [];
   let shapeSignature = '';
 
   const cameraBuffer = device.createBuffer({
-    size: 80,
+    size: 160,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const paramsBuffer = device.createBuffer({
     size: PARAMS_BYTE_SIZE,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
+  const raymarchCountersBuffer = device.createBuffer({
+    label: 'w10b-raymarch-counters',
+    size: RAYMARCH_COUNTER_BUFFER_BYTES,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+  });
+  const raymarchCountersReadBuffer = device.createBuffer({
+    label: 'w10b-raymarch-counters-readback',
+    size: RAYMARCH_COUNTER_BUFFER_BYTES,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  let raymarchCountersMapping = false;
+  let raymarchConfigSignature = '';
+  let raymarchConfigGeneration = 0;
 
   const linearSampler = device.createSampler({
     magFilter: 'linear',
@@ -987,8 +1166,19 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         entries: [
           { binding: 0, resource: linearSampler },
           { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
+          { binding: 2, resource: stbnResources.view },
+          { binding: 3, resource: { buffer: raymarchCountersBuffer } },
         ],
       }),
+      cloudFrameGroundShadow: bundle.cloudFramePipeline ? device.createBindGroup({
+        layout: bundle.cloudFramePipeline.getBindGroupLayout(3),
+        entries: [
+          { binding: 0, resource: linearSampler },
+          { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
+          { binding: 2, resource: stbnResources.view },
+          { binding: 3, resource: { buffer: raymarchCountersBuffer } },
+        ],
+      }) : null,
     };
   }
 
@@ -1019,6 +1209,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       groundShadowStoreView: groundShadowRawTexture.createView(),
       groundShadowSampler: linearSampler,
       groundShadowView: groundShadowHistoryViews[groundShadowHistoryIndex],
+      stbnView: stbnResources.view,
+      raymarchCountersBuffer,
     });
     qualityBindingsReady = true;
     qualityConsumerGeneration = selection.activeGeneration;
@@ -1060,13 +1252,21 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
+  let cloudFrameOutput: CloudFrameOutputResources | null = null;
   let historyTex: [GPUTexture, GPUTexture] | null = null;
   let historyViews: [GPUTextureView, GPUTextureView];
-  let taaBindGroups: [GPUBindGroup, GPUBindGroup];
+  let legacyTaaBindGroups: [GPUBindGroup, GPUBindGroup];
+  let cloudTaaBindGroups: [GPUBindGroup, GPUBindGroup];
+  let cloudCompositeBindGroups: [GPUBindGroup, GPUBindGroup];
   let histIndex = 0;
   let historyValid = false;
   let prevTaaEnabled = false;
+  let previousCloudFramePath: 'cloud-frame' | 'combined-feature-off' | 'combined-emergency' | null = null;
+  let previousCameraDiscontinuityGeneration: number | null = null;
+  let previousWorldMarchSignature = '';
   const prevViewProj = new Float32Array(16);
+  let previousJitterX = 0;
+  let previousJitterY = 0;
   let sceneW = 0;
   let sceneH = 0;
   let bloomTextures: GPUTexture[] = [];
@@ -1192,19 +1392,39 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
     sceneView = sceneTexture.createView();
+    if (cloudFrameOutput) cloudFrameOutput.resize(w, h);
+    else cloudFrameOutput = new CloudFrameOutputResources({ device, width: w, height: h });
     historyTex = [0, 1].map(() => device.createTexture({
       size: [w, h],
       format: OFFSCREEN_FORMAT,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     })) as [GPUTexture, GPUTexture];
     historyViews = [historyTex[0].createView(), historyTex[1].createView()];
-    taaBindGroups = [0, 1].map((i) => device.createBindGroup({
-      layout: taaPipeline.getBindGroupLayout(0),
+    legacyTaaBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: legacyTaaPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: sceneView! },
         { binding: 1, resource: historyViews[1 - i] },
         { binding: 2, resource: postSampler },
         { binding: 3, resource: { buffer: taaUniformBuffer } },
+      ],
+    })) as [GPUBindGroup, GPUBindGroup];
+    cloudTaaBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: cloudTaaPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: cloudFrameOutput!.radianceTransmittanceView },
+        { binding: 1, resource: historyViews[1 - i] },
+        { binding: 2, resource: postSampler },
+        { binding: 3, resource: { buffer: taaUniformBuffer } },
+        { binding: 4, resource: cloudFrameOutput!.depthVelocityView },
+      ],
+    })) as [GPUBindGroup, GPUBindGroup];
+    cloudCompositeBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: cloudCompositePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: historyViews[i] },
+        { binding: 1, resource: cloudFrameOutput!.backgroundRadianceView },
+        { binding: 2, resource: postSampler },
       ],
     })) as [GPUBindGroup, GPUBindGroup];
     ensureBloomTextures(w, h);
@@ -1235,7 +1455,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let prevSceneTime = 0.0;
   let rendererDestroyed = false;
 
-  const TS_COUNT = 18; // + W5 shared fields and W9 body-local brick cache
+  const TS_COUNT = 22; // + W5/W9 plus cloud-only temporal resolve and full-resolution composite
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -1244,9 +1464,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   const initialDensityStats = legacyDensityAdapter.getStats();
   const initialDensitySelection = densityProducerSelector.getSelection();
   const initialQualitySelection = densityQualityPipelineManager.getSelection();
-  const stats = {
+  const stats: RenderStats = {
     gpuTiming: hasTimestamp,
     gpuTimingError: '',
+    gpuValidationErrors,
     gpuSampleId: 0,
     cacheSampleId: 0,
     brickSampleId: 0,
@@ -1254,10 +1475,49 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cacheRan: false,
     shadowRan: false,
     cloudMs: 0,
+    cloudCurrentMs: 0,
+    temporalResolveMs: 0,
+    compositeMs: 0,
     cacheMs: 0,
     brickMs: 0,
     shadowMs: 0,
     postMs: 0,
+    cloudFrameRequested: true,
+    cloudFrameActivePath: 'combined-emergency',
+    cloudFrameFallbackReason: 'cloud-frame-not-rendered',
+    cloudFrameAttachmentBytes: 0,
+    cloudFrameHistoryBytes: 0,
+    cloudFrameResourceGeneration: 0,
+    cloudFrameContentRevision: 0,
+    cloudFrameDiscontinuityGeneration: 0,
+    worldStepRequested: false,
+    worldStepActive: false,
+    worldStepMinMeters: 0,
+    worldStepMaxMeters: 0,
+    worldStepMaxRayDistanceMeters: 0,
+    worldStepMaxIterations: 0,
+    worldStepSupportCount: 0,
+    worldStepSupportSkipping: false,
+    worldStepCandidateSkipping: false,
+    stochasticSamplingRequested: false,
+    stochasticSamplingActive: 'ign-halton' as const,
+    stochasticSamplingFallbackReason: stbnResources.fallbackReason,
+    stbnFrozenSlice: -1,
+    stbnBytes: stbnResources.byteLength,
+    raymarchConfigGeneration: 0,
+    raymarchCounterSampleId: 0,
+    raymarchCounterConfigGeneration: 0,
+    raymarchCounterFrameIndex: 0,
+    raymarchCounterSamplePixels: 0,
+    raymarchPrimaryIterationsPerPixel: 0,
+    raymarchSupportSkipsPerPixel: 0,
+    raymarchCandidateSkipsPerPixel: 0,
+    raymarchDensitySamplesPerPixel: 0,
+    raymarchLightSamplesPerPixel: 0,
+    raymarchAverageStepMeters: 0,
+    raymarchMaxStepMeters: 0,
+    raymarchRefinementsPerPixel: 0,
+    raymarchCoarseHintsPerPixel: 0,
     activeBodyCount: 0,
     width: 0,
     height: 0,
@@ -1308,15 +1568,26 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   void device.lost.then((reason) => {
     densityProducerSelector.handleDeviceLost(reason);
     densityQualityPipelineManager.destroy();
+    cloudFrameOutput?.destroy();
     stats.gpuTiming = false;
     stats.gpuTimingError = reason.message || String(reason.reason);
+    stats.cloudFrameActivePath = 'combined-emergency';
+    stats.cloudFrameFallbackReason = `device-lost: ${reason.message || String(reason.reason)}`;
+    stats.cloudFrameAttachmentBytes = 0;
+    if (cloudFrameOutput) {
+      stats.cloudFrameResourceGeneration = cloudFrameOutput.resourceGeneration;
+      stats.cloudFrameDiscontinuityGeneration = cloudFrameOutput.discontinuityGeneration;
+    }
     stats.densityProducerLifecycle = 'device-lost';
     stats.densityQualityLifecycle = 'failed';
     stats.densityQualityFallbackReason = reason.message || String(reason.reason);
+    raymarchConfigSignature = '';
+    raymarchConfigGeneration++;
+    stats.raymarchConfigGeneration = raymarchConfigGeneration;
   });
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
-  const cameraData = new Float32Array(20);
+  const cameraData = new Float32Array(40);
 
   function buildParams(
     params: CloudParams,
@@ -1394,6 +1665,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       densityResolution,
     });
     packBodies(paramsData, currentBodies, currentMods, currentWindSamples, params);
+    packWorldMarch(paramsData, params, {
+      stbnAvailable: stbnResources.available,
+      supports: activeWorldSupports,
+      cloudFrameOutputActive: params.cloudFrameEnabled
+        && densityQualityPipelineManager.getActiveBundle().cloudFramePipeline !== null,
+    });
     return paramsData;
   }
 
@@ -1444,12 +1721,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (rendererDestroyed || (activeProducerLifecycle !== 'ready' && activeProducerLifecycle !== 'warming')) return;
     frameIndex++;
     const clock = sceneClock ?? elapsed;
-
-    cameraData.set(cam.invViewProj, 0);
-    cameraData[16] = cam.eye[0];
-    cameraData[17] = cam.eye[1];
-    cameraData[18] = cam.eye[2];
-    device.queue.writeBuffer(cameraBuffer, 0, cameraData);
 
     const worldCloudHeight = metersToWorldY(params.cloudHeight, params);
     const worldBoxHalfExtent = metersToWorldXZ(params.boxHalfExtent, params);
@@ -1554,6 +1825,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           ? 'producer'
           : qualitySelection.activeStorage === 'hierarchical' ? 'storage' : 'quality';
       historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
     }
     const densityResolution = densityProducer.getStats().resolution;
     const cacheWillRun = densityPlan.willEncode;
@@ -1583,6 +1855,39 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       uploadShapes();
     }
 
+    const currentWorldSupports = buildWorldRaymarchSupports({
+      bodies: currentBodies,
+      windSamples: currentWindSamples,
+      sceneScale: params,
+      boxHalfExtentM: params.boxHalfExtent,
+      cloudHeightM: params.cloudHeight,
+      densityResolution,
+    });
+    activeWorldSupports = cacheRequired
+      ? mergeBodySupportSnapshots(currentWorldSupports, cachedWorldSupportSnapshots.flat())
+      : currentWorldSupports;
+    if (cacheWillRun) {
+      cachedWorldSupportSnapshots.push(currentWorldSupports);
+      if (cachedWorldSupportSnapshots.length > 2) cachedWorldSupportSnapshots.shift();
+    }
+    const worldMarchSignature = [
+      params.worldStepEnabled,
+      params.worldStepMaxIterations,
+      params.worldStepMinMeters,
+      params.worldStepMaxMeters,
+      params.worldStepMaxRayDistanceMeters,
+      params.worldStepPerspectiveScale,
+      params.worldStepSupportSkipping,
+      params.worldStepCandidateSkipping,
+      params.stochasticSampling,
+      params.stbnFrozenSlice,
+    ].join(':');
+    if (previousWorldMarchSignature && previousWorldMarchSignature !== worldMarchSignature) {
+      historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
+    }
+    previousWorldMarchSignature = worldMarchSignature;
+
     const taaOn = params.taaEnabled && params.debugView < 0.5;
     let jitterX = 0.0;
     let jitterY = 0.0;
@@ -1596,6 +1901,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const shadowSignature = groundShadowSignature(params, qualitySelection.active);
     const shadowSignatureChanged = shadowSignature !== lastGroundShadowSignature;
     const shadowTimeDiscontinuity = deltaTime < -1e-5 || Math.abs(deltaTime) > 0.25;
+    if (shadowTimeDiscontinuity && historyValid) {
+      historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
+    }
     const shadowTexelMeters = (params.boxHalfExtent * 2) / groundShadowResolution;
     const shadowWindMotion = groundShadowWindMotionMeters();
     const shadowWindExceeded = shadowWindMotion > shadowTexelMeters * 0.5;
@@ -1692,6 +2001,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         : 'density-fallback';
       groundShadowResetReason = shadowResetThisFrame;
       historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
       rebuildQualityBindings(true);
       // This frame already discards and regenerates the shadow history with the
       // new density bindings. Account for the shadowRevision increment from the
@@ -1793,25 +2103,95 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     ensureSceneTexture(canvas.width, canvas.height);
 
+    const activeQualityBundle = densityQualityPipelineManager.getActiveBundle();
+    const cloudFramePath = !params.cloudFrameEnabled
+      ? 'combined-feature-off' as const
+      : activeQualityBundle.cloudFramePipeline
+        ? 'cloud-frame' as const
+        : 'combined-emergency' as const;
+    if (previousCloudFramePath !== cloudFramePath) {
+      historyValid = false;
+      cloudFrameOutput!.markDiscontinuity();
+      previousCloudFramePath = cloudFramePath;
+    }
+    const nextRaymarchConfigSignature = [
+      cloudFramePath,
+      qualitySelection.active,
+      qualitySelection.activeStorage,
+      qualitySelection.activeGeneration,
+      producerSelection.activeGeneration,
+      currentDensityOutput.resourceGeneration,
+      currentDensityOutput.hierarchical?.layoutGeneration ?? -1,
+      canvas.width,
+      canvas.height,
+      params.rayMarchSteps,
+      params.lightMarchSteps,
+      params.adaptiveMarch,
+      params.temporalDither,
+      params.skipLight,
+      params.debugView,
+      taaOn,
+      ...paramsData.subarray(WORLD_MARCH_BASE, WORLD_MARCH_BASE + 20),
+    ].join('|');
+    if (nextRaymarchConfigSignature !== raymarchConfigSignature) {
+      raymarchConfigSignature = nextRaymarchConfigSignature;
+      raymarchConfigGeneration++;
+    }
+    if (taaOn !== prevTaaEnabled) {
+      historyValid = false;
+      cloudFrameOutput!.markDiscontinuity();
+      prevTaaEnabled = taaOn;
+    }
+    const cameraDiscontinuityGeneration = cam.discontinuityGeneration ?? 0;
+    if (
+      previousCameraDiscontinuityGeneration !== null
+      && cameraDiscontinuityGeneration !== previousCameraDiscontinuityGeneration
+    ) {
+      historyValid = false;
+      cloudFrameOutput!.markDiscontinuity();
+    }
+    previousCameraDiscontinuityGeneration = cameraDiscontinuityGeneration;
+
+    cameraData.set(cam.invViewProj, 0);
+    cameraData.set(prevViewProj, 16);
+    cameraData[32] = cam.eye[0];
+    cameraData[33] = cam.eye[1];
+    cameraData[34] = cam.eye[2];
+    cameraData[35] = historyValid ? 1 : 0;
+    cameraData[36] = jitterX;
+    cameraData[37] = jitterY;
+    cameraData[38] = previousJitterX;
+    cameraData[39] = previousJitterY;
+    device.queue.writeBuffer(cameraBuffer, 0, cameraData);
+
+    commandEncoder.clearBuffer(raymarchCountersBuffer);
     const renderPass = commandEncoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: sceneView!,
-          loadOp: 'clear',
-          clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
-          storeOp: 'store',
-        },
-      ],
+      colorAttachments: cloudFramePath === 'cloud-frame'
+        ? [...cloudFrameOutput!.createClearAttachments()]
+        : [{
+            view: sceneView!,
+            loadOp: 'clear',
+            clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
+            storeOp: 'store',
+          }],
       ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
     });
 
-    const activeQualityBundle = densityQualityPipelineManager.getActiveBundle();
-    renderPass.setPipeline(activeQualityBundle.cloudPipeline);
-    renderPass.setBindGroup(0, qualityBindings.cloudScene);
-    if (qualityBindings.cloudDensity) {
-      renderPass.setBindGroup(1, qualityBindings.cloudDensity);
+    renderPass.setPipeline(cloudFramePath === 'cloud-frame'
+      ? activeQualityBundle.cloudFramePipeline!
+      : activeQualityBundle.cloudPipeline);
+    renderPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
+      ? qualityBindings.cloudFrameScene!
+      : qualityBindings.cloudScene);
+    const activeCloudDensity = cloudFramePath === 'cloud-frame'
+      ? qualityBindings.cloudFrameDensity
+      : qualityBindings.cloudDensity;
+    if (activeCloudDensity) {
+      renderPass.setBindGroup(1, activeCloudDensity);
     }
-    renderPass.setBindGroup(3, qualityBindings.cloudGroundShadow);
+    renderPass.setBindGroup(3, cloudFramePath === 'cloud-frame'
+      ? qualityBindings.cloudFrameGroundShadow!
+      : qualityBindings.cloudGroundShadow);
     renderPass.draw(3);
 
     if (lineVertCount > 0) {
@@ -1819,15 +2199,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       lineCamData[16] = 1.0;
       device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
     }
-    if (lineVertCount > 0) {
+    if (cloudFramePath !== 'cloud-frame' && lineVertCount > 0) {
       renderPass.setPipeline(linePipeline);
       renderPass.setBindGroup(0, lineBindGroup);
       renderPass.setVertexBuffer(0, lineVertexBuffer);
       renderPass.draw(lineVertCount);
     }
     renderPass.end();
+    if (cloudFramePath === 'cloud-frame') cloudFrameOutput!.markContent();
 
-    if (taaOn !== prevTaaEnabled) { historyValid = false; prevTaaEnabled = taaOn; }
     const flagsX = (taaOn && historyValid) ? 1 : 0;
     taaData.set(prevViewProj, 0);
     taaData.set(cam.invViewProj, 16);
@@ -1850,13 +2230,47 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           storeOp: 'store',
         },
       ],
+      ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 18, endOfPassWriteIndex: 19 } } : {}),
     });
-    taaPass.setPipeline(taaPipeline);
-    taaPass.setBindGroup(0, taaBindGroups[histIndex]);
+    taaPass.setPipeline(cloudFramePath === 'cloud-frame' ? cloudTaaPipeline : legacyTaaPipeline);
+    taaPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
+      ? cloudTaaBindGroups[histIndex]
+      : legacyTaaBindGroups[histIndex]);
     taaPass.draw(3);
     taaPass.end();
+
+    if (cloudFramePath === 'cloud-frame') {
+      const compositePass = commandEncoder.beginRenderPass({
+        colorAttachments: [{
+          view: sceneView!,
+          loadOp: 'clear',
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          storeOp: 'store',
+        }],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 20, endOfPassWriteIndex: 21 } } : {}),
+      });
+      compositePass.setPipeline(cloudCompositePipeline);
+      compositePass.setBindGroup(0, cloudCompositeBindGroups[histIndex]);
+      compositePass.draw(3);
+      compositePass.end();
+
+      if (lineVertCount > 0) {
+        const linePass = commandEncoder.beginRenderPass({
+          colorAttachments: [{ view: sceneView!, loadOp: 'load', storeOp: 'store' }],
+        });
+        linePass.setPipeline(linePipeline);
+        linePass.setBindGroup(0, lineBindGroup);
+        linePass.setVertexBuffer(0, lineVertexBuffer);
+        linePass.draw(lineVertCount);
+        linePass.end();
+      }
+    }
     historyValid = true;
     prevViewProj.set(cam.viewProj);
+    previousJitterX = jitterX;
+    previousJitterY = jitterY;
+
+    const resolvedSceneView = cloudFramePath === 'cloud-frame' ? sceneView! : historyViews[histIndex];
 
     const ar = (params.sunAzimuth * Math.PI) / 180;
     const er = (params.sunElevation * Math.PI) / 180;
@@ -1889,13 +2303,13 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const bloomOn = params.bloomEnabled && params.bloomAmount > 0 && params.debugView === 0;
     let bloomView: GPUTextureView = dummyBloomView;
     if (bloomOn) {
-      bloomView = runBloomPasses(commandEncoder, historyViews[histIndex], params);
+      bloomView = runBloomPasses(commandEncoder, resolvedSceneView, params);
     }
 
     const postBindGroup = device.createBindGroup({
       layout: postPipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 0, resource: historyViews[histIndex] },
+        { binding: 0, resource: resolvedSceneView },
         { binding: 1, resource: postSampler },
         { binding: 2, resource: { buffer: postUniformBuffer } },
         { binding: 3, resource: bloomView },
@@ -1980,20 +2394,109 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     histIndex ^= 1;
 
+    const raymarchCountersWillRead = !raymarchCountersMapping;
+    const raymarchCounterConfigAtSubmit = raymarchConfigGeneration;
+    const raymarchCounterFrameAtSubmit = frameIndex;
+    if (raymarchCountersWillRead) {
+      commandEncoder.copyBufferToBuffer(
+        raymarchCountersBuffer,
+        0,
+        raymarchCountersReadBuffer,
+        0,
+        RAYMARCH_COUNTER_BUFFER_BYTES,
+      );
+    }
     if (timestampEnabled && tsQuerySet && tsResolve && tsRead && !tsMapping) {
       commandEncoder.resolveQuerySet(tsQuerySet, 0, TS_COUNT, tsResolve, 0);
       commandEncoder.copyBufferToBuffer(tsResolve, 0, tsRead, 0, TS_COUNT * 8);
     }
 
     device.queue.submit([commandEncoder.finish()]);
+    if (raymarchCountersWillRead) {
+      raymarchCountersMapping = true;
+      void device.queue.onSubmittedWorkDone()
+        .then(() => raymarchCountersReadBuffer.mapAsync(GPUMapMode.READ))
+        .then(() => {
+          const counters = new Uint32Array(raymarchCountersReadBuffer.getMappedRange().slice(0));
+          raymarchCountersReadBuffer.unmap();
+          if (raymarchCounterConfigAtSubmit !== raymarchConfigGeneration) {
+            raymarchCountersMapping = false;
+            return;
+          }
+          const sampledPixels = counters[RAYMARCH_COUNTER.sampledPixels] ?? 0;
+          const pixelDivisor = Math.max(sampledPixels, 1);
+          const stepSamples = counters[RAYMARCH_COUNTER.worldStepSamples] ?? 0;
+          stats.raymarchCounterSamplePixels = sampledPixels;
+          stats.raymarchPrimaryIterationsPerPixel = counters[RAYMARCH_COUNTER.primaryIterations] / pixelDivisor;
+          stats.raymarchSupportSkipsPerPixel = counters[RAYMARCH_COUNTER.supportSkips] / pixelDivisor;
+          stats.raymarchCandidateSkipsPerPixel = counters[RAYMARCH_COUNTER.candidateSkips] / pixelDivisor;
+          stats.raymarchDensitySamplesPerPixel = counters[RAYMARCH_COUNTER.densitySamples] / pixelDivisor;
+          stats.raymarchLightSamplesPerPixel = counters[RAYMARCH_COUNTER.lightSamples] / pixelDivisor;
+          stats.raymarchAverageStepMeters = stepSamples > 0
+            ? counters[RAYMARCH_COUNTER.worldStepDecameters] * 10 / stepSamples
+            : 0;
+          stats.raymarchMaxStepMeters = counters[RAYMARCH_COUNTER.maxWorldStepMeters] ?? 0;
+          stats.raymarchRefinementsPerPixel = counters[RAYMARCH_COUNTER.refinements] / pixelDivisor;
+          stats.raymarchCoarseHintsPerPixel = 0;
+          stats.raymarchCounterConfigGeneration = raymarchCounterConfigAtSubmit;
+          stats.raymarchCounterFrameIndex = raymarchCounterFrameAtSubmit;
+          stats.raymarchCounterSampleId++;
+          raymarchCountersMapping = false;
+        })
+        .catch((error: unknown) => {
+          stats.gpuValidationErrors.push(`raymarch-counter-readback: ${error instanceof Error ? error.message : String(error)}`);
+          raymarchCountersMapping = false;
+        });
+    }
     densityProducerSelector.afterSubmit();
     densityProducerSelector.commitTransition();
+    if (densityProducerSelector.getSelection().activeGeneration !== producerSelection.activeGeneration) {
+      raymarchConfigSignature = '';
+      raymarchConfigGeneration++;
+    }
 
-    stats.width = canvas.width;
-    stats.height = canvas.height;
     const densityStats = densityProducerSelector.getActive().getStats();
     const densitySelection = densityProducerSelector.getSelection();
     const currentQualitySelection = densityQualityPipelineManager.getSelection();
+    stats.width = canvas.width;
+    stats.height = canvas.height;
+    stats.cloudFrameRequested = params.cloudFrameEnabled;
+    stats.cloudFrameActivePath = cloudFramePath;
+    stats.cloudFrameFallbackReason = cloudFramePath === 'cloud-frame'
+      ? ''
+      : cloudFramePath === 'combined-feature-off'
+        ? 'cloud-frame-disabled'
+        : activeQualityBundle.cloudFrameFailureReason || 'cloud-frame-pipeline-unavailable';
+    stats.cloudFrameAttachmentBytes = cloudFrameOutput!.attachmentBytes;
+    stats.cloudFrameHistoryBytes = canvas.width * canvas.height * 8 * 2;
+    stats.cloudFrameResourceGeneration = cloudFrameOutput!.resourceGeneration;
+    stats.cloudFrameContentRevision = cloudFrameOutput!.contentRevision;
+    stats.cloudFrameDiscontinuityGeneration = cloudFrameOutput!.discontinuityGeneration;
+    stats.worldStepRequested = params.worldStepEnabled;
+    stats.worldStepActive = paramsData[WORLD_MARCH_BASE] > 0.5;
+    stats.worldStepMaxIterations = paramsData[WORLD_MARCH_BASE + 1];
+    stats.worldStepMinMeters = paramsData[WORLD_MARCH_BASE + 2];
+    stats.worldStepMaxMeters = paramsData[WORLD_MARCH_BASE + 3];
+    stats.worldStepMaxRayDistanceMeters = paramsData[WORLD_MARCH_BASE + 4];
+    stats.worldStepSupportCount = activeWorldSupports.length;
+    stats.worldStepSupportSkipping = params.worldStepEnabled
+      && params.worldStepSupportSkipping
+      && activeWorldSupports.length > 0;
+    stats.worldStepCandidateSkipping = params.worldStepEnabled
+      && params.worldStepCandidateSkipping
+      && currentQualitySelection.activeStorage === 'hierarchical';
+    stats.stochasticSamplingRequested = params.stochasticSampling;
+    stats.stochasticSamplingActive = params.worldStepEnabled && params.stochasticSampling && stbnResources.available
+      ? 'stbn'
+      : 'ign-halton';
+    stats.stochasticSamplingFallbackReason = params.worldStepEnabled
+      && params.stochasticSampling
+      && !stbnResources.available
+      ? stbnResources.fallbackReason || 'stbn-unavailable'
+      : '';
+    stats.stbnFrozenSlice = paramsData[WORLD_MARCH_BASE + 12];
+    stats.stbnBytes = stbnResources.byteLength;
+    stats.raymarchConfigGeneration = raymarchConfigGeneration;
     stats.activeBodyCount = densityStats.activeBodyCount;
     stats.densityRes = densityStats.resolution;
     stats.weatherSize = weatherSize;
@@ -2044,7 +2547,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
         tsRead.unmap();
         const renderNs = Number(ts[9] - ts[8]);
-        if (renderNs >= 0) stats.cloudMs = renderNs / 1e6;
+        if (renderNs >= 0) {
+          stats.cloudMs = renderNs / 1e6;
+          stats.cloudCurrentMs = renderNs / 1e6;
+        }
+        const temporalResolveNs = Number(ts[19] - ts[18]);
+        if (temporalResolveNs >= 0) stats.temporalResolveMs = temporalResolveNs / 1e6;
+        if (cloudFramePath === 'cloud-frame') {
+          const compositeNs = Number(ts[21] - ts[20]);
+          if (compositeNs >= 0) stats.compositeMs = compositeNs / 1e6;
+        } else {
+          stats.compositeMs = 0;
+        }
         const postNs = Number(ts[11] - ts[10]);
         if (postNs >= 0) stats.postMs = postNs / 1e6;
         if (cacheRan) {
@@ -2097,6 +2611,10 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     rendererDestroyed = true;
     densityQualityPipelineManager.destroy();
     densityProducerSelector.destroy();
+    cloudFrameOutput?.destroy();
+    stbnResources.destroy();
+    raymarchCountersBuffer.destroy();
+    raymarchCountersReadBuffer.destroy();
     densitySharedDebugUniformBuffer?.destroy();
     device.destroy();
   }

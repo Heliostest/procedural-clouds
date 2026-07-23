@@ -195,7 +195,12 @@ if (!manifest.includes('DENSITY_BENCHMARK_SCHEMA_VERSION = 5')
 if (!manifest.includes("taaEnabled: benchmarkCase.view === 'normal' && manifest.params.taaEnabled")) {
   throw new Error('W7 raw-density debug must not contain TAA history from a prior normal case');
 }
-for (const contract of ['rawDensityIntegral += d * baseStep', 'dv == 10', 'rawDensityIntegral / (1.0 + rawDensityIntegral)']) {
+for (const contract of [
+  'var stepT = select(baseStep, minWorldStepT, worldMarch)',
+  'rawDensityIntegral += d * stepT',
+  'dv == 10',
+  'rawDensityIntegral / (1.0 + rawDensityIntegral)',
+]) {
   if (!cloud.includes(contract)) throw new Error(`W7 raw-density debug contract missing: ${contract}`);
 }
 if (!renderer.includes('params.taaEnabled && params.debugView < 0.5')) {

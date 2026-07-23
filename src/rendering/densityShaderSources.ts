@@ -105,6 +105,10 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
 fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
 }
+
+fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  return currentT;
+}
 `;
 
 const hybridQualityAdapter = /* wgsl */ `
@@ -120,6 +124,10 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
 fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
 }
+
+fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  return currentT;
+}
 `;
 
 const realtimeQualityAdapter = /* wgsl */ `
@@ -130,6 +138,10 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
 
 fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
+}
+
+fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  return currentT;
 }
 `;
 
@@ -268,6 +280,39 @@ fn sampleHierarchicalDensityTyped(pos : vec3f) -> vec4f {
   let secondWeight = secondDensity / max(bestDensity + secondDensity, 1e-4);
   return vec4f(softDensity, f32(bestGenus), f32(secondGenus), secondWeight);
 }
+
+// A candidate tile can prove empty only when its public generation is complete,
+// non-overflowing, and matches the currently bound candidate grid. Coarse
+// density samples are deliberately not consulted here: they are not majorants.
+fn raymarchHierarchicalCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  if (params.march.limits.w < 0.5) { return currentT; }
+  let bmin = boxMin();
+  let bmax = getBoxMax();
+  let pos = ro + rd * currentT;
+  let uvw = (pos - bmin) / (bmax - bmin);
+  if (any(uvw < vec3f(0.0)) || any(uvw >= vec3f(1.0))) { return currentT; }
+  let grid = max(densityBrickCandidateMeta.gridAndGeneration.xyz, vec3u(1u));
+  let resolution = max(densityBrickCandidateMeta.resolutionAndWorkgroup.x, 1u);
+  let workgroup = max(densityBrickCandidateMeta.resolutionAndWorkgroup.yzw, vec3u(1u));
+  let voxel = min(vec3u(floor(uvw * f32(resolution))), vec3u(resolution - 1u));
+  let tile = min(voxel / workgroup, grid - vec3u(1u));
+  let entry = densityBrickCandidates[tile.x + grid.x * (tile.y + grid.y * tile.z)];
+  let count = entry.y & 7u;
+  let overflow = (entry.y & 8u) != 0u;
+  let complete = (entry.y & 16u) != 0u;
+  let generation = entry.y >> 8u;
+  if (!complete || overflow || count != 0u
+    || generation != densityBrickCandidateMeta.gridAndGeneration.w) {
+    return currentT;
+  }
+  let tileMinVoxel = tile * workgroup;
+  let tileMaxVoxel = min(tileMinVoxel + workgroup, vec3u(resolution));
+  let tileMin = mix(bmin, bmax, vec3f(tileMinVoxel) / f32(resolution));
+  let tileMax = mix(bmin, bmax, vec3f(tileMaxVoxel) / f32(resolution));
+  let interval = intersectBounds(ro, rd, tileMin, tileMax);
+  if (!interval.hit || interval.tFar <= currentT) { return currentT; }
+  return interval.tFar + max(1e-4, (interval.tFar - interval.tNear) * 1e-5);
+}
 `;
 
 const hierarchicalCachedQualityAdapter = /* wgsl */ `
@@ -278,6 +323,10 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
 
 fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
+}
+
+fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  return raymarchHierarchicalCandidateNextT(ro, rd, currentT);
 }
 `;
 
@@ -293,6 +342,10 @@ fn densityAtTyped(pos : vec3f) -> vec4f {
 
 fn densityAt(pos : vec3f) -> f32 {
   return densityAtTyped(pos).x;
+}
+
+fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
+  return raymarchHierarchicalCandidateNextT(ro, rd, currentT);
 }
 `;
 

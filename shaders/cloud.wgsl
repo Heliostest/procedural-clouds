@@ -4,8 +4,10 @@
 
 struct Camera {
   invViewProj : mat4x4f,
+  prevViewProj : mat4x4f,
   position    : vec3f,
-  _pad        : f32,
+  historyValid : f32,
+  jitterPixels : vec4f, // current xy, previous xy
 };
 
 struct Globals {
@@ -73,10 +75,23 @@ struct Globals {
 
 struct BodyGPU {
   geom : vec4f, // x=baseY, y=topY (world), z=typeIdx, w=enabled
-  wind : vec4f, // x=advectionOffsetWorldX, y=advectionOffsetWorldZ, z=morphTime, w=reserved
+  wind : vec4f, // x/y=advection offset, z=morph time, w=velocityWorldX
   intensity : vec4f, // x=coverage, y=densityScale, z=morph, w=feather
   footprint : vec4f, // x=centerX, y=centerZ, z=radius, w=shapeId
-  rot : vec4f, // x=rotX, y=rotY, z=rotZ (radians), w=unused
+  rot : vec4f, // x/y/z=rotation (radians), w=velocityWorldZ
+};
+
+struct WorldMarchGPU {
+  controls : vec4f,   // enabled, max iterations, min step m, max step m
+  limits : vec4f,     // max distance m, perspective / km, support skip, candidate skip
+  metric : vec4f,     // horizontal m/WU, vertical m/WU, stochastic requested, STBN available
+  stochastic : vec4f, // frozen slice, support count, min density, min extinction
+  reserved : vec4f,   // cloud-frame output active, min transmittance, reserved, reserved
+};
+
+struct BodySupportGPU {
+  minAndEnabled : vec4f,
+  maxAndReserved : vec4f,
 };
 
 const MAX_BODIES = 12;
@@ -84,6 +99,8 @@ const MAX_BODIES = 12;
 struct Params {
   g      : Globals,
   bodies : array<BodyGPU, MAX_BODIES>,
+  march  : WorldMarchGPU,
+  supports : array<BodySupportGPU, 24>,
 };
 
 struct PresetShape {
@@ -99,7 +116,7 @@ struct PresetShape {
 
 const PRESET_COUNT = 10;
 const DENSITY_SCALE_MAX = 2.0;
-const RAYMARCH_MAX_STEPS = 256u;
+const RAYMARCH_MAX_STEPS = 512u;
 const GROUND_SHADOW_MAX_STEPS = 64;
 // Must match PRESET_P5_OFFSETS in src/params.ts.
 const PRESET_P5_EDGE_HARDNESS = 0u;
@@ -133,6 +150,22 @@ override wg_z : u32 = 4u;
 @group(2) @binding(1) var groundShadowStore : texture_storage_2d<rgba16float, write>;
 @group(3) @binding(0) var groundShadowSampler : sampler;
 @group(3) @binding(1) var groundShadowTex : texture_2d<f32>;
+@group(3) @binding(2) var stbnTex : texture_3d<f32>;
+
+struct RaymarchCountersGPU {
+  sampledPixels : atomic<u32>,
+  primaryIterations : atomic<u32>,
+  supportSkips : atomic<u32>,
+  candidateSkips : atomic<u32>,
+  densitySamples : atomic<u32>,
+  lightSamples : atomic<u32>,
+  worldStepSamples : atomic<u32>,
+  worldStepDecameters : atomic<u32>,
+  maxWorldStepMeters : atomic<u32>,
+  refinements : atomic<u32>,
+};
+
+@group(3) @binding(3) var<storage, read_write> raymarchCounters : RaymarchCountersGPU;
 
 struct Shape12 {
   density           : f32,
@@ -470,17 +503,83 @@ struct HitInfo {
   tFar  : f32,
 };
 
-fn intersectBox(ro : vec3f, rd : vec3f) -> HitInfo {
-  let bmin = boxMin();
-  let bmax = getBoxMax();
-  let invRd = 1.0 / rd;
-  let t0 = (bmin - ro) * invRd;
-  let t1 = (bmax - ro) * invRd;
-  let tmin = min(t0, t1);
-  let tmax = max(t0, t1);
-  let tNear = max(tmin.x, max(tmin.y, tmin.z));
-  let tFar  = min(tmax.x, min(tmax.y, tmax.z));
+fn intersectBounds(ro : vec3f, rd : vec3f, bmin : vec3f, bmax : vec3f) -> HitInfo {
+  var tNear = -1e20;
+  var tFar = 1e20;
+  for (var axis = 0u; axis < 3u; axis++) {
+    if (abs(rd[axis]) < 1e-6) {
+      if (ro[axis] < bmin[axis] || ro[axis] > bmax[axis]) {
+        return HitInfo(false, 0.0, 0.0);
+      }
+    } else {
+      let inv = 1.0 / rd[axis];
+      let ta = (bmin[axis] - ro[axis]) * inv;
+      let tb = (bmax[axis] - ro[axis]) * inv;
+      tNear = max(tNear, min(ta, tb));
+      tFar = min(tFar, max(ta, tb));
+    }
+  }
   return HitInfo(tFar >= max(tNear, 0.0), tNear, tFar);
+}
+
+fn intersectBox(ro : vec3f, rd : vec3f) -> HitInfo {
+  return intersectBounds(ro, rd, boxMin(), getBoxMax());
+}
+
+struct SupportAdvance {
+  inside : bool,
+  hasNext : bool,
+  nextT : f32,
+};
+
+fn bodySupportAdvance(ro : vec3f, rd : vec3f, currentT : f32) -> SupportAdvance {
+  let count = min(u32(max(params.march.stochastic.y, 0.0)), 24u);
+  if (params.march.limits.z < 0.5 || count == 0u) {
+    return SupportAdvance(true, false, currentT);
+  }
+  var nextT = 1e20;
+  var hasNext = false;
+  for (var i = 0u; i < 24u; i++) {
+    if (i >= count) { break; }
+    let support = params.supports[i];
+    if (support.minAndEnabled.w < 0.5) { continue; }
+    let interval = intersectBounds(ro, rd, support.minAndEnabled.xyz, support.maxAndReserved.xyz);
+    if (!interval.hit) { continue; }
+    if (currentT >= interval.tNear - 1e-4 && currentT <= interval.tFar + 1e-4) {
+      return SupportAdvance(true, false, currentT);
+    }
+    if (interval.tNear > currentT && interval.tNear < nextT) {
+      nextT = interval.tNear;
+      hasNext = true;
+    }
+  }
+  return SupportAdvance(false, hasNext, nextT);
+}
+
+fn metersPerRayT(rd : vec3f) -> f32 {
+  let horizontal = max(params.march.metric.x, 1e-3);
+  let vertical = max(params.march.metric.y, 1e-3);
+  return max(length(vec3f(rd.x * horizontal, rd.y * vertical, rd.z * horizontal)), 1e-3);
+}
+
+fn worldStepMeters(distanceMeters : f32) -> f32 {
+  let minStep = max(params.march.controls.z, 1.0);
+  let maxStep = max(params.march.controls.w, minStep);
+  let perspective = max(params.march.limits.y, 0.0);
+  return clamp(minStep * (1.0 + perspective * distanceMeters * 0.001), minStep, maxStep);
+}
+
+fn stbnJitter(fragCoord : vec2f) -> f32 {
+  let dims = max(textureDimensions(stbnTex), vec3u(1u));
+  let frozen = i32(round(params.march.stochastic.x));
+  let frameSlice = i32(round(params.g.frameIndex));
+  let slice = select(frameSlice, frozen, frozen >= 0);
+  let coord = vec3i(
+    i32(floor(fragCoord.x)) % i32(dims.x),
+    i32(floor(fragCoord.y)) % i32(dims.y),
+    ((slice % i32(dims.z)) + i32(dims.z)) % i32(dims.z),
+  );
+  return textureLoad(stbnTex, coord, 0).r;
 }
 
 fn sunDir() -> vec3f {
@@ -799,7 +898,7 @@ fn densityAt(pos : vec3f) -> f32 {
 }
 
 // Accumulated optical depth toward the sun (raw, not yet attenuated).
-fn lightMarchDepth(pos : vec3f) -> f32 {
+fn lightMarchDepth(pos : vec3f, rayJitter : f32, recordCounters : bool) -> f32 {
   var shadow = 0.0;
   let steps = i32(params.g.lightMarchSteps);
   let sd = sunDir();
@@ -808,9 +907,17 @@ fn lightMarchDepth(pos : vec3f) -> f32 {
   var ss = max(params.g.lightMarchStepSize, 0.001);
   var t = 0.0;
   let cutoff = 40.0 / max(params.g.shadowDarkness, 0.1);
+  let stochastic = params.march.controls.x > 0.5 && params.march.metric.z > 0.5;
   for (var i = 0; i < steps; i++) {
-    t = t + ss;
-    let p = pos + sd * t;
+    let segmentEnd = t + ss;
+    let phase = fract(rayJitter + f32(i) * 0.61803398875);
+    let sampleT = select(segmentEnd, t + ss * phase, stochastic);
+    t = segmentEnd;
+    let p = pos + sd * sampleT;
+    if (recordCounters) {
+      atomicAdd(&raymarchCounters.lightSamples, 1u);
+      atomicAdd(&raymarchCounters.densitySamples, 1u);
+    }
     shadow = shadow + densityAt(p) * ss;
     if (shadow > cutoff) { break; }
     ss = ss * 2.0;
@@ -1015,49 +1122,140 @@ fn debugBodyColor(i : i32, core : bool) -> vec3f {
   return c * 0.4 + vec3f(0.15);
 }
 
-@fragment
-fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
+// One representative velocity is sufficient for the full-resolution temporal
+// fallback. W11 can replace this nearest-support approximation with a richer
+// per-sample motion payload without changing depthVelocity's public units.
+fn approximateCloudVelocity(pos : vec3f) -> vec3f {
+  var bestScore = 1e20;
+  var velocity = vec3f(0.0);
+  let count = i32(params.g.activeBodyCount);
+  for (var i = 0; i < MAX_BODIES; i++) {
+    if (i >= count) { break; }
+    let body = params.bodies[i];
+    if (body.geom.w < 0.5) { continue; }
+    let transported = vec2f(pos.x - body.wind.x, pos.z - body.wind.y);
+    let radius = max(body.footprint.z + body.intensity.w, 0.001);
+    let delta = (transported - body.footprint.xy) / radius;
+    let yBase = min(body.geom.x, body.geom.y);
+    let yTop = max(body.geom.x, body.geom.y);
+    if (pos.y < yBase - body.intensity.w || pos.y > yTop + body.intensity.w) { continue; }
+    let score = dot(delta, delta);
+    if (score <= 2.0 && score < bestScore) {
+      bestScore = score;
+      velocity = vec3f(body.wind.w, 0.0, body.rot.w);
+    }
+  }
+  return velocity;
+}
+
+struct CloudFrameSample {
+  radianceTransmittance : vec4f,
+  depthVelocity : vec4f,
+  backgroundRadiance : vec4f,
+  cloudValidity : f32,
+};
+
+struct CloudFrameTargets {
+  @location(0) radianceTransmittance : vec4f,
+  @location(1) depthVelocity : vec4f,
+  @location(2) backgroundRadiance : vec4f,
+};
+
+fn debugCloudFrame(color : vec3f) -> CloudFrameSample {
+  return CloudFrameSample(
+    vec4f(color, 0.0),
+    vec4f(0.0),
+    vec4f(0.0),
+    0.0,
+  );
+}
+
+fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   let skipLight = params.g.skipLight > 0.5;
   let numSteps = i32(params.g.rayMarchSteps);
   let texelNdc = vec2f(dpdx(uv.x), dpdy(uv.y));
+  let pixelUvSize = abs(texelNdc) * 0.5;
   let jitterOn = select(1.0, 0.0, params.g.debugView > 0.5);
   let uvJ = uv + vec2f(params.g.jitterX, params.g.jitterY) * texelNdc * jitterOn;
   let world_near = camera.invViewProj * vec4f(uvJ, 0.0, 1.0);
   let world_far  = camera.invViewProj * vec4f(uvJ, 1.0, 1.0);
+  let backgroundNear = camera.invViewProj * vec4f(uv, 0.0, 1.0);
+  let backgroundFar = camera.invViewProj * vec4f(uv, 1.0, 1.0);
   let ro = camera.position;
   let rd = normalize(world_far.xyz/world_far.w - world_near.xyz/world_near.w);
+  let unjitteredRd = normalize(
+    backgroundFar.xyz/backgroundFar.w - backgroundNear.xyz/backgroundNear.w
+  );
+  let backgroundRd = select(rd, unjitteredRd, params.march.reserved.x > 0.5);
+
+  if (i32(params.g.debugView) == 13) {
+    let fallback = interleavedGradientNoise(fragCoord.xy);
+    let sample = select(
+      fallback,
+      stbnJitter(fragCoord.xy),
+      params.march.metric.z > 0.5 && params.march.metric.w > 0.5,
+    );
+    return debugCloudFrame(vec3f(sample));
+  }
+
+  let counterCoord = vec2u(fragCoord.xy);
+  let recordCounters = counterCoord.x % 16u == 0u && counterCoord.y % 16u == 0u;
+  if (recordCounters) { atomicAdd(&raymarchCounters.sampledPixels, 1u); }
 
   let hit = intersectBox(ro, rd);
 
   let SUN_DIR = sunDir();
   let skyC = todColors();
-  let sky = mix(skyC.bg, skyC.top, clamp(rd.y * 0.5 + 0.5, 0.0, 1.0));
+  let sky = mix(skyC.bg, skyC.top, clamp(backgroundRd.y * 0.5 + 0.5, 0.0, 1.0));
   let sunTheta = dot(rd, SUN_DIR);
+  let backgroundSunTheta = dot(backgroundRd, SUN_DIR);
   let blend = clamp01(params.g.typeLightingBlend);
 
   var transmittance = 1.0;
   var rawDensityIntegral = 0.0;
   var color = vec3f(0.0);
   var iterCount = 0;
+  var iterBudget = numSteps;
   var depthSum = 0.0;
   var depthW = 0.0;
   var cloudDepth = 1e4;
   var accSunDisc = 0.0;
   var accHalo = 0.0;
   var accFxW = 0.0;
+  var supportSkipCount = 0u;
+  var candidateSkipCount = 0u;
+  var refinementCount = 0u;
+  var worldStepSumMeters = 0.0;
+  var worldStepCount = 0u;
 
   if (hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
-    let tExit  = hit.tFar;
-    let baseStep = (tExit - tEntry) / f32(numSteps);
+    let worldMarch = params.march.controls.x > 0.5;
+    let rayMetric = metersPerRayT(rd);
+    let maxRayT = max(params.march.limits.x, params.march.controls.z) / rayMetric;
+    let tExit = select(hit.tFar, min(hit.tFar, maxRayT), worldMarch);
+    let baseStep = (hit.tFar - tEntry) / f32(max(numSteps, 1));
+    let minWorldStepT = max(params.march.controls.z, 1.0) / rayMetric;
+    iterBudget = select(numSteps, i32(clamp(params.march.controls.y, 1.0, f32(RAYMARCH_MAX_STEPS))), worldMarch);
     var dither = interleavedGradientNoise(fragCoord.xy);
-    if (params.g.temporalDither > 0.5) {
+    if (worldMarch && params.march.metric.z > 0.5 && params.march.metric.w > 0.5) {
+      dither = stbnJitter(fragCoord.xy);
+    } else if (params.g.temporalDither > 0.5) {
       dither = fract(dither + fract(params.g.frameIndex * 0.61803398875) * 0.25);
     }
 
-    var t = tEntry + baseStep * dither;
+    var stepT = select(baseStep, minWorldStepT, worldMarch);
+    var t = select(tEntry + stepT * dither, tEntry, worldMarch);
+    var previousSampleT = tEntry;
+    var arrivalStepT = select(stepT * dither, 0.0, worldMarch);
     var mult = 1.0;
     var empties = 0;
+    var inCloud = false;
+    var refinementActive = false;
+    var refinementStartT = -1.0;
+    var refinementTargetT = -1.0;
+    var refinementIntervalCount = 0u;
+    var refinementSampleIndex = 0u;
     transmittance = 1.0;
     color = vec3f(0.0);
     depthSum = 0.0;
@@ -1067,36 +1265,137 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
     let boxMax = getBoxMax();
     let adaptive = params.g.adaptiveMarch > 0.5;
     let rawDensityDebug = i32(params.g.debugView) == 10;
+    let minDensity = max(params.march.stochastic.z, 0.0);
+    let minExtinction = max(params.march.stochastic.w, minDensity);
+    let minTransmittance = clamp(params.march.reserved.y, 0.0, 1.0);
     const ABS_K = 22.0;
 
     for (var i = 0u; i < RAYMARCH_MAX_STEPS; i++) {
-      if (i32(i) >= numSteps) { break; }
+      if (i32(i) >= iterBudget) { break; }
       if (t >= tExit) { break; }
       iterCount = i32(i) + 1;
+      if (recordCounters) { atomicAdd(&raymarchCounters.primaryIterations, 1u); }
+      if (worldMarch) {
+        if (!refinementActive) {
+          let support = bodySupportAdvance(ro, rd, t);
+          if (!support.inside) {
+            if (!support.hasNext || support.nextT >= tExit) { break; }
+            t = max(t, support.nextT);
+            supportSkipCount++;
+            if (recordCounters) { atomicAdd(&raymarchCounters.supportSkips, 1u); }
+            stepT = minWorldStepT;
+            inCloud = false;
+            previousSampleT = t;
+            arrivalStepT = 0.0;
+            continue;
+          }
+          let candidateNextT = raymarchCandidateNextT(ro, rd, t);
+          if (candidateNextT > t + 1e-5) {
+            t = min(candidateNextT, tExit);
+            candidateSkipCount++;
+            if (recordCounters) { atomicAdd(&raymarchCounters.candidateSkips, 1u); }
+            stepT = minWorldStepT;
+            inCloud = false;
+            previousSampleT = t;
+            arrivalStepT = 0.0;
+            continue;
+          }
+        }
+        let requestedStepT = worldStepMeters(max(t, 0.0) * rayMetric) / rayMetric;
+        let stochasticStepT = mix(
+          minWorldStepT,
+          requestedStepT,
+          fract(dither + f32(i) * 0.61803398875)
+        );
+        let outsideStepT = select(requestedStepT, stochasticStepT, params.march.metric.z > 0.5);
+        stepT = select(outsideStepT, minWorldStepT, inCloud || refinementActive);
+        stepT = min(stepT, max(tExit - t, 0.0));
+        worldStepSumMeters += stepT * rayMetric;
+        worldStepCount++;
+        if (recordCounters) {
+          let stepMeters = stepT * rayMetric;
+          atomicAdd(&raymarchCounters.worldStepSamples, 1u);
+          atomicAdd(&raymarchCounters.worldStepDecameters, u32(round(stepMeters * 0.1)));
+          atomicMax(&raymarchCounters.maxWorldStepMeters, u32(ceil(stepMeters)));
+        }
+      }
       let pos = ro + rd * t;
+      if (recordCounters) { atomicAdd(&raymarchCounters.densitySamples, 1u); }
       let dt = densityAtTyped(pos);
       let d = dt.x;
-      if (d > 0.01) {
-        if (mult > 1.0) {
+      let potentialHit = d > minDensity;
+      if (worldMarch && potentialHit && !inCloud && !refinementActive
+        && arrivalStepT > minWorldStepT * 1.01) {
+        let refinedT = min(t, max(tEntry, previousSampleT + minWorldStepT));
+        if (refinedT < t) {
+          let remainingIterations = u32(iterBudget) - i - 1u;
+          let refinementDistanceMeters = max(t - refinedT, 0.0) * rayMetric;
+          let refinementIntervalsNeeded = max(1.0, ceil(
+            refinementDistanceMeters / max(params.march.controls.z, 1.0)
+          ) + 1.0);
+          let refinementSamplesNeeded = refinementIntervalsNeeded + 1.0;
+          if (f32(remainingIterations) >= refinementSamplesNeeded) {
+            refinementCount++;
+            if (recordCounters) { atomicAdd(&raymarchCounters.refinements, 1u); }
+            refinementStartT = refinedT;
+            refinementTargetT = t;
+            refinementIntervalCount = u32(refinementIntervalsNeeded);
+            refinementSampleIndex = 0u;
+            t = refinedT;
+            arrivalStepT = max(t - previousSampleT, 0.0);
+            refinementActive = true;
+            continue;
+          }
+          // The current sample is already a proven hit. If the safety budget
+          // cannot reach the saved target, preserve it with a min-step
+          // integration instead of discarding it inside an unfinished bracket.
+          stepT = min(minWorldStepT, max(tExit - t, 0.0));
+        }
+      }
+      if (worldMarch && refinementActive && !potentialHit) {
+        previousSampleT = t;
+        if (refinementSampleIndex < refinementIntervalCount) {
+          refinementSampleIndex++;
+          if (refinementSampleIndex >= refinementIntervalCount) {
+            t = refinementTargetT;
+          } else {
+            let refinementFraction = f32(refinementSampleIndex) / f32(refinementIntervalCount);
+            t = mix(refinementStartT, refinementTargetT, refinementFraction);
+          }
+          arrivalStepT = max(t - previousSampleT, 0.0);
+          continue;
+        }
+        refinementActive = false;
+      }
+      if (potentialHit && refinementActive) { refinementActive = false; }
+      if (d > minExtinction) {
+        if (!worldMarch && mult > 1.0) {
           t = t - baseStep * (mult - 1.0);
           mult = 1.0;
           empties = 0;
           continue;
         }
-        rawDensityIntegral += d * baseStep;
+        inCloud = true;
+        rawDensityIntegral += d * stepT;
         if (rawDensityDebug) {
           empties = 0;
-          t = t + baseStep;
+          previousSampleT = t;
+          arrivalStepT = stepT;
+          t = t + stepT;
           continue;
         }
         let L = blendedLighting(dt.y, dt.z, dt.w);
         let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
         let sigma = d * extinction;
-        let step_trans = exp(-sigma * baseStep);
+        let step_trans = exp(-sigma * stepT);
         var shadow = 1.0;
         var opticalDepth = 0.0;
         if (!skipLight) {
-          opticalDepth = lightMarchDepth(pos);
+          opticalDepth = lightMarchDepth(
+            pos,
+            fract(dither + f32(i) * 0.754877666),
+            recordCounters
+          );
           shadow = sunVisibility(opticalDepth, sunTheta);
         }
         let phaseType = mix(1.0, mix(hgPhase(sunTheta, L.phaseBack), csPhase(sunTheta, L.phaseFwd), clamp01(params.g.hgBlend)), 0.6);
@@ -1130,6 +1429,10 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         let silverGate = params.g.silverIntensity * silverScale;
         if (sunTheta > 0.0 && silverGate > 0.001) {
           let probeOffset = max(params.g.lightMarchStepSize, 0.001) * 2.0;
+          if (recordCounters) {
+            atomicAdd(&raymarchCounters.lightSamples, 1u);
+            atomicAdd(&raymarchCounters.densitySamples, 1u);
+          }
           let edgeDens = densityAt(pos + SUN_DIR * probeOffset);
           let edgeThin = exp(-edgeDens * 3.0);
           litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * tGate;
@@ -1151,24 +1454,31 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
         accHalo += w * L.halo;
         accFxW += w;
         transmittance *= step_trans;
-        let cutoff = 0.01;
-        if (transmittance < cutoff && !rawDensityDebug) { break; }
+        if (transmittance < minTransmittance && !rawDensityDebug) { break; }
         empties = 0;
-        t = t + baseStep;
-      } else if (d > 0.002) {
-        if (mult > 1.0) {
+        previousSampleT = t;
+        arrivalStepT = stepT;
+        t = t + stepT;
+      } else if (d > minDensity) {
+        if (!worldMarch && mult > 1.0) {
           t = t - baseStep * (mult - 1.0);
           mult = 1.0;
           empties = 0;
           continue;
         }
-        rawDensityIntegral += d * baseStep;
+        inCloud = worldMarch;
+        rawDensityIntegral += d * stepT;
         empties = 0;
-        t = t + baseStep;
+        previousSampleT = t;
+        arrivalStepT = stepT;
+        t = t + stepT;
       } else {
         empties = empties + 1;
-        if (adaptive && empties >= 4) { mult = min(mult * 2.0, 4.0); }
-        t = t + baseStep * mult;
+        inCloud = false;
+        if (!worldMarch && adaptive && empties >= 4) { mult = min(mult * 2.0, 4.0); }
+        previousSampleT = t;
+        arrivalStepT = stepT * mult;
+        t = t + stepT * mult;
       }
     }
     cloudDepth = select(1e4, depthSum / depthW, depthW > 1e-4);
@@ -1182,13 +1492,13 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   let haloAmt = select(0.0, (accHalo / accFxW) * blend, accFxW > 1e-4);
   let sunPower = mix(64.0, 16.0, clamp01(sunDiscAmt));
   let sunGain = mix(0.8, 1.2, clamp01(sunDiscAmt));
-  var sunDisc = pow(max(sunTheta, 0.0), sunPower) * skyC.sun * sunGain;
+  var sunDisc = pow(max(backgroundSunTheta, 0.0), sunPower) * skyC.sun * sunGain;
   if (sunDiscAmt > 0.001) {
     sunDisc *= mix(1.0, smoothstep(0.0, 0.85, transmittance), clamp01(sunDiscAmt));
   }
   var halo = vec3f(0.0);
   if (haloAmt > 0.001 && SUN_DIR.y > 0.0) {
-    let angle = acos(clamp(sunTheta, -1.0, 1.0));
+    let angle = acos(clamp(backgroundSunTheta, -1.0, 1.0));
     let halo0 = 0.3839724354387525;
     let width = 0.02617993877991494;
     let ring = exp(-((angle - halo0) / width) * ((angle - halo0) / width));
@@ -1197,49 +1507,44 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
   let finalSky = sky + sunDisc + halo;
 
   var background = finalSky;
-  if (rd.y < -0.0001) {
-    let tGround = (GROUND_Y - ro.y) / rd.y;
+  if (backgroundRd.y < -0.0001) {
+    let tGround = (GROUND_Y - ro.y) / backgroundRd.y;
     if (tGround > 0.0) {
-      let gp = ro + rd * tGround;
+      let gp = ro + backgroundRd * tGround;
       let gcol = groundColor(gp, skyC);
-      let gAerial = applyAerial(gcol, tGround, 0.0, 1.0, skyC, sunTheta);
-      let horizon = smoothstep(0.0, 0.06, -rd.y);
+      let gAerial = applyAerial(gcol, tGround, 0.0, 1.0, skyC, backgroundSunTheta);
+      let horizon = smoothstep(0.0, 0.06, -backgroundRd.y);
       background = mix(finalSky, gAerial, horizon);
     }
   }
 
-  var outColor = color + transmittance * background;
-  if (!hit.hit) {
-    outColor = background;
-  }
-
   if (params.g.debugView > 0.5) {
     let dv = i32(params.g.debugView);
-    if (dv == 1) { return vec4f(vec3f(transmittance), 1.0); }
-    if (dv == 2) { return vec4f(color, 1.0); }
+    if (dv == 1) { return debugCloudFrame(vec3f(transmittance)); }
+    if (dv == 2) { return debugCloudFrame(color); }
     if (dv == 10) {
       let rawDensity = rawDensityIntegral / (1.0 + rawDensityIntegral);
-      return vec4f(vec3f(rawDensity), 1.0);
+      return debugCloudFrame(vec3f(rawDensity));
     }
     if (dv == 3) {
-      if (!hit.hit) { return vec4f(0.0, 0.0, 0.0, 1.0); }
-      let heat = f32(iterCount) / f32(numSteps);
+      if (!hit.hit) { return debugCloudFrame(vec3f(0.0)); }
+      let heat = f32(iterCount) / f32(max(iterBudget, 1));
       let c = select(mix(vec3f(0.0, 1.0, 0.0), vec3f(1.0, 0.0, 0.0), (heat - 0.5) * 2.0), mix(vec3f(0.0, 0.0, 1.0), vec3f(0.0, 1.0, 0.0), heat * 2.0), heat < 0.5);
-      return vec4f(c, 1.0);
+      return debugCloudFrame(c);
     }
     if (dv == 6) {
       let nd = 1.0 - clamp(cloudDepth / (max(params.g.boxHalfExtent, 0.01) * 6.0), 0.0, 1.0);
-      return vec4f(vec3f(nd), 1.0);
+      return debugCloudFrame(vec3f(nd));
     }
     if (dv == 4 || dv == 5) {
       let bmin = boxMin();
       let planeY = bmin.y + params.g.cloudHeight * 0.5;
       let tPlane = (planeY - ro.y) / rd.y;
-      if (abs(rd.y) < 1e-4 || tPlane <= 0.0) { return vec4f(0.0, 0.0, 0.0, 1.0); }
+      if (abs(rd.y) < 1e-4 || tPlane <= 0.0) { return debugCloudFrame(vec3f(0.0)); }
       let p = ro + rd * tPlane;
       let spanXZ = max(boxMaxXZ() - bmin.x, 0.001);
       let wUv = (vec2f(p.x, p.z) - vec2f(bmin.x, bmin.z)) / spanXZ;
-      if (wUv.x < 0.0 || wUv.x > 1.0 || wUv.y < 0.0 || wUv.y > 1.0) { return vec4f(0.0, 0.0, 0.0, 1.0); }
+      if (wUv.x < 0.0 || wUv.x > 1.0 || wUv.y < 0.0 || wUv.y > 1.0) { return debugCloudFrame(vec3f(0.0)); }
       if (dv == 4) {
         var cov = 0.0;
         let n = i32(params.g.activeBodyCount);
@@ -1252,7 +1557,7 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
           let c = pow(smoothstep(0.5 - wCurve, 0.5, s), wShaper);
           cov = max(cov, c);
         }
-        return vec4f(vec3f(cov), 1.0);
+        return debugCloudFrame(vec3f(cov));
       }
       var out = vec3f(0.0);
       let n = i32(params.g.activeBodyCount);
@@ -1279,11 +1584,80 @@ fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @locatio
           out = debugBodyColor(i, core);
         }
       }
-      return vec4f(out, 1.0);
+      return debugCloudFrame(out);
     }
   }
 
-  return vec4f(outColor, cloudDepth);
+  let valid = depthW > 1e-4;
+  let outputDepth = select(0.0, cloudDepth, valid);
+  var velocity = vec2f(0.0);
+  var reprojectionValid = valid;
+  if (valid && camera.historyValid > 0.5) {
+    reprojectionValid = false;
+    let representativePoint = ro + rd * cloudDepth;
+    let previousPoint = representativePoint
+      - approximateCloudVelocity(representativePoint) * max(params.g.deltaTime, 0.0);
+    let prevClip = camera.prevViewProj * vec4f(previousPoint, 1.0);
+    if (prevClip.w > 1e-5) {
+      let currentUv = vec2f(uv.x * 0.5 + 0.5, 0.5 - uv.y * 0.5);
+      let prevNdc = prevClip.xy / prevClip.w;
+      let prevUv = vec2f(prevNdc.x * 0.5 + 0.5, 0.5 - prevNdc.y * 0.5)
+        - camera.jitterPixels.zw * pixelUvSize;
+      if (all(prevUv >= vec2f(0.0)) && all(prevUv <= vec2f(1.0))) {
+        velocity = currentUv - prevUv;
+        reprojectionValid = true;
+      }
+    }
+  }
+  let lateDebugView = i32(params.g.debugView);
+  if (lateDebugView == 11) {
+    return debugCloudFrame(vec3f(
+      clamp(0.5 + velocity.x * 20.0, 0.0, 1.0),
+      clamp(0.5 + velocity.y * 20.0, 0.0, 1.0),
+      0.5,
+    ));
+  }
+  if (lateDebugView == 12) {
+    return debugCloudFrame(vec3f(select(0.0, 1.0, valid)));
+  }
+  if (lateDebugView == 14) {
+    return debugCloudFrame(vec3f(
+      select(0.0, 1.0, supportSkipCount > 0u),
+      select(0.0, 1.0, candidateSkipCount > 0u),
+      select(0.0, 1.0, refinementCount > 0u),
+    ));
+  }
+  if (lateDebugView == 15) {
+    var averageStep = 0.0;
+    if (worldStepCount > 0u) { averageStep = worldStepSumMeters / f32(worldStepCount); }
+    let normalizedStep = clamp(averageStep / max(params.march.controls.w, 1.0), 0.0, 1.0);
+    return debugCloudFrame(vec3f(normalizedStep, 1.0 - normalizedStep, 0.15));
+  }
+  return CloudFrameSample(
+    vec4f(color, clamp(transmittance, 0.0, 1.0)),
+    vec4f(outputDepth, velocity, select(0.0, 1.0, reprojectionValid)),
+    vec4f(background, 1.0),
+    select(0.0, 1.0, valid),
+  );
+}
+
+@fragment
+fn fs(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> @location(0) vec4f {
+  let frame = renderCloudFrame(fragCoord, uv);
+  let combined = frame.radianceTransmittance.rgb
+    + frame.radianceTransmittance.a * frame.backgroundRadiance.rgb;
+  let legacyDepth = select(1e4, frame.depthVelocity.x, frame.cloudValidity > 0.5);
+  return vec4f(combined, legacyDepth);
+}
+
+@fragment
+fn fsCloudFrame(@builtin(position) fragCoord : vec4f, @location(0) uv : vec2f) -> CloudFrameTargets {
+  let frame = renderCloudFrame(fragCoord, uv);
+  return CloudFrameTargets(
+    frame.radianceTransmittance,
+    frame.depthVelocity,
+    frame.backgroundRadiance,
+  );
 }
 
 // ============================================================

@@ -115,6 +115,21 @@ export interface DensityBenchmarkStatus {
   message: string;
 }
 
+export type W10RuntimeOverrides = Partial<Pick<CloudParams,
+  | 'cloudFrameEnabled'
+  | 'worldStepEnabled'
+  | 'worldStepMaxIterations'
+  | 'worldStepMinMeters'
+  | 'worldStepMaxMeters'
+  | 'worldStepMaxRayDistanceMeters'
+  | 'worldStepPerspectiveScale'
+  | 'worldStepSupportSkipping'
+  | 'worldStepCandidateSkipping'
+  | 'stochasticSampling'
+  | 'stbnFrozenSlice'
+  | 'taaEnabled'
+  | 'debugView'>>;
+
 export interface DensityBenchmarkController {
   readonly manifest: DensityBenchmarkManifest;
   isActive(): boolean;
@@ -123,6 +138,7 @@ export interface DensityBenchmarkController {
   setCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera;
   followInteractiveCamera(next: Partial<BenchmarkCamera>): BenchmarkCamera;
   resetCamera(sceneId?: DensityBenchmarkCase['sceneId']): BenchmarkCamera;
+  setW10Options(next: W10RuntimeOverrides): void;
   start(caseId: string): void;
   cancel(reason?: string): void;
   observe(stats: RenderStats): void;
@@ -131,6 +147,48 @@ export interface DensityBenchmarkController {
   getRuntimeDiagnostics(): {
     producer: DensityBenchmarkCaseResult['producerDiagnostics'];
     shadowHistoryResetReason: string;
+    cloudFrame: Pick<RenderStats,
+      | 'cloudFrameRequested'
+      | 'cloudFrameActivePath'
+      | 'cloudFrameFallbackReason'
+      | 'cloudFrameAttachmentBytes'
+      | 'cloudFrameHistoryBytes'
+      | 'cloudFrameResourceGeneration'
+      | 'cloudFrameContentRevision'
+      | 'cloudFrameDiscontinuityGeneration'
+      | 'cloudCurrentMs'
+      | 'temporalResolveMs'
+      | 'compositeMs'
+      | 'gpuValidationErrors'>;
+    raymarch: Pick<RenderStats,
+      | 'worldStepRequested'
+      | 'worldStepActive'
+      | 'worldStepMinMeters'
+      | 'worldStepMaxMeters'
+      | 'worldStepMaxRayDistanceMeters'
+      | 'worldStepMaxIterations'
+      | 'worldStepSupportCount'
+      | 'worldStepSupportSkipping'
+      | 'worldStepCandidateSkipping'
+      | 'stochasticSamplingRequested'
+      | 'stochasticSamplingActive'
+      | 'stochasticSamplingFallbackReason'
+      | 'stbnFrozenSlice'
+      | 'stbnBytes'
+      | 'raymarchConfigGeneration'
+      | 'raymarchCounterSampleId'
+      | 'raymarchCounterConfigGeneration'
+      | 'raymarchCounterFrameIndex'
+      | 'raymarchCounterSamplePixels'
+      | 'raymarchPrimaryIterationsPerPixel'
+      | 'raymarchSupportSkipsPerPixel'
+      | 'raymarchCandidateSkipsPerPixel'
+      | 'raymarchDensitySamplesPerPixel'
+      | 'raymarchLightSamplesPerPixel'
+      | 'raymarchAverageStepMeters'
+      | 'raymarchMaxStepMeters'
+      | 'raymarchRefinementsPerPixel'
+      | 'raymarchCoarseHintsPerPixel'>;
   };
   getResults(): DensityBenchmarkCaseResult[];
   getEvidence(): DensityBenchmarkEvidence;
@@ -610,14 +668,68 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
       .map(copyResult);
   }
 
+  function setW10Options(next: W10RuntimeOverrides): void {
+    Object.assign(params, next);
+  }
+
   function getRuntimeDiagnostics(): {
     producer: DensityBenchmarkCaseResult['producerDiagnostics'];
     shadowHistoryResetReason: string;
+    cloudFrame: DensityBenchmarkController['getRuntimeDiagnostics'] extends () => infer T
+      ? T extends { cloudFrame: infer C } ? C : never
+      : never;
+    raymarch: DensityBenchmarkController['getRuntimeDiagnostics'] extends () => infer T
+      ? T extends { raymarch: infer R } ? R : never
+      : never;
   } {
     const stats = renderer.getStats();
     return {
       producer: producerDiagnostics(stats),
       shadowHistoryResetReason: stats.shadowHistoryResetReason,
+      cloudFrame: {
+        cloudFrameRequested: stats.cloudFrameRequested,
+        cloudFrameActivePath: stats.cloudFrameActivePath,
+        cloudFrameFallbackReason: stats.cloudFrameFallbackReason,
+        cloudFrameAttachmentBytes: stats.cloudFrameAttachmentBytes,
+        cloudFrameHistoryBytes: stats.cloudFrameHistoryBytes,
+        cloudFrameResourceGeneration: stats.cloudFrameResourceGeneration,
+        cloudFrameContentRevision: stats.cloudFrameContentRevision,
+        cloudFrameDiscontinuityGeneration: stats.cloudFrameDiscontinuityGeneration,
+        cloudCurrentMs: stats.cloudCurrentMs,
+        temporalResolveMs: stats.temporalResolveMs,
+        compositeMs: stats.compositeMs,
+        gpuValidationErrors: [...stats.gpuValidationErrors],
+      },
+      raymarch: {
+        worldStepRequested: stats.worldStepRequested,
+        worldStepActive: stats.worldStepActive,
+        worldStepMinMeters: stats.worldStepMinMeters,
+        worldStepMaxMeters: stats.worldStepMaxMeters,
+        worldStepMaxRayDistanceMeters: stats.worldStepMaxRayDistanceMeters,
+        worldStepMaxIterations: stats.worldStepMaxIterations,
+        worldStepSupportCount: stats.worldStepSupportCount,
+        worldStepSupportSkipping: stats.worldStepSupportSkipping,
+        worldStepCandidateSkipping: stats.worldStepCandidateSkipping,
+        stochasticSamplingRequested: stats.stochasticSamplingRequested,
+        stochasticSamplingActive: stats.stochasticSamplingActive,
+        stochasticSamplingFallbackReason: stats.stochasticSamplingFallbackReason,
+        stbnFrozenSlice: stats.stbnFrozenSlice,
+        stbnBytes: stats.stbnBytes,
+        raymarchConfigGeneration: stats.raymarchConfigGeneration,
+        raymarchCounterSampleId: stats.raymarchCounterSampleId,
+        raymarchCounterConfigGeneration: stats.raymarchCounterConfigGeneration,
+        raymarchCounterFrameIndex: stats.raymarchCounterFrameIndex,
+        raymarchCounterSamplePixels: stats.raymarchCounterSamplePixels,
+        raymarchPrimaryIterationsPerPixel: stats.raymarchPrimaryIterationsPerPixel,
+        raymarchSupportSkipsPerPixel: stats.raymarchSupportSkipsPerPixel,
+        raymarchCandidateSkipsPerPixel: stats.raymarchCandidateSkipsPerPixel,
+        raymarchDensitySamplesPerPixel: stats.raymarchDensitySamplesPerPixel,
+        raymarchLightSamplesPerPixel: stats.raymarchLightSamplesPerPixel,
+        raymarchAverageStepMeters: stats.raymarchAverageStepMeters,
+        raymarchMaxStepMeters: stats.raymarchMaxStepMeters,
+        raymarchRefinementsPerPixel: stats.raymarchRefinementsPerPixel,
+        raymarchCoarseHintsPerPixel: stats.raymarchCoarseHintsPerPixel,
+      },
     };
   }
 
@@ -694,6 +806,7 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     setCamera,
     followInteractiveCamera,
     resetCamera,
+    setW10Options,
     start,
     cancel,
     observe,

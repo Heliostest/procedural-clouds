@@ -2,17 +2,26 @@ import type { CloudBody } from './body';
 import type { BodyMod } from './lifecycle';
 import { DEFAULT_SCENE_SCALE, metersToWorldXZ, metersToWorldY, normalizedSceneScale, type SceneScale } from './space';
 import { assertCompleteGenusProfiles } from './genusProfile';
-import type { WindAdvectionSample } from './wind';
+import { windVelocityMps, type WindAdvectionSample } from './wind';
 
 export const MAX_BODIES = 12;
 export const BODY_BASE = 60;
 export const BODY_STRIDE = 20;
+export const WORLD_MARCH_BASE = BODY_BASE + MAX_BODIES * BODY_STRIDE;
+export const WORLD_MARCH_FLOAT_COUNT = 20;
+export const BODY_SUPPORT_BASE = WORLD_MARCH_BASE + WORLD_MARCH_FLOAT_COUNT;
+export const BODY_SUPPORT_STRIDE = 8;
+export const MAX_BODY_SUPPORTS = MAX_BODIES * 2;
 
 export const BODY_WIND_OFFSETS = {
   advectionOffsetWorldX: 4,
   advectionOffsetWorldZ: 5,
   morphTime: 6,
-  reserved: 7,
+  velocityWorldX: 7,
+} as const;
+
+export const BODY_ROT_OFFSETS = {
+  velocityWorldZ: 19,
 } as const;
 
 export const PARAM_OFFSETS: Record<string, number> = {
@@ -84,7 +93,7 @@ export const GROUND_SHADOW_MODE = {
   transmittance: 2,
 } as const;
 
-export const PARAMS_FLOAT_COUNT = BODY_BASE + MAX_BODIES * BODY_STRIDE;
+export const PARAMS_FLOAT_COUNT = BODY_SUPPORT_BASE + MAX_BODY_SUPPORTS * BODY_SUPPORT_STRIDE;
 export const PARAMS_BYTE_SIZE = PARAMS_FLOAT_COUNT * 4;
 
 export const BASE_PRESET_KEYS = [
@@ -307,6 +316,16 @@ export interface CloudParams {
   edgeCurveShaper: number;
   adaptiveMarch: boolean;
   temporalDither: boolean;
+  worldStepEnabled: boolean;
+  worldStepMaxIterations: number;
+  worldStepMinMeters: number;
+  worldStepMaxMeters: number;
+  worldStepMaxRayDistanceMeters: number;
+  worldStepPerspectiveScale: number;
+  worldStepSupportSkipping: boolean;
+  worldStepCandidateSkipping: boolean;
+  stochasticSampling: boolean;
+  stbnFrozenSlice: number;
   cornerRadius: number;
   aerialDensity: number;
   aerialInscatter: number;
@@ -320,6 +339,7 @@ export interface CloudParams {
   groundShadowMapUpdateRate: number;
   groundShadowHistoryWeight: number;
   groundShadowFilterRadius: number;
+  cloudFrameEnabled: boolean;
   taaEnabled: boolean;
   taaBlend: number;
   bloomEnabled: boolean;
@@ -343,6 +363,74 @@ function footprintData(b: CloudBody): [number, number, number] {
 }
 
 export type PackValue = number | boolean | number[];
+
+export interface PackedBodySupport {
+  readonly min: readonly [number, number, number];
+  readonly max: readonly [number, number, number];
+}
+
+export interface PackWorldMarchOptions {
+  readonly stbnAvailable: boolean;
+  readonly supports: readonly PackedBodySupport[];
+  readonly cloudFrameOutputActive: boolean;
+}
+
+export function packWorldMarch(
+  dst: Float32Array,
+  params: CloudParams,
+  options: PackWorldMarchOptions,
+): void {
+  const minStep = Math.max(1, Number.isFinite(params.worldStepMinMeters) ? params.worldStepMinMeters : 100);
+  const maxStep = Math.max(minStep, Number.isFinite(params.worldStepMaxMeters) ? params.worldStepMaxMeters : minStep);
+  const maxIterations = Number.isFinite(params.worldStepMaxIterations)
+    ? Math.round(params.worldStepMaxIterations)
+    : 384;
+  const maxRayDistance = Number.isFinite(params.worldStepMaxRayDistanceMeters)
+    ? params.worldStepMaxRayDistanceMeters
+    : 64000;
+  const perspectiveScale = Number.isFinite(params.worldStepPerspectiveScale)
+    ? params.worldStepPerspectiveScale
+    : 0;
+  const o = WORLD_MARCH_BASE;
+  dst[o + 0] = params.worldStepEnabled ? 1 : 0;
+  dst[o + 1] = Math.max(1, Math.min(512, maxIterations));
+  dst[o + 2] = minStep;
+  dst[o + 3] = maxStep;
+  dst[o + 4] = Math.max(minStep, maxRayDistance);
+  dst[o + 5] = Math.max(0, perspectiveScale);
+  dst[o + 6] = params.worldStepSupportSkipping ? 1 : 0;
+  dst[o + 7] = params.worldStepCandidateSkipping ? 1 : 0;
+  dst[o + 8] = normalizedSceneScale(params).horizontalMetersPerWorldUnit;
+  dst[o + 9] = normalizedSceneScale(params).verticalMetersPerWorldUnit;
+  dst[o + 10] = params.stochasticSampling ? 1 : 0;
+  dst[o + 11] = options.stbnAvailable ? 1 : 0;
+  dst[o + 12] = Number.isFinite(params.stbnFrozenSlice) ? Math.round(params.stbnFrozenSlice) : -1;
+  const supportCount = Math.min(options.supports.length, MAX_BODY_SUPPORTS);
+  dst[o + 13] = supportCount;
+  dst[o + 14] = 0.002;
+  dst[o + 15] = 0.01;
+  dst[o + 16] = options.cloudFrameOutputActive ? 1 : 0;
+  dst[o + 17] = 0.01;
+  dst[o + 18] = 0;
+  dst[o + 19] = 0;
+
+  for (let i = 0; i < MAX_BODY_SUPPORTS; i++) {
+    const supportOffset = BODY_SUPPORT_BASE + i * BODY_SUPPORT_STRIDE;
+    const support = options.supports[i];
+    if (!support) {
+      for (let k = 0; k < BODY_SUPPORT_STRIDE; k++) dst[supportOffset + k] = 0;
+      continue;
+    }
+    dst[supportOffset + 0] = support.min[0];
+    dst[supportOffset + 1] = support.min[1];
+    dst[supportOffset + 2] = support.min[2];
+    dst[supportOffset + 3] = 1;
+    dst[supportOffset + 4] = support.max[0];
+    dst[supportOffset + 5] = support.max[1];
+    dst[supportOffset + 6] = support.max[2];
+    dst[supportOffset + 7] = 0;
+  }
+}
 
 export function packParams(dst: Float32Array, values: Record<string, PackValue>): Float32Array {
   for (const key in values) {
@@ -385,7 +473,8 @@ export function packBodies(
       dst[o + BODY_WIND_OFFSETS.advectionOffsetWorldX] = metersToWorldXZ(wind?.offsetM[0] ?? 0, scale);
       dst[o + BODY_WIND_OFFSETS.advectionOffsetWorldZ] = metersToWorldXZ(wind?.offsetM[1] ?? 0, scale);
       dst[o + BODY_WIND_OFFSETS.morphTime] = wind?.morphTime ?? 0;
-      dst[o + BODY_WIND_OFFSETS.reserved] = 0;
+      const velocityMps = windVelocityMps(b.windDeg, b.windSpeedMps);
+      dst[o + BODY_WIND_OFFSETS.velocityWorldX] = metersToWorldXZ(velocityMps[0], scale);
       dst[o + 8] = b.coverage * (m ? m.coverageMul : 1);
       dst[o + 9] = b.densityScale * (m ? m.densityScale : 1);
       dst[o + 10] = m ? m.morph : 0;
@@ -398,7 +487,7 @@ export function packBodies(
       dst[o + 16] = b.rot ? b.rot[0] : 0;
       dst[o + 17] = b.rot ? b.rot[1] : 0;
       dst[o + 18] = b.rot ? b.rot[2] : 0;
-      dst[o + 19] = 0;
+      dst[o + BODY_ROT_OFFSETS.velocityWorldZ] = metersToWorldXZ(velocityMps[1], scale);
     } else {
       for (let k = 0; k < BODY_STRIDE; k++) dst[o + k] = 0;
     }
@@ -461,6 +550,16 @@ export function createDefaultParams(): CloudParams {
     edgeCurveShaper: 1.0,
     adaptiveMarch: false,
     temporalDither: true,
+    worldStepEnabled: false,
+    worldStepMaxIterations: 384,
+    worldStepMinMeters: 100,
+    worldStepMaxMeters: 250,
+    worldStepMaxRayDistanceMeters: 64000,
+    worldStepPerspectiveScale: 0.003,
+    worldStepSupportSkipping: true,
+    worldStepCandidateSkipping: true,
+    stochasticSampling: true,
+    stbnFrozenSlice: -1,
     cornerRadius: 0.5,
     aerialDensity: 0.02,
     aerialInscatter: 1.0,
@@ -474,6 +573,7 @@ export function createDefaultParams(): CloudParams {
     groundShadowMapUpdateRate: 4,
     groundShadowHistoryWeight: 0.24,
     groundShadowFilterRadius: 1,
+    cloudFrameEnabled: true,
     taaEnabled: true,
     taaBlend: 0.95,
     bloomEnabled: false,

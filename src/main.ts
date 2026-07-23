@@ -338,12 +338,12 @@ async function main(): Promise<void> {
     const px = s.width * s.height;
     const fps = emaCpuMs > 0 ? 1000 / emaCpuMs : 0;
     const samples = px * params.rayMarchSteps * (params.skipLight ? 1 : 1 + params.lightMarchSteps);
-    const gpuMs = s.cloudMs + s.cacheMs + s.shadowMs + s.postMs;
+    const gpuMs = s.cloudCurrentMs + s.temporalResolveMs + s.compositeMs + s.cacheMs + s.shadowMs + s.postMs;
     lines.push('');
     lines.push(`── ${t('perfTitle')} ──`);
     lines.push(`${t('perfFps')}: ${fps.toFixed(0)}   ${t('perfCpu')}: ${emaCpuMs.toFixed(2)}ms   ${t('perfLoad')}: ${emaWorkMs.toFixed(2)}ms`);
     if (s.gpuTiming) {
-      lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)} · ${t('post')} ${s.postMs.toFixed(2)})`);
+      lines.push(`${t('perfGpu')}: ${gpuMs.toFixed(2)}ms (${t('perfCloud')} ${s.cloudCurrentMs.toFixed(2)} · resolve ${s.temporalResolveMs.toFixed(2)} · composite ${s.compositeMs.toFixed(2)} · ${t('perfCache')} ${s.cacheMs.toFixed(2)} · ${t('post')} ${s.postMs.toFixed(2)})`);
       if (params.groundShadowMode === 2) lines.push(`shadow compute: ${s.shadowMs.toFixed(2)}ms`);
     } else {
       lines.push(`${t('perfGpu')}: ${t('perfGpuNA')}${s.gpuTimingError ? ` (${s.gpuTimingError})` : ''}`);
@@ -357,15 +357,18 @@ async function main(): Promise<void> {
     lines.push(`${t('perfRays')}: ${params.rayMarchSteps}+${params.skipLight ? 0 : params.lightMarchSteps}   ${t('perfSamples')}: ${(samples / 1e6).toFixed(1)}M`);
     lines.push(`${t('perfVoxels')}: ${s.densityRes}³ (${((s.densityRes ** 3) / 1e6).toFixed(2)}M) wg ${s.cacheWg.join('×')}`);
     lines.push(`${t('perfQuality')}: requested=${s.densityQualityRequested} active=${s.densityQualityActive}${s.densityQualityFallbackReason ? ` fallback=${s.densityQualityFallbackReason}` : ''}   weather ${s.weatherSize}²`);
+    lines.push(`W10A cloud frame: ${s.cloudFrameActivePath}${s.cloudFrameFallbackReason ? ` fallback=${s.cloudFrameFallbackReason}` : ''} attachments=${(s.cloudFrameAttachmentBytes / 1048576).toFixed(1)}MiB history=${(s.cloudFrameHistoryBytes / 1048576).toFixed(1)}MiB gen=${s.cloudFrameResourceGeneration}/${s.cloudFrameContentRevision}/${s.cloudFrameDiscontinuityGeneration}`);
+    lines.push(`W10B raymarch: ${s.worldStepActive ? 'world-step' : 'fixed-step'} iterations≤${s.worldStepMaxIterations} step=${s.worldStepMinMeters}-${s.worldStepMaxMeters}m distance≤${s.worldStepMaxRayDistanceMeters}m support=${s.worldStepSupportSkipping ? s.worldStepSupportCount : 'off'} candidate=${s.worldStepCandidateSkipping ? 'on' : 'off'} jitter=${s.stochasticSamplingActive}${s.stochasticSamplingFallbackReason ? ` fallback=${s.stochasticSamplingFallbackReason}` : ''} slice=${s.stbnFrozenSlice}`);
+    lines.push(`W10B measured (${s.raymarchCounterSamplePixels}px): iter=${s.raymarchPrimaryIterationsPerPixel.toFixed(1)} support=${s.raymarchSupportSkipsPerPixel.toFixed(2)} candidate=${s.raymarchCandidateSkipsPerPixel.toFixed(2)} density=${s.raymarchDensitySamplesPerPixel.toFixed(1)} light=${s.raymarchLightSamplesPerPixel.toFixed(1)} step=${s.raymarchAverageStepMeters.toFixed(1)}/${s.raymarchMaxStepMeters.toFixed(0)}m refine=${s.raymarchRefinementsPerPixel.toFixed(2)} coarse=${s.raymarchCoarseHintsPerPixel.toFixed(2)}`);
     const qualityPipelineSummary = (['cached', 'hybrid', 'realtime'] as const).map((kind) => {
       const state = s.densityQualityPipelines[kind];
-      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
+      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.cloudFramePipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
       return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
     }).join(' ');
     lines.push(`quality pipelines: ${qualityPipelineSummary}`);
     const hierarchyPipelineSummary = (['cached', 'hybrid'] as const).map((kind) => {
       const state = s.densityHierarchicalPipelines[kind];
-      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
+      const createMs = state.creation.renderPipelineCreateCpuMs + state.creation.cloudFramePipelineCreateCpuMs + state.creation.groundShadowPipelineCreateCpuMs;
       return `${kind}:${state.lifecycle}${createMs > 0 ? `/${createMs.toFixed(1)}ms` : ''}${state.reason ? `(${state.reason})` : ''}`;
     }).join(' ');
     lines.push(`W9 storage: requested=${s.densityStorageRequested} active=${s.densityStorageActive} lifecycle=${s.densityStorageLifecycle}${s.densityStorageFallbackReason ? ` fallback=${s.densityStorageFallbackReason}` : ''}`);

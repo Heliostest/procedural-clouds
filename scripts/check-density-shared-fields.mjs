@@ -109,10 +109,12 @@ if (!contracts.includes('getSharedFieldDiagnostics(): DensitySharedFieldDiagnost
   || !contracts.includes('sharedFields: DensitySharedFieldStats | null')) {
   throw new Error('W5 read-only diagnostics contract is incomplete');
 }
-if (!renderer.includes('const TS_COUNT = 18')
+if (!renderer.includes('const TS_COUNT = 22')
   || !renderer.includes('beginningOfPassWriteIndex: 12')
   || !renderer.includes('beginningOfPassWriteIndex: 14')
-  || !renderer.includes('beginningOfPassWriteIndex: 16')) {
+  || !renderer.includes('beginningOfPassWriteIndex: 16')
+  || !renderer.includes('beginningOfPassWriteIndex: 18')
+  || !renderer.includes('beginningOfPassWriteIndex: 20')) {
   throw new Error('W5 timestamp ranges overlap or are missing');
 }
 if (!renderer.includes('ensureDensitySharedDebugPipeline()')

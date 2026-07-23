@@ -594,6 +594,16 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(marchFolder.add(params, 'skipLight').name(t('skipLight')), 'skipLight');
     tipKey(marchFolder.add(params, 'adaptiveMarch').name(t('adaptiveMarch')), 'adaptiveMarch');
     tipKey(marchFolder.add(params, 'temporalDither').name(t('temporalDither')), 'temporalDither');
+    tipKey(marchFolder.add(params, 'worldStepEnabled').name(t('worldStepEnabled')), 'worldStepEnabled');
+    tipKey(marchFolder.add(params, 'worldStepMaxIterations', 32, 512, 1).name(t('worldStepMaxIterations')), 'worldStepMaxIterations');
+    tipKey(marchFolder.add(params, 'worldStepMinMeters', 10, 1000, 10).name(t('worldStepMinMeters')), 'worldStepMinMeters');
+    tipKey(marchFolder.add(params, 'worldStepMaxMeters', 10, 2000, 10).name(t('worldStepMaxMeters')), 'worldStepMaxMeters');
+    tipKey(marchFolder.add(params, 'worldStepMaxRayDistanceMeters', 1000, 200000, 1000).name(t('worldStepMaxRayDistanceMeters')), 'worldStepMaxRayDistanceMeters');
+    tipKey(marchFolder.add(params, 'worldStepPerspectiveScale', 0, 0.02, 0.0001).name(t('worldStepPerspectiveScale')), 'worldStepPerspectiveScale');
+    tipKey(marchFolder.add(params, 'worldStepSupportSkipping').name(t('worldStepSupportSkipping')), 'worldStepSupportSkipping');
+    tipKey(marchFolder.add(params, 'worldStepCandidateSkipping').name(t('worldStepCandidateSkipping')), 'worldStepCandidateSkipping');
+    tipKey(marchFolder.add(params, 'stochasticSampling').name(t('stochasticSampling')), 'stochasticSampling');
+    tipKey(marchFolder.add(params, 'stbnFrozenSlice', -1, 63, 1).name(t('stbnFrozenSlice')), 'stbnFrozenSlice');
     tipKey(marchFolder.add(params, 'rayMarchSteps', 8, 256, 1).name(t('raySteps')), 'raySteps');
     tipKey(marchFolder.add(params, 'lightMarchSteps', 1, 24, 1).name(t('lightSteps')), 'lightSteps');
     tipKey(marchFolder.add(params, 'lightMarchStepSize', 0.01, 1.0, 0.01).name(t('lightMarchStepSize')), 'lightMarchStepSize');
@@ -611,6 +621,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     tipKey(groundShadowFolder.add(params, 'groundShadowFilterRadius', 0, 2, 1).name(t('groundShadowFilterRadius')), 'groundShadowFilterRadius');
 
     const aaFolder = renderFolder.addFolder(t('renderAA'));
+    tipKey(aaFolder.add(params, 'cloudFrameEnabled').name(t('cloudFrameEnabled')), 'cloudFrameEnabled');
     tipKey(aaFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
     tipKey(aaFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');
 
@@ -676,6 +687,11 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugSharedDetail')] = 8;
     debugOptions[t('debugSharedMacro')] = 9;
     debugOptions[t('debugDensityIntegral')] = 10;
+    debugOptions[t('debugCloudVelocity')] = 11;
+    debugOptions[t('debugCloudValidity')] = 12;
+    debugOptions[t('debugStbnJitter')] = 13;
+    debugOptions[t('debugWorldSkipReason')] = 14;
+    debugOptions[t('debugWorldStepMeters')] = 15;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
     tipKey(debugFolder.add(params, 'sharedFieldDebugSlice', 0, 1, 0.001).name(t('sharedFieldDebugSlice')), 'sharedFieldDebugSlice');
     tipKey(debugFolder.add(params, 'sharedFieldDebugChannel', { R: 0, G: 1, B: 2, A: 3 }).name(t('sharedFieldDebugChannel')), 'sharedFieldDebugChannel');

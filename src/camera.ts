@@ -4,6 +4,7 @@ export interface CameraFrame {
   invViewProj: Float32Array;
   viewProj: Float32Array;
   eye: [number, number, number];
+  discontinuityGeneration?: number;
 }
 
 export interface OrbitCameraOptions {
@@ -55,6 +56,7 @@ export function createOrbitCamera(canvas: HTMLCanvasElement, options: OrbitCamer
   const target: [number, number, number] = [0, 2, 0];
   const smoothTarget: [number, number, number] = [0, 2, 0];
   const up: [number, number, number] = [0, 1, 0];
+  let discontinuityGeneration = 0;
 
   const keys = new Set<string>();
   let isDragging = false;
@@ -170,6 +172,7 @@ export function createOrbitCamera(canvas: HTMLCanvasElement, options: OrbitCamer
       }
     },
     setLookAt(eye, lookTarget) {
+      discontinuityGeneration++;
       target[0] = lookTarget[0];
       target[1] = lookTarget[1];
       target[2] = lookTarget[2];
@@ -247,7 +250,7 @@ export function createOrbitCamera(canvas: HTMLCanvasElement, options: OrbitCamer
       const view = mat4LookAt(eye, smoothTarget, up);
       const viewProj = mat4Multiply(proj, view);
       const invViewProj = mat4Invert(viewProj);
-      return { invViewProj, viewProj, eye };
+      return { invViewProj, viewProj, eye, discontinuityGeneration };
     },
   };
 }
