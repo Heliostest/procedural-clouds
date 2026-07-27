@@ -802,6 +802,23 @@ finalDensity   = monotonic hardening(supportDensity)
 - 分别报告 full-res/TAAU 下 main ray、local light、ground shadow 的增量成本；若 W13 尚未实现，BSM 成本标记 not-applicable，不能推测；
 - detail off 精确回退 W11 基线；W9 final Stop 时 global-only + bounded detail 仍可独立工作。
 
+### 17.6 上游参考来源
+
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.glsl:143-145` — `sampleMedia` shape 段 — `remapClamped(density, (1-shape)*shapeAmounts, 1)`，shape 只抬低端阈值，是「侵蚀只减不增」的实现范式
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.glsl:151-162` — `SHAPE_DETAIL` 段 — detail 经 `pow(detail,6)` / `1-detail` 按高度混成 modifier 后再 remap
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.glsl:134-141` — `TURBULENCE` 段 — 用 turbulence 位移采样坐标，幅值随密度与高度衰减
+- `../../three-geospatial/packages/core/src/shaders/math.glsl:78-91` — `remapClamped`
+- `../../three-geospatial/packages/clouds/src/shaders/cloudShape.frag:41-77` — `getPerlinWorley` / `getWorleyFbm`
+- `../../three-geospatial/packages/clouds/src/shaders/cloudShapeDetail.frag:41-55` — 四级 Worley FBM
+- `../../three-geospatial/packages/clouds/src/shaders/turbulence.frag:26-50` — `curl`
+- `../../three-geospatial/packages/clouds/src/constants.ts:1-9` — shape 128³ / detail 32³ 与预烘焙资产 URL，作为资源契约参照
+- `../../three-geospatial/packages/clouds/src/Procedural3DTexture.ts:54-86` — RedFormat/Linear/Repeat 与逐 layer 切片渲染
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:365-368` — `DensityRemap` — 抬高低端阈值实现减法侵蚀
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:515-595` — `EvaluateCloudProperties` base/detail/侵蚀混合 — billowy/wispy 双阈值、`WispyReach`、`wispyHeightMask=(1-t)^Hardness`、`smoothstep(WispyEdgeWidth)` 做核心 billowy／边缘 wispy 过渡
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:523-531` — `bottomNoiseFade` — 云底 baseShape→1、detail→0
+
+不照搬：four-layer `vec4` 云层上限与全局 weather 通道语义；Unity 纹理绑定与 `_CloudMap*` 资源约定。两者都没有 curl 场以外的额外高频源，本项目不得因此新建第三套噪声纹理（沿用 §17.1 的 W5 复用约束）。
+
 ## 18. W13 — Cascaded Beer Shadow Maps 与云体自阴影
 
 建议 change ID：`add-cascaded-beer-shadow-maps`。该 Wave 借鉴 `three-geospatial` 的 sun-view BSM + temporal resolve 架构，但使用本项目 local planar world、AABB/Body Support 与统一 `densityAtTyped()`。
@@ -863,6 +880,32 @@ sunVisibility         = existing Triple-Beer / approved MS model(totalOpticalDep
 - 质量档必须可关闭 BSM 并回退 local-only；BSM 创建/format/timestamp unavailable 时 reason 可见；
 - 不允许通过提高所有 cascade 到 1024、增加无界 local steps 或降低 W12 detail 来掩盖失败。
 
+### 18.6 上游参考来源
+
+three-geospatial（本 Wave 的主要架构来源）：
+
+- `../../three-geospatial/packages/clouds/src/helpers/splitFrustum.ts:19-58` — `splitFrustum` / `practical` — PSSM uniform∩log 插值与 `splitLambda`
+- `../../three-geospatial/packages/clouds/src/CascadedShadowMaps.ts:70-77`、`144-162`、`189-256` — 默认 `splitMode='practical'`、`splitLambda=0.5`、`fade`；`updateMatrices` 的太阳反向 lookAt、正交投影、texel snap 与 near/far 取法
+- `../../three-geospatial/packages/core/src/shaders/cascadedShadowMaps.glsl:7-79` — `getCascadeIndex` / `getFadedCascadeIndex`
+- `../../three-geospatial/packages/clouds/src/shaders/shadow.frag:64-125` — `marchClouds` — 四通道 payload：R 透射加权 front depth、G 命中样本平均 extinction、B 到 early-out 的累计光学厚度、A early-out 之后的尾部估计（`opticalDepthTailScale * step * exp(1-sampleCount)`）
+- `../../three-geospatial/packages/clouds/src/shaders/shadow.frag:128-165` — `getRayNearFar` / `cascade` — sun-view 反投影与球壳近远
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:172-182` — `readShadowOpticalDepth` — `min(B+A, G * max(0, distanceToTop - offset - R))` 的读取式
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:346-376` — `marchOpticalDepth`；`534-556` 的合成 — 先局部次级 march，再叠 `sampleShadowOpticalDepth(..., sunRayDistance, ...)`，靠 `distanceOffset` 避免近端双重计入
+- `../../three-geospatial/packages/clouds/src/ShadowPass.ts:80-161`、`shaders/shadowResolve.frag:51-65`、`ShadowResolveMaterial.ts:55-60` — 独立 shadow temporal resolve、closest-depth velocity、variance clipping、`temporalAlpha=0.01`
+- `../../three-geospatial/packages/clouds/src/shaders/structuredSampling.glsl:1-4`、`57-101` — `getStructureNormal` / `intersectStructuredPlanes`；`shaders/shadow.frag:44-58` 在 BSM 主循环里的使用 — structured volume sampling 提升低分辨率时域稳定性
+- `../../three-geospatial/packages/clouds/src/qualityPresets.ts:40-119` — cascade 2–3、mapSize 256/512/1024、shadow 迭代 25–50、`minTransmittance`；`shaders/shadow.frag:182-183` 的 cascade mipLevels
+
+HPVolumeCloud（作为「不建 shadow map、纯逐样本 light march」的对照基线）：
+
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:728-827` — `EvaluateSunLuminance` 与 `CONE_*` — 几何级数锥形光步、`extinctionSum=Σσ_tΔs`
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:814-823`（配 `NUM_MULTI_SCATTERING_OCTAVES`）— 三 octave 多重散射：`T=exp(-ext*a^o)`、`L+=T*sun*phase[o]*b^o`，与本项目已有的多散射近似同源（Hillaire 2020）
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:370-375` — `PowderEffect`；低云光步明确不施加（见 `EvaluateSunLuminance` 内注释）、仅高云循环调用
+- 该实现没有 shadow map 或光学厚度缓存，可作为 §18.1「继续只加 `lightMarchSteps`」成本论证的实证
+
+另登记（不属于当前任何 Wave 的已批准范围，仅记录来源）：HPVolumeCloud 的 phi_fwd 各向同性多重散射加性项——`HP_PHIFWD_*` 常量、`HP_EvaluateHpHpPhiFwdTopHeightProxy`、`HP_EvaluateHpHpPhiFwdBoundaryLight`、光步内的 Q_eff 累加与 `EvaluateCloud` 中的加性注入，以及 `../../HPVolumeCloud/Docs/PhiFwd_FromRTE.md` 的 RTE→扩散近似→Helmholtz 格林函数推导。它与 BSM 正交（BSM 解决长程方向性遮挡，phi_fwd 解决厚云内部与云底的各向同性漫射）；若将来要采纳必须另立独立 OpenSpec change，不得在 W13/W14 里顺手实现。
+
+不照搬：ECEF/地心球壳求交与行星半径假设（`bottomRadius`、`raySphere*Intersection(..., vec3(0), ...)`）、Three.js `Pass`/`RawShaderMaterial` 生命周期、Unity HDRP 的 `_EarthRadius` + `positionPS = WS+(0,R,0)` 球壳几何。
+
 ## 19. W14 — 大气辐照度、Aerial Composition 与 Light Shafts
 
 建议 change ID：`integrate-atmosphere-cloud-lighting`。本 Wave 修改 `cloud-lighting`/`cloud-rendering`，不修改 Density Recipe。
@@ -912,6 +955,23 @@ LUT 尺寸、格式、预计算次数与内存上限必须由 OpenSpec/Spike 固
 - 无重复 aerial、重复 gamma、过曝太阳边、黑色远雾、天空接缝或 camera-height discontinuity；
 - Provider off/failed 能回到 W13 视觉基线；完整地球/全球天气仍不进入本路线。
 
+### 19.5 上游参考来源
+
+- `../../three-geospatial/packages/atmosphere/src/constants.ts:8-21` — transmittance 256×64、scattering 256×128×32、irradiance 64×16 与 `METER_TO_LENGTH_UNIT`
+- `../../three-geospatial/packages/atmosphere/src/AtmosphereParameters.ts:97-110`、`194-199` — 半径参数与米→km 的 uniform 转换
+- `../../three-geospatial/packages/atmosphere/src/PrecomputedTexturesGenerator.ts:597-716` — `precompute` — transmittance → direct irradiance → single scattering → 2–4 阶多重散射的预计算顺序
+- `../../three-geospatial/packages/atmosphere/src/shaders/bruneton/runtime.glsl:253-371` — `GetSkyRadianceToPoint`（含 shadow_length 形参）；`373-410` — `GetSunAndSkyIrradiance` / `GetSunAndSkyScalarIrradiance`（云用、省略 cosine 项）
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.vert:46-78` — 顶点阶段预采样 ground/min/max 高度的 sun+sky irradiance
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:438-445` — `getCloudsSunSkyIrradiance` — accurate 模式逐样本查 LUT，否则按高度 lerp 顶点缓存
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:558-576` — sun×多散射近似 + sky×`skyLightScale`
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:701-715` — `applyAerialPerspective`；`599-615` 的透射加权 frontDepth — 印证本项目「先 cloud overlay resolve、再做 aerial」的顺序
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:384-405` — `EvaluateEnvironmentLighting` — SH9 上下半球 × AmbientTop/Bottom 与双叶 HG
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:920-936` — `EvaluateCloud` 的 ambient/AO 段 — `upwardAO=exp(-lightOD·sinElev·AOScale)`、云底用 `(1-height)`
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:1187-1193` — 高云 sky blend
+- 该实现**没有** aerial perspective / atmosphere inscatter-transmittance（注释说明官方 `EvaluateSunColorAttenuation`、`EvaluateFinalTransmittance` 被省略，见 `393`、`419-422`），因此 W14 的 aerial 部分只能以 three-geospatial 为参考
+
+不照搬：Bruneton LUT 的行星半径参数空间与 ECEF 原点、`GetSkyRadianceToPoint` 的椭球/大气顶假设、HDRP 的 `SampleSH9(_VolumetricCloudsAmbientProbeBuffer)` 与 `GetCurrentExposureMultiplier()` 环境接入方式。
+
 ## 20. W15 — Fiber 家族迁移
 
 建议 change ID：`add-density-v2-fiber-family`。这是旧 W10，后移到 sampling/detail/lighting 基础设施稳定之后。W8 必须已有明确终态记录；W9 final disposition=Continue/Stop 必须固化成该 proposal 的输入，而不是运行时猜测。
@@ -939,6 +999,14 @@ LUT 尺寸、格式、预计算次数与内存上限必须由 OpenSpec/Spike 固
 - Cached 主骨架不退化为矩形/粗条，Hybrid 分叉不在空区造云；
 - rotation、wind、LOD、brick allocation 与 TAAU 中无相位跳变或 screen lock；
 - density/renderer detail/BSM/Optical 各层预算独立，关闭任一层可诊断回退。
+
+### 20.4 上游参考来源
+
+- three-geospatial：**无**专门的纤维/丝缕形态实现。其高层卷云是 weather 通道 `b` 上的层（默认约 7500–8000m），见 `../../three-geospatial/packages/clouds/src/CloudLayers.ts:30-68`；因此 Fiber 不能指望上游给出现成形态算子。
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:621-700` — `EvaluateHighCloudDensity` — 高空云完全不用 3D base/detail，改用 2D cell + warp + wisp 的减法组合（`hiBase*cell - hiWisp*str*type`），是低成本丝缕/卷云轮廓的可借鉴范式
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:835-874` — `EvaluateSunLuminanceHighCloud` — 配合独立的高云光照循环
+
+不照搬：把高云降级成纯 2D 图层的做法与本项目按云属 Recipe 的三维 Support 语义冲突，只借鉴「用 warp+减法而非高频 3D detail 构造丝缕」的思路。
 
 ## 21. W16 — Convective 家族迁移
 
@@ -980,6 +1048,14 @@ Conservative Support
 - 单个复杂 Cb、Cu/Cb overlap 和十属同场景不突破 proposal 固化的显存、sample、cloud/BSM/cache GPU 预算；
 - Legacy Cu/Cb 回退和已迁移八属均无回归。
 
+### 21.4 上游参考来源
+
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:553-595` — `EvaluateCloudProperties` 中按 Cu/Tcu/Cb 插值 `detailStrength`、billowy 与 wispy 双阈值、`smoothstep(WispyEdgeWidth)` 的核心/边缘过渡
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:464-475` — Sc 的 `scStr`/`scCell` 驱动 coverage×cell 与独立 `_HP_ScDetailStr`
+- `../../three-geospatial/packages/clouds/src/CloudLayer.ts:42-55`、`CloudLayers.ts:30-68`、`DensityProfile.ts:5-11`、`shaders/clouds.glsl:68-110` — `shapeAlteringFunction` / `getLayerDensity` — 作为**差异对照**：上游是「全球 4 通道 weather + 共享噪声 atlas + Bruneton 式高度剖面参数」，没有云属/实例 Recipe，也没有离散云对象语义
+
+不照搬：4 层 RGBA 全局壳层建模；本项目保持按 Body 的离散云对象与 Recipe。
+
 ## 22. W17 — Quality Presets、GPU 调优与可选 Occupancy
 
 建议 change ID：`tune-cloud-quality-presets-and-gpu`。这是旧 W12 GPU tuning 的后移；只在 W10A、W10B 与 W11–W16 pass/resource contract 稳定后执行。
@@ -1016,6 +1092,8 @@ W10B 后先看 `support skip / coarse probe / detailed hit / light hit` 计数�
 
 若进入：GPU 生成 max-density/occupancy mip，HDDA 循环固定上限，false-negative fixture 必须包含薄层、ripple、Fiber、Anvil、candidate overflow 和 storage fallback。occupied-tile compaction、indirect dispatch、subgroup 仍需独立 timing 证明，不自动随 HDDA 引入。
 
+两个只读参考实现都**没有** occupancy 纹理、volume min-max mip 或 HDDA（three-geospatial 的 `MinMaxLevelsNode` 只服务 epipolar shadow length，不服务云体积）。这支持本节「occupancy 只按证据进入」的既有结论，不能把上游缺位误读成「必须补齐」。
+
 ### 22.4 集成重校准与 Gate
 
 - 重新校准 density threshold、extinction、Triple-Beer、phase、silver、SSS、sun/sky intensity、aerial、exposure、Bloom 与 shaft；每次只改变一层并保留 A/B；
@@ -1023,6 +1101,17 @@ W10B 后先看 `support skip / coarse probe / detailed hit / light hit` 计数�
 - 每个 preset 完成单体十属、overlap、十属同场景、complex Cb、camera motion、sun motion、wind、resize 和 device loss；
 - 报告 cache/shared/brick、cloud current、TAAU resolve、BSM producer/resolve、composite/Bloom/post、显存与 pipeline create；
 - 不以单台高端 GPU 达标替代至少一个集成 GPU/移动级目标；若设备不足，状态为 unresolved，不能写 portable pass。
+
+### 22.5 上游参考来源
+
+- `../../three-geospatial/packages/clouds/src/qualityPresets.ts:6-121` — low/medium/high/ultra 如何联动关闭 lightShafts/shapeDetail/turbulence 并调整迭代、步长、透射阈值、cascade 与 mapSize
+- `../../three-geospatial/packages/clouds/src/uniforms.ts:17-216` — 跨 pass uniform 汇总的组织方式
+- `../../three-geospatial/packages/clouds/src/CloudsPass.ts:207-210` — temporal upscale 时 current pass 取 1/4 分辨率
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.frag:517-523` — 空 weather 时拉长步长，且注释自认会产生 banding
+- `../../three-geospatial/packages/clouds/src/shaders/clouds.glsl:57-60` — `insideLayerIntervals` — 层间隙跳过
+- `../../HPVolumeCloud/VolumetricClouds.hlsl:968-1011` — `HPTraceVolumetricRay` 步长决定（`stepLarge=min(totalDist/N, absDist/8, slabCap)`、`stepSmall=0.25*large`）；`1015-1085` simpleMode 探测式空跳；光步 mip 偏移见 `779-780`；`transmittance < 0.003` 早退见 `1078`
+
+不照搬：把某一档预设常量当成跨设备事实；上游的分辨率缩放绑定在 postprocessing 的 `Resolution` 对象上。
 
 ## 23. W18 — 默认切换、最终证据与收尾
 
@@ -1068,6 +1157,16 @@ W10B 后先看 `support skip / coarse probe / detailed hit / light hit` 计数�
 - V2 在目标设备矩阵上没有依靠 Legacy 才能达标的云属；
 - W9 final Stop 时，没有代码错误地假定 hierarchical resources 必然存在；
 - 删除后 renderer 仍只依赖版本化 `DensityCacheProducer`、`CloudFrameOutput` 与 Atmosphere provider 契约，不直接依赖具体 Adapter。
+
+### 23.5 上游参考来源（分发前第三方归属清单）
+
+分发前必须落实以下第三方归属（许可义务，不是可选项）：
+
+- `../../HPVolumeCloud/LICENSE` — MIT **加附加署名要求**：任何使用/修改/再分发（含并入其它项目）都必须可见署名 "HanPi Volume Cloud" / AshenOneArt 并附链接 `https://github.com/AshenOneArt/HPVolumeCloud`，可放 README、文档、credits 或随产品分发的第三方声明文件；另外其部分内容派生自 Unity HDRP，须同时遵守 Unity/HDRP 许可（见 `../../HPVolumeCloud/README.md` 的 Third-Party Notice）
+- `../../three-geospatial/packages/clouds/LICENSE`（MIT）与 `../../three-geospatial/packages/atmosphere/LICENSE`（MIT + Bruneton BSD-3 等）
+- 内嵌第三方来源：TileableVolumeNoise / Sébastien Hillaire（`packages/clouds/src/shaders/cloudShapeDetail.frag` 顶部注释）、Eric Bruneton 与 INRIA 的 Precomputed Atmospheric Scattering（`packages/atmosphere/src/shaders/bruneton/definitions.glsl` 顶部与 `packages/atmosphere/LICENSE`）、three-csm / vtHawk（`packages/clouds/src/CascadedShadowMaps.ts` 顶部）、MJP 的 Catmull-Rom 采样（`packages/clouds/src/shaders/catmullRomSampling.glsl` 顶部）、huwb volsample（`packages/clouds/src/shaders/structuredSampling.glsl` 顶部）
+
+只要移植了算法或改写了 shader 片段，就必须在本项目内保留对应来源与许可注释；W18 的收尾必须核对这份清单。
 
 ## 24. 每个 Wave 的提交与验证规则
 
@@ -1260,7 +1359,8 @@ W1–W7 与 W10A/W10B 均已按项目所有者决定归档；其中 W7 以 35/47
 - `docs/cloud-morphology-and-density-family-discussion.md`
 - `docs/云属分类与数学建模技术手册 - Table 1.csv`
 - `docs/roadmap-v2.md` 阶段 11–14
-- `../../three-geospatial/` 的云渲染实现（仅作行为与架构参考；进入实现前另做许可证/来源核验）
+- `../../three-geospatial/` 的 `packages/clouds` 与 `packages/atmosphere`（仅作行为与架构参考；进入实现前另做许可证/来源核验）
+- `../../HPVolumeCloud/`（HanPi Volume Cloud，MIT + 附加署名要求，含 Unity HDRP 派生部分；phi_fwd 推导见 `Docs/PhiFwd_FromRTE.md`；仅作行为与架构参考；进入实现前另做许可证/来源核验）
 - `openspec/specs/cloud-morphology/spec.md`
 - `openspec/specs/cloud-rendering/spec.md`
 - `openspec/specs/cloud-params/spec.md`

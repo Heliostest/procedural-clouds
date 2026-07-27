@@ -89,6 +89,28 @@ Frozen: resize / device-loss / producer-generation invalidation。
 
 在 `src/params.ts` / GUI 暴露至少：`temporalQuality`（或 `taauEnabled`）、既有 `taaEnabled`/`taaBlend`、reactive/disocclusion 阈值（可先内部常量 + HUD 暴露）。HUD/stats 增加：phase index、current 分辨率、history 字节、rejection 比率、current/resolve/composite/总 GPU timing。文档与 HUD MUST NOT 把 1/16 texel 误写成“像素数只降到 1/4”。
 
+## 上游参考与差异
+
+W11 的 4×4 Bayer TAAU 架构参考 `../../three-geospatial/packages/clouds/`（MIT）。具体来源：
+
+- `src/bayer.ts:3-21` — 16 项 `bayerIndices` 与 `bayerOffsets` subpixel offset 推导
+- `src/shaders/cloudsResolve.frag:161-168` — `TEMPORAL_UPSCALE` 分支（`lowResCoord = coord / 4`、`bayerValue == frame % 16` 决定本帧直写 current、其余走 `prevUv = vUv - velocity` 重投影）
+- `src/shaders/cloudsResolve.frag:49-61` — `getClosestFragment` 的 3×3 最近深度选 velocity
+- `src/shaders/cloudsResolve.frag:63-118` — `temporalUpscale`；`120-152` — `temporalAntialiasing` 的 full-res 分支
+- `src/shaders/varianceClipping.glsl` — variance clipping
+- `src/CloudsResolveMaterial.ts` 与 `src/CloudsPass.ts` — 两模式资源与切换（含 `temporalUpscale` 时 current 取 1/4 分辨率）
+- `src/qualityPresets.ts` — 分档
+
+许可与移植边界：优先移植算法与资源契约到 WebGPU/WGSL；若直接改写 shader 片段，必须在本项目文件内保留上游 MIT 与来源注释。
+
+本 change 刻意偏离上游之处：
+
+1. 上游 resolve 只做视口越界 rejection；W11 额外要求 depth / derived opacity / generation / camera-cut rejection 与 reactive/disocclusion mask。
+2. 上游把 depth 与 velocity 打包进同一 buffer 的 rgb 通道；W11 沿用 W10A 已冻结的 `depthVelocity` 语义，不得新增第二种 attachment 语义。
+3. 上游注释自认「大 varianceGamma 会增加 ghosting，但云上不太看得出来」（`cloudsResolve.frag:95-97`）；W11 把稀薄云 smearing 列为高风险并要求固定 case 验证，不接受这种取舍。
+4. 上游 `textureCatmullRom` 在 resolve 中已被注释掉、退回双线性（`cloudsResolve.frag:98-99`）；W11 若考虑更高阶 history 采样必须自带证据。
+5. 上游绑定 Three.js `Pass`/`postprocessing` 的 `Resolution` 与 ECEF 世界；W11 使用本项目的 WebGPU 管线与本地平面世界。
+
 ## Risks / Trade-offs
 
 - 稀薄云 history smearing → 固定 case：sparse Ci/Cs、Cc ripple、cloud/sky edge、cloud/ground overlap、快速相机 yaw；debug：normal / raw density / transmittance / depth / velocity / history rejection / phase。
