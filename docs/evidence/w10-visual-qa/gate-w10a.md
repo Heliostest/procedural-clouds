@@ -3,8 +3,8 @@
 - Evidence: `docs/evidence/w10-visual-qa/`
 - Revision: `bd266eb` (HEAD); runtimeSourceMatchesHead=true (src/shaders clean; docs/OpenSpec dirty)
 - OpenSpec: `refactor-cloud-frame-output` (retrospective)
-- Decision: **REVIEW / PENDING**
-- Formal Continue: **NO**
+- Decision: **CONTINUE (owner-approved 2026-07-27)**
+- Formal Continue: **YES (owner decision; visual/performance evidence owner-waived)**
 
 ## Verdict
 
@@ -18,7 +18,7 @@
 | Feature-off fallback API | PASS | path=combined-feature-off |
 | Steady median/p90 evidence | PASS (completeness) | ≠ performance Gate |
 | Performance Gate | UNABLE | 数据可用 ≠ 性能 Gate 通过 |
-| Gate | **REVIEW** | not Continue |
+| Gate | **CONTINUE (owner-approved)** | owner decision 2026-07-27; not measured-equivalent PASS |
 
 ## Shared matrix (`visual-review.json`)
 
@@ -26,4 +26,10 @@
 
 ## Owner decision
 
-Continue / REVIEW / Stop. Owner visual signoff remains PENDING.
+- Date: 2026-07-27
+- Disposition: **Continue** — archive `refactor-cloud-frame-output` (owner-approved)
+- Owner-waived (非实测通过):
+  - owner visual approval
+  - steady-state GPU median/p90 作为性能 Gate
+  - resize / camera-cut / device-loss 与 depth/velocity 的像素级证明
+- Note: W9 hierarchical-bricks disposition 仍为 pending；本 Continue 不依赖也不改写 W9 final disposition（owner 豁免该前置）

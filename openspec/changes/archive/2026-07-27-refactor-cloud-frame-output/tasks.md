@@ -15,7 +15,7 @@
 
 - [x] 3.1 Package visual QA evidence under `docs/evidence/w10-visual-qa/`
 - [x] 3.2 Write independent Gate report `gate-w10a.md` with REVIEW/PENDING (not Continue)
-- [ ] 3.3 Owner visual approval
-- [ ] 3.4 Steady-state GPU median/p90 for current/resolve/composite
-- [ ] 3.5 Owner Gate disposition Continue/Stop/Review
-- [ ] 3.6 Archive only after owner Continue (out of scope for this pass)
+- [x] 3.3 Owner visual approval (owner-waived 2026-07-27)
+- [x] 3.4 Steady-state GPU median/p90 for current/resolve/composite (owner-waived 2026-07-27; completeness ≠ performance Gate)
+- [x] 3.5 Owner Gate disposition Continue/Stop/Review (owner-approved Continue 2026-07-27)
+- [x] 3.6 Archive only after owner Continue (owner-approved archive 2026-07-27)

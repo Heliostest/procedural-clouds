@@ -212,3 +212,64 @@ Cached source closure SHALL 只包含双缓存采样及必要 edge shaping；Hyb
 - **WHEN** Cached/Hybrid bundle 隔离完成且质量参数与 W1 相同
 - **THEN** 系统 MUST NOT 因架构拆分增加 density texture 数、cloud render pass 数、ground-shadow pass 数或 raymarch/light-march 上限
 
+### Requirement: Full-resolution Cloud-only Composite
+
+当 `CloudFrameOutput` 可用时，渲染管线 SHALL 先积分云介质到 cloud-only 附件，再由 full-resolution composite 唯一执行 `cloudRadiance + T * background`。天空/地面解析背景 MUST NOT 写入 cloud temporal history 颜色；gizmo/axis/debug line SHALL 在 cloud temporal resolve 之后叠加。Bloom、tonemap 与既有 full-resolution TAA resolve 的相对顺序 MUST 保持可回退，且 MUST NOT 对 cloud-only radiance 与最终 LDR 输出重复 tonemap。
+
+#### Scenario: History 不含天空地面
+
+- **WHEN** cloud-frame 路径 active 且 TAA 启用
+- **THEN** 进入 cloud temporal history 的颜色 SHALL 来自 cloud-only 积分结果，MUST NOT 烘焙天空、地面或 debug line
+
+#### Scenario: Composite 唯一合成
+
+- **WHEN** full-resolution composite 执行
+- **THEN** 最终场景色 SHALL 按 `cloudRadiance + T * background` 合成一次，MUST NOT 在 cloud current 内提前完成等价合成后再次按 opacity 混合
+
+### Requirement: Cloud-frame Feature-off 与 Emergency Fallback 路由
+
+系统 SHALL 区分：(1) 显式 feature-off 的旧 combined 基线；(2) `CloudFrameOutput` full-res cloud-only + temporal resolve 的 W11 feature-off 真值路径；(3) MRT/capability 失败时的 legacy combined emergency fallback。Emergency fallback MUST 禁用依赖 `CloudFrameOutput` 的 W11/TAAU 输入，不得把 combined 输出伪装成 cloud-only attachment。
+
+#### Scenario: Feature-off 基线
+
+- **WHEN** 用户关闭 cloud-frame 功能
+- **THEN** 系统 SHALL 使用 combined-feature-off 基线路径，并在诊断中报告该 active path
+
+#### Scenario: Emergency 禁用 W11 输入
+
+- **WHEN** 仅 emergency combined fallback 可用
+- **THEN** 系统 MUST NOT 向 TAAU/W11 消费者提供伪装的 `CloudFrameOutput`
+
+### Requirement: 世界尺度主 Raymarch 与保守 Skip
+
+主云 raymarch SHALL 支持 world-step 模式：以米制 min/max step 与 max ray distance 驱动沿射线推进，`maxPrimaryIterations` 仅作安全上限。主循环顺序 SHALL 为：ray/AABB → 公开 Body Support 保守 hard reject → 可选 valid/complete candidate 保守 hard reject → step envelope →（可选）envelope 内 coarse hint → 推进/命中细化 → `densityAtTyped` → 既有 lighting/integration → transmittance 早停。global coarse 单点采样 MUST NOT 单独判空或放大超出已证明 envelope 的步长。W10B 全部关闭时 MUST 精确回到 W10A fixed-step + IGN/Halton full-resolution 基线。
+
+#### Scenario: World-step 激活
+
+- **WHEN** `worldStepEnabled` 且路径就绪
+- **THEN** 诊断 SHALL 报告 `worldStepActive=true`，并提供平均/最大世界步长与 primary iterations 计数
+
+#### Scenario: Support hard reject 保守
+
+- **WHEN** 公开 Body Support 证明射线区间为空
+- **THEN** 系统 MAY hard reject 该区间；false-negative（拒绝实心区间）MUST 为 0（由 fixture 约束）
+
+#### Scenario: Feature-off 回退 fixed-step
+
+- **WHEN** world-step 关闭
+- **THEN** primary iterations SHALL 回到固定步数基线，平均世界步长诊断可为 0
+
+### Requirement: Raymarch 子功能独立开关
+
+world-step、Support skip、candidate skip、coarse hint 与 STBN SHALL 可独立开关。关闭单项 MUST 回到其下层基线；candidate invalid、global-only、Legacy 或 W9 hierarchical inactive 时 MUST NOT 触碰无效 candidate buffer。
+
+#### Scenario: 单独关闭 Support skip
+
+- **WHEN** world-step 启用但 Support skipping 关闭
+- **THEN** 系统 SHALL 保持 world-step，且诊断报告 `worldStepSupportSkipping=false`
+
+#### Scenario: Candidate 不可用时不读取
+
+- **WHEN** active storage 为 global-only 或 candidate invalid
+- **THEN** 系统 MUST NOT 依赖 candidate buffer 做 hard reject
+

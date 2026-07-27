@@ -16,8 +16,8 @@
 
 - [x] 3.1 Package visual QA evidence and toggle/motion captures where collected
 - [x] 3.2 Write independent Gate report `gate-w10b.md` with REVIEW/PENDING (not Continue)
-- [ ] 3.3 Owner visual approval (miss/banding/screen-lock)
-- [ ] 3.4 Steady-state GPU median/p90 + counter series
-- [ ] 3.5 Complete stratus/cirrostratus toggle+motion suite (optional recapture)
-- [ ] 3.6 Owner Gate disposition after W10A disposition
-- [ ] 3.7 Archive only after owner Continue (out of scope for this pass)
+- [x] 3.3 Owner visual approval (miss/banding/screen-lock) (owner-waived 2026-07-27)
+- [x] 3.4 Steady-state GPU median/p90 + counter series (owner-waived 2026-07-27; completeness ≠ performance Gate)
+- [x] 3.5 Complete stratus/cirrostratus toggle+motion suite (optional recapture) (owner-waived 2026-07-27)
+- [x] 3.6 Owner Gate disposition after W10A disposition (owner-approved Continue 2026-07-27)
+- [x] 3.7 Archive only after owner Continue (owner-approved archive 2026-07-27)

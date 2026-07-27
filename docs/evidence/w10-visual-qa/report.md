@@ -6,7 +6,8 @@
 | Screenshots (local, gitignored) | 110 — `screenshot-manifest.json` |
 | Visual Gate | **UNABLE** |
 | Performance Gate | **UNABLE**（稳态 median/p90 已采 ≠ Gate 通过） |
-| W10A / W10B | **REVIEW / PENDING** — not Continue |
+| W10A / W10B | **CONTINUE (owner-approved 2026-07-27)** — visual/performance evidence owner-waived |
+| Owner disposition | 2026-07-27 Continue+archive both changes; UNABLE/OBSERVATION 事实保留；W9 disposition 仍 pending |
 | Runtime provenance | HEAD `bd266eb`; runtimeSourceMatchesHead=true; gitDirty=true（docs/OpenSpec）；src/shaders clean |
 
 ## UNABLE (13)

@@ -3,8 +3,8 @@
 - Evidence: `docs/evidence/w10-visual-qa/`
 - Revision: `bd266eb` (HEAD); runtimeSourceMatchesHead=true
 - OpenSpec: `add-world-scale-cloud-raymarch` (retrospective; depends on W10A)
-- Decision: **REVIEW / PENDING**
-- Formal Continue: **NO**
+- Decision: **CONTINUE (owner-approved 2026-07-27)**
+- Formal Continue: **YES (owner decision; visual/performance evidence owner-waived)**
 
 ## Verdict
 
@@ -17,7 +17,7 @@
 | Coarse-hint independent toggle | UNABLE | no CloudParams field |
 | Steady median/p90 evidence | PASS (completeness) | ≠ performance Gate |
 | Performance Gate | UNABLE | 数据可用 ≠ 性能 Gate 通过 |
-| Gate | **REVIEW** | not Continue |
+| Gate | **CONTINUE (owner-approved)** | owner decision 2026-07-27; not measured-equivalent PASS |
 
 ## Shared matrix
 
@@ -25,4 +25,10 @@
 
 ## Owner decision
 
-Continue / REVIEW / Stop after W10A disposition.
+- Date: 2026-07-27
+- Disposition: **Continue** — archive `add-world-scale-cloud-raymarch` (owner-approved; after W10A owner Continue)
+- Owner-waived (非实测通过):
+  - owner visual approval（miss / banding / screen-lock）
+  - steady-state GPU median/p90 与 counter series 作为性能 Gate
+  - stratus / cirrostratus toggle+motion 完整套件
+- Note: W9 hierarchical-bricks disposition 仍为 pending；本 Continue 不依赖也不改写 W9 final disposition（owner 豁免该前置）
