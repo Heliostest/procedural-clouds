@@ -1,0 +1,24 @@
+[
+  {
+    "sceneId": "single-stratus",
+    "caseId": "w6--single-stratus--recipe-v2--cached--normal",
+    "storage": null,
+    "note": "no hierarchical/global-only storage field; recipe-v2 cached normal"
+  },
+  {
+    "sceneId": "single-cirrostratus",
+    "caseId": "w7--single-cirrostratus--recipe-v2--cached--normal",
+    "storage": null,
+    "note": "no hierarchical/global-only storage field; recipe-v2 cached normal"
+  },
+  {
+    "sceneId": "single-stratocumulus",
+    "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+    "storage": "hierarchical"
+  },
+  {
+    "sceneId": "single-cirrocumulus",
+    "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+    "storage": "hierarchical"
+  }
+]

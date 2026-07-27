@@ -1,0 +1,2206 @@
+{
+  "gate": "W10 independent visual QA",
+  "rebuiltAt": "2026-07-26T05:41:19.309Z",
+  "gateVerdict": "REVIEW/PENDING",
+  "formalContinue": false,
+  "revisionNote": "Hardcoded A/B pixel PASS removed. Debug/motion are artifact-completeness only. Screenshots gitignored; see screenshot-manifest.json. Roadmap hard rows split auto-contract vs UNABLE visual.",
+  "screenshotPolicy": "Local PNGs are not repository-committable evidence. SHA256 inventory only; not visual PASS.",
+  "screenshotManifest": {
+    "path": "screenshot-manifest.json",
+    "count": 110
+  },
+  "baseUrl": "http://127.0.0.1:5174/procedural-clouds/?benchmark=1",
+  "preflight": {
+    "build": "PASS",
+    "typecheck": "PASS",
+    "test:w10a-cloud-frame": "PASS",
+    "test:w10b-world-raymarch": "PASS",
+    "test:w10b-raymarch": "PASS",
+    "smoke:w10": "PASS"
+  },
+  "caseSelection": [
+    {
+      "sceneId": "single-stratus",
+      "caseId": "w6--single-stratus--recipe-v2--cached--normal",
+      "storage": null,
+      "note": "no hierarchical/global-only storage field; recipe-v2 cached normal"
+    },
+    {
+      "sceneId": "single-cirrostratus",
+      "caseId": "w7--single-cirrostratus--recipe-v2--cached--normal",
+      "storage": null,
+      "note": "no hierarchical/global-only storage field; recipe-v2 cached normal"
+    },
+    {
+      "sceneId": "single-stratocumulus",
+      "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+      "storage": "hierarchical"
+    },
+    {
+      "sceneId": "single-cirrocumulus",
+      "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+      "storage": "hierarchical"
+    }
+  ],
+  "captureHistory": {
+    "firstCaptureLog": "capture.log",
+    "firstCaptureResult": {
+      "captured": 40,
+      "errors": [
+        "missing case for single-stratus",
+        "missing case for single-cirrostratus"
+      ],
+      "note": "Initial selector required storage===hierarchical|global-only; W6/W7 cases have no storage field."
+    },
+    "recaptureLog": "capture-stratus.log",
+    "recaptureResult": {
+      "captured": 8,
+      "errors": [],
+      "note": "Modes A–D only for stratus/cirrostratus; no skip/motion/debug for those scenes in that run."
+    },
+    "scriptPolicy": {
+      "modesABCD": "all selected scenes",
+      "skipAndMotion": "all selected scenes",
+      "debugViews": "only single-stratocumulus and single-cirrocumulus",
+      "captureIndex": "Owned by capture-w10-visual.mjs: each run writes capture-runs/<iso>.json then merges by stem into capture-index.json (never wipe). build-visual-review writes capture-disk-inventory.json only and MUST NOT overwrite capture-index.json."
+    },
+    "full4CaptureLog": "capture-full4.log",
+    "note": "Local PNGs are gitignored (docs/evidence/.gitignore screenshots/). Inventory is screenshot-manifest.json (name/size/sha256). Hash ≠ visual PASS."
+  },
+  "captureIndexSummary": {
+    "path": "capture-index.json",
+    "role": "capture-provenance-index",
+    "resultCount": 70,
+    "policy": {
+      "modesABCD": "all selected scenes",
+      "skipAndMotion": "all selected scenes",
+      "debugViews": "stratocumulus + cirrocumulus only",
+      "indexMerge": "merge by stem into capture-index.json; never silent wipe",
+      "owner": "capture-w10-visual.mjs",
+      "note": "Merges by stem; never wipes prior stems. build-visual-review must only write capture-disk-inventory.json."
+    }
+  },
+  "captureDiskInventorySummary": {
+    "path": "capture-disk-inventory.json",
+    "role": "disk-inventory-only",
+    "resultCount": 70
+  },
+  "pixelDiffSummary": {
+    "status": "OBSERVATION",
+    "note": "PNG maxAbs/changedChannels recorded; threshold not normative; visual equivalence remains UNABLE/owner PENDING",
+    "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+    "threshold": 24,
+    "results": {
+      "stratus": {
+        "status": "PASS",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "threshold": 24,
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 7,
+        "changedChannels": 462798,
+        "totalChannels": 3686400,
+        "shaA": "20ed28bfecd3b15a6c1e9786b89df4e466df760ea71a781d92ba4052bc222f61",
+        "shaB": "714a0c30940f5e5cef8589cd23ee37ffcb61e83f65d21a32a8c739ed50e2fb40",
+        "evidence": [
+          "screenshots/stratus__mode-A__clean.png",
+          "screenshots/stratus__mode-B__clean.png"
+        ]
+      },
+      "cirrostratus": {
+        "status": "PASS",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "threshold": 24,
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 4,
+        "changedChannels": 1421882,
+        "totalChannels": 3686400,
+        "shaA": "56599695991966faeabaabd0ae931bdd374d31efc65a40da9f9a72c605ec441f",
+        "shaB": "9a6e508c3827d3768468d5941e25b387777bf757ac418edf3433fc214cb07b97",
+        "evidence": [
+          "screenshots/cirrostratus__mode-A__clean.png",
+          "screenshots/cirrostratus__mode-B__clean.png"
+        ]
+      },
+      "stratocumulus": {
+        "status": "PASS",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "threshold": 24,
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 12,
+        "changedChannels": 271635,
+        "totalChannels": 3686400,
+        "shaA": "de093eb6449634f7579fe79346cfc765c5c3996c6c4e4848aae7af62257b15f8",
+        "shaB": "39faf88e3c0d05fa8ce5c753b08316ee6da87f06b36c0a472d906d7ae35e57f8",
+        "evidence": [
+          "screenshots/stratocumulus__mode-A__clean.png",
+          "screenshots/stratocumulus__mode-B__clean.png"
+        ]
+      },
+      "cirrocumulus": {
+        "status": "PASS",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "threshold": 24,
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 18,
+        "changedChannels": 216275,
+        "totalChannels": 3686400,
+        "shaA": "6403cf8586b7ffe8deae89e6a7680040193d5b36f86eb4e02e2bbcf3f25e53ec",
+        "shaB": "3da3d11d08b4e83c5da2d617660f9c5cd7a9cc023df38da3513dca8c0531c643",
+        "evidence": [
+          "screenshots/cirrocumulus__mode-A__clean.png",
+          "screenshots/cirrocumulus__mode-B__clean.png"
+        ]
+      }
+    },
+    "evidence": "pixel-diff-ab.json"
+  },
+  "runtimeEvidenceSummary": {
+    "path": "runtime-evidence.json",
+    "revision": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+    "provenance": {
+      "headCommit": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+      "gitDirty": true,
+      "dirtyPaths": [
+        "docs/roadmap-refactor.md",
+        "docs/evidence/w10-visual-qa/",
+        "openspec/changes/add-world-scale-cloud-raymarch/",
+        "openspec/changes/refactor-cloud-frame-output/"
+      ],
+      "srcDirtyPaths": [],
+      "shaderDirtyPaths": [],
+      "runtimeSourceDirty": false,
+      "docsOrOpenspecDirty": true,
+      "runtimeSourceMatchesHead": true,
+      "note": "src/shaders clean vs HEAD; working tree has docs/OpenSpec/other dirty paths only"
+    },
+    "warmupFrames": 30,
+    "sampleCount": 60,
+    "meta": {
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+      "revision": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+      "runtimeSourceMatchesHead": true,
+      "gitDirty": true,
+      "exposedWithdrawnApis": {
+        "markCameraCut": false,
+        "setFixedCanvasSize": false
+      }
+    },
+    "checks": {
+      "depthVelocityCameraMotionApi": "UNABLE",
+      "emptySkyLookApi": "OBSERVATION",
+      "windOrTimeContentRevisionApi": "OBSERVATION",
+      "historyPathOwnershipApi": "OBSERVATION",
+      "resizeDiscontinuityApi": "UNABLE",
+      "featureOffFallbackApi": "PASS",
+      "deviceLossApi": "UNABLE",
+      "pipelineFailureEmergencyApi": "UNABLE",
+      "hardRejectRuntimeSupportToggle": "PASS",
+      "coarseHintIndependentToggle": "UNABLE",
+      "thinRidgeHierarchicalCapture": "PASS",
+      "thinRidgeHierarchicalVisual": "UNABLE"
+    },
+    "note": "Data available ≠ performance Gate pass"
+  },
+  "performanceSamples": {
+    "status": "STEADY_STATE_SAMPLES_NOT_GATE",
+    "note": "Steady median/p90 evidence completeness ≠ performanceGate PASS",
+    "stratocumulus": {
+      "modeA": {
+        "iter": 64,
+        "cloudCurrentMs": 0.8088
+      },
+      "modeC": {
+        "iter": 6.553888888888889,
+        "cloudCurrentMs": 0.741088,
+        "avgStepMeters": 105.73163012831579
+      }
+    },
+    "cirrocumulus": {
+      "modeA": {
+        "iter": 64,
+        "cloudCurrentMs": 0.788928
+      },
+      "modeC": {
+        "iter": 15.014444444444445,
+        "cloudCurrentMs": 0.961504,
+        "avgStepMeters": 102.84523415522092
+      }
+    },
+    "steadystateMedianP90": {
+      "w10a_modeB_cloudFrame_fixed": {
+        "mode": "B",
+        "description": "cloud-frame + fixed-step + IGN/Halton",
+        "available": true,
+        "reason": "",
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 2.18512,
+          "p90": 2.376864,
+          "min": 2.061792,
+          "max": 2.487424
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.005808000000000001,
+          "p90": 0.00656,
+          "min": 0.004736,
+          "max": 0.00688
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.006144,
+          "p90": 0.006464,
+          "min": 0.005312,
+          "max": 0.006784
+        },
+        "deviceInfo": {
+          "adapter": {
+            "vendor": "nvidia",
+            "architecture": "blackwell",
+            "device": "",
+            "description": ""
+          },
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-multi-draw-indirect",
+            "chromium-experimental-timestamp-query-inside-passes",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxStorageBufferBindingSize": 2147483644,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535
+          }
+        }
+      },
+      "w10a_modeA_combined_fixed": {
+        "mode": "A",
+        "description": "combined-feature-off + fixed-step",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 1.91816,
+          "p90": 1.980992,
+          "min": 1.828576,
+          "max": 2.269984
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.008576,
+          "p90": 0.009376,
+          "min": 0.007744,
+          "max": 0.01104
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0,
+          "p90": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "w10b_modeC_world_ign": {
+        "mode": "C",
+        "description": "cloud-frame + world-step + IGN/Halton",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 9.244831999999999,
+          "p90": 9.68112,
+          "min": 8.743488,
+          "max": 10.12288
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.006352,
+          "p90": 0.008032,
+          "min": 0.00528,
+          "max": 0.009312
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.0064,
+          "p90": 0.00736,
+          "min": 0.005216,
+          "max": 0.008064
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.553333333333334,
+          "p90": 6.554166666666666,
+          "min": 6.5488888888888885,
+          "max": 6.554166666666666
+        },
+        "avgStep": {
+          "count": 60,
+          "median": 105.75056140956987,
+          "p90": 105.7575408703661,
+          "min": 105.73163012831579,
+          "max": 105.76329725995855
+        },
+        "coarseHints": {
+          "count": 60,
+          "median": 0,
+          "p90": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "w10b_modeD_world_stbn": {
+        "mode": "D",
+        "description": "cloud-frame + world-step + STBN freeze 7",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 11.391888,
+          "p90": 12.039904,
+          "min": 10.922784,
+          "max": 12.440032
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.00608,
+          "p90": 0.00912,
+          "min": 0.005344,
+          "max": 0.015136
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.005824,
+          "p90": 0.006912,
+          "min": 0.005376,
+          "max": 0.009312
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.636666666666667,
+          "p90": 6.638055555555556,
+          "min": 6.635277777777778,
+          "max": 6.638055555555556
+        }
+      }
+    }
+  },
+  "visualGate": "UNABLE",
+  "performanceGate": "UNABLE",
+  "passCount": 78,
+  "failCount": 0,
+  "unableCount": 13,
+  "observationCount": 9,
+  "rows": [
+    {
+      "id": "stratus__mode-A__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-A__hud.png",
+        "diagnostics/stratus__mode-A.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratus__mode-A__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-A__hud.png",
+        "diagnostics/stratus__mode-A.json"
+      ],
+      "reason": "activePath=combined-feature-off",
+      "observed": {
+        "activePath": "combined-feature-off"
+      }
+    },
+    {
+      "id": "stratus__mode-A__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-A__hud.png",
+        "diagnostics/stratus__mode-A.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratus__mode-B__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-B__clean.png",
+        "screenshots/stratus__mode-B__hud.png",
+        "diagnostics/stratus__mode-B.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratus__mode-B__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-B__clean.png",
+        "screenshots/stratus__mode-B__hud.png",
+        "diagnostics/stratus__mode-B.json"
+      ],
+      "reason": "activePath=cloud-frame",
+      "observed": {
+        "activePath": "cloud-frame"
+      }
+    },
+    {
+      "id": "stratus__mode-B__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-B__clean.png",
+        "screenshots/stratus__mode-B__hud.png",
+        "diagnostics/stratus__mode-B.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratus__A-vs-B-visual-equivalence",
+      "category": "w10a-visual-equivalence",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Owner visual PENDING. PNG maxAbs/changedChannels recorded as OBSERVATION only (threshold=24 has no Gate norm). maxAbs=7; changed=462798/3686400 ratio=0.1255419921875",
+      "policy": "Pixel-diff ≠ visual equivalence PASS; threshold not normative",
+      "maxAbs": 7,
+      "changedChannels": 462798,
+      "totalChannels": 3686400,
+      "changedRatio": 0.1255419921875,
+      "threshold": 24,
+      "shaA": "20ed28bfecd3b15a6c1e9786b89df4e466df760ea71a781d92ba4052bc222f61",
+      "shaB": "714a0c30940f5e5cef8589cd23ee37ffcb61e83f65d21a32a8c739ed50e2fb40"
+    },
+    {
+      "id": "stratus__A-vs-B-png-diff-observation",
+      "category": "w10a-pixel-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Reproducible zlib PNG maxAbs=7; changedChannels=462798/3686400; informal threshold=24 (not Gate PASS)",
+      "maxAbs": 7,
+      "changedRatio": 0.1255419921875,
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel"
+    },
+    {
+      "id": "stratus__mode-C__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-C__clean.png",
+        "screenshots/stratus__mode-C__hud.png",
+        "diagnostics/stratus__mode-C.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratus__mode-C__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-C__clean.png",
+        "screenshots/stratus__mode-C__hud.png",
+        "diagnostics/stratus__mode-C.json"
+      ],
+      "reason": "worldStep active with positive average step meters",
+      "observed": {
+        "worldStepActive": true,
+        "iter": 13.950555555555555,
+        "avgStep": 104.89031717199944,
+        "maxStep": 110
+      }
+    },
+    {
+      "id": "stratus__mode-C__support-skip-flag",
+      "category": "w10b-skip",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-C__clean.png",
+        "screenshots/stratus__mode-C__hud.png",
+        "diagnostics/stratus__mode-C.json"
+      ],
+      "reason": "support skipping requested/active",
+      "observed": {
+        "support": true,
+        "candidate": false
+      }
+    },
+    {
+      "id": "stratus__mode-C__ign-halton",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-C__clean.png",
+        "screenshots/stratus__mode-C__hud.png",
+        "diagnostics/stratus__mode-C.json"
+      ],
+      "reason": "mode C keeps deterministic IGN/Halton",
+      "observed": {
+        "stochastic": "ign-halton"
+      }
+    },
+    {
+      "id": "stratus__mode-D__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-D__clean.png",
+        "screenshots/stratus__mode-D__hud.png",
+        "diagnostics/stratus__mode-D.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratus__mode-D__stbn",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-D__clean.png",
+        "screenshots/stratus__mode-D__hud.png",
+        "diagnostics/stratus__mode-D.json"
+      ],
+      "reason": "STBN active with frozen slice 7",
+      "observed": {
+        "stochastic": "stbn",
+        "frozen": 7
+      }
+    },
+    {
+      "id": "stratus__mode-D__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__mode-D__clean.png",
+        "screenshots/stratus__mode-D__hud.png",
+        "diagnostics/stratus__mode-D.json"
+      ],
+      "reason": "worldStep remains active under STBN",
+      "observed": {
+        "worldStepActive": true
+      }
+    },
+    {
+      "id": "cirrostratus__mode-A__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-A__hud.png",
+        "diagnostics/cirrostratus__mode-A.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__mode-A__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-A__hud.png",
+        "diagnostics/cirrostratus__mode-A.json"
+      ],
+      "reason": "activePath=combined-feature-off",
+      "observed": {
+        "activePath": "combined-feature-off"
+      }
+    },
+    {
+      "id": "cirrostratus__mode-A__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-A__hud.png",
+        "diagnostics/cirrostratus__mode-A.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrostratus__mode-B__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-B__clean.png",
+        "screenshots/cirrostratus__mode-B__hud.png",
+        "diagnostics/cirrostratus__mode-B.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__mode-B__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-B__clean.png",
+        "screenshots/cirrostratus__mode-B__hud.png",
+        "diagnostics/cirrostratus__mode-B.json"
+      ],
+      "reason": "activePath=cloud-frame",
+      "observed": {
+        "activePath": "cloud-frame"
+      }
+    },
+    {
+      "id": "cirrostratus__mode-B__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-B__clean.png",
+        "screenshots/cirrostratus__mode-B__hud.png",
+        "diagnostics/cirrostratus__mode-B.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrostratus__A-vs-B-visual-equivalence",
+      "category": "w10a-visual-equivalence",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Owner visual PENDING. PNG maxAbs/changedChannels recorded as OBSERVATION only (threshold=24 has no Gate norm). maxAbs=4; changed=1421882/3686400 ratio=0.3857101779513889",
+      "policy": "Pixel-diff ≠ visual equivalence PASS; threshold not normative",
+      "maxAbs": 4,
+      "changedChannels": 1421882,
+      "totalChannels": 3686400,
+      "changedRatio": 0.3857101779513889,
+      "threshold": 24,
+      "shaA": "56599695991966faeabaabd0ae931bdd374d31efc65a40da9f9a72c605ec441f",
+      "shaB": "9a6e508c3827d3768468d5941e25b387777bf757ac418edf3433fc214cb07b97"
+    },
+    {
+      "id": "cirrostratus__A-vs-B-png-diff-observation",
+      "category": "w10a-pixel-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Reproducible zlib PNG maxAbs=4; changedChannels=1421882/3686400; informal threshold=24 (not Gate PASS)",
+      "maxAbs": 4,
+      "changedRatio": 0.3857101779513889,
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel"
+    },
+    {
+      "id": "cirrostratus__mode-C__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-C__clean.png",
+        "screenshots/cirrostratus__mode-C__hud.png",
+        "diagnostics/cirrostratus__mode-C.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__mode-C__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-C__clean.png",
+        "screenshots/cirrostratus__mode-C__hud.png",
+        "diagnostics/cirrostratus__mode-C.json"
+      ],
+      "reason": "worldStep active with positive average step meters",
+      "observed": {
+        "worldStepActive": true,
+        "iter": 143.30694444444444,
+        "avgStep": 101.75597153067184,
+        "maxStep": 113
+      }
+    },
+    {
+      "id": "cirrostratus__mode-C__support-skip-flag",
+      "category": "w10b-skip",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-C__clean.png",
+        "screenshots/cirrostratus__mode-C__hud.png",
+        "diagnostics/cirrostratus__mode-C.json"
+      ],
+      "reason": "support skipping requested/active",
+      "observed": {
+        "support": true,
+        "candidate": false
+      }
+    },
+    {
+      "id": "cirrostratus__mode-C__ign-halton",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-C__clean.png",
+        "screenshots/cirrostratus__mode-C__hud.png",
+        "diagnostics/cirrostratus__mode-C.json"
+      ],
+      "reason": "mode C keeps deterministic IGN/Halton",
+      "observed": {
+        "stochastic": "ign-halton"
+      }
+    },
+    {
+      "id": "cirrostratus__mode-D__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-D__clean.png",
+        "screenshots/cirrostratus__mode-D__hud.png",
+        "diagnostics/cirrostratus__mode-D.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__mode-D__stbn",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-D__clean.png",
+        "screenshots/cirrostratus__mode-D__hud.png",
+        "diagnostics/cirrostratus__mode-D.json"
+      ],
+      "reason": "STBN active with frozen slice 7",
+      "observed": {
+        "stochastic": "stbn",
+        "frozen": 7
+      }
+    },
+    {
+      "id": "cirrostratus__mode-D__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__mode-D__clean.png",
+        "screenshots/cirrostratus__mode-D__hud.png",
+        "diagnostics/cirrostratus__mode-D.json"
+      ],
+      "reason": "worldStep remains active under STBN",
+      "observed": {
+        "worldStepActive": true
+      }
+    },
+    {
+      "id": "stratocumulus__mode-A__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-A__hud.png",
+        "diagnostics/stratocumulus__mode-A.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__mode-A__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-A__hud.png",
+        "diagnostics/stratocumulus__mode-A.json"
+      ],
+      "reason": "activePath=combined-feature-off",
+      "observed": {
+        "activePath": "combined-feature-off"
+      }
+    },
+    {
+      "id": "stratocumulus__mode-A__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-A__hud.png",
+        "diagnostics/stratocumulus__mode-A.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratocumulus__mode-B__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-B__clean.png",
+        "screenshots/stratocumulus__mode-B__hud.png",
+        "diagnostics/stratocumulus__mode-B.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__mode-B__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-B__clean.png",
+        "screenshots/stratocumulus__mode-B__hud.png",
+        "diagnostics/stratocumulus__mode-B.json"
+      ],
+      "reason": "activePath=cloud-frame",
+      "observed": {
+        "activePath": "cloud-frame"
+      }
+    },
+    {
+      "id": "stratocumulus__mode-B__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-B__clean.png",
+        "screenshots/stratocumulus__mode-B__hud.png",
+        "diagnostics/stratocumulus__mode-B.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratocumulus__A-vs-B-visual-equivalence",
+      "category": "w10a-visual-equivalence",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Owner visual PENDING. PNG maxAbs/changedChannels recorded as OBSERVATION only (threshold=24 has no Gate norm). maxAbs=12; changed=271635/3686400 ratio=0.07368570963541667",
+      "policy": "Pixel-diff ≠ visual equivalence PASS; threshold not normative",
+      "maxAbs": 12,
+      "changedChannels": 271635,
+      "totalChannels": 3686400,
+      "changedRatio": 0.07368570963541667,
+      "threshold": 24,
+      "shaA": "de093eb6449634f7579fe79346cfc765c5c3996c6c4e4848aae7af62257b15f8",
+      "shaB": "39faf88e3c0d05fa8ce5c753b08316ee6da87f06b36c0a472d906d7ae35e57f8"
+    },
+    {
+      "id": "stratocumulus__A-vs-B-png-diff-observation",
+      "category": "w10a-pixel-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Reproducible zlib PNG maxAbs=12; changedChannels=271635/3686400; informal threshold=24 (not Gate PASS)",
+      "maxAbs": 12,
+      "changedRatio": 0.07368570963541667,
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel"
+    },
+    {
+      "id": "stratocumulus__mode-C__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-C__clean.png",
+        "screenshots/stratocumulus__mode-C__hud.png",
+        "diagnostics/stratocumulus__mode-C.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__mode-C__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-C__clean.png",
+        "screenshots/stratocumulus__mode-C__hud.png",
+        "diagnostics/stratocumulus__mode-C.json"
+      ],
+      "reason": "worldStep active with positive average step meters",
+      "observed": {
+        "worldStepActive": true,
+        "iter": 6.553888888888889,
+        "avgStep": 105.73163012831579,
+        "maxStep": 108
+      }
+    },
+    {
+      "id": "stratocumulus__mode-C__support-skip-flag",
+      "category": "w10b-skip",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-C__clean.png",
+        "screenshots/stratocumulus__mode-C__hud.png",
+        "diagnostics/stratocumulus__mode-C.json"
+      ],
+      "reason": "support skipping requested/active",
+      "observed": {
+        "support": true,
+        "candidate": true
+      }
+    },
+    {
+      "id": "stratocumulus__mode-C__ign-halton",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-C__clean.png",
+        "screenshots/stratocumulus__mode-C__hud.png",
+        "diagnostics/stratocumulus__mode-C.json"
+      ],
+      "reason": "mode C keeps deterministic IGN/Halton",
+      "observed": {
+        "stochastic": "ign-halton"
+      }
+    },
+    {
+      "id": "stratocumulus__mode-D__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-D__clean.png",
+        "screenshots/stratocumulus__mode-D__hud.png",
+        "diagnostics/stratocumulus__mode-D.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__mode-D__stbn",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-D__clean.png",
+        "screenshots/stratocumulus__mode-D__hud.png",
+        "diagnostics/stratocumulus__mode-D.json"
+      ],
+      "reason": "STBN active with frozen slice 7",
+      "observed": {
+        "stochastic": "stbn",
+        "frozen": 7
+      }
+    },
+    {
+      "id": "stratocumulus__mode-D__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__mode-D__clean.png",
+        "screenshots/stratocumulus__mode-D__hud.png",
+        "diagnostics/stratocumulus__mode-D.json"
+      ],
+      "reason": "worldStep remains active under STBN",
+      "observed": {
+        "worldStepActive": true
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-A__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-A__hud.png",
+        "diagnostics/cirrocumulus__mode-A.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__mode-A__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-A__hud.png",
+        "diagnostics/cirrocumulus__mode-A.json"
+      ],
+      "reason": "activePath=combined-feature-off",
+      "observed": {
+        "activePath": "combined-feature-off"
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-A__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-A__hud.png",
+        "diagnostics/cirrocumulus__mode-A.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-B__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-B__clean.png",
+        "screenshots/cirrocumulus__mode-B__hud.png",
+        "diagnostics/cirrocumulus__mode-B.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__mode-B__path",
+      "category": "w10a-path",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-B__clean.png",
+        "screenshots/cirrocumulus__mode-B__hud.png",
+        "diagnostics/cirrocumulus__mode-B.json"
+      ],
+      "reason": "activePath=cloud-frame",
+      "observed": {
+        "activePath": "cloud-frame"
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-B__fixed-step",
+      "category": "w10b-baseline",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-B__clean.png",
+        "screenshots/cirrocumulus__mode-B__hud.png",
+        "diagnostics/cirrocumulus__mode-B.json"
+      ],
+      "reason": "worldStep off; primary iterations=64",
+      "observed": {
+        "worldStepActive": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrocumulus__A-vs-B-visual-equivalence",
+      "category": "w10a-visual-equivalence",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Owner visual PENDING. PNG maxAbs/changedChannels recorded as OBSERVATION only (threshold=24 has no Gate norm). maxAbs=18; changed=216275/3686400 ratio=0.05866834852430555",
+      "policy": "Pixel-diff ≠ visual equivalence PASS; threshold not normative",
+      "maxAbs": 18,
+      "changedChannels": 216275,
+      "totalChannels": 3686400,
+      "changedRatio": 0.05866834852430555,
+      "threshold": 24,
+      "shaA": "6403cf8586b7ffe8deae89e6a7680040193d5b36f86eb4e02e2bbcf3f25e53ec",
+      "shaB": "3da3d11d08b4e83c5da2d617660f9c5cd7a9cc023df38da3513dca8c0531c643"
+    },
+    {
+      "id": "cirrocumulus__A-vs-B-png-diff-observation",
+      "category": "w10a-pixel-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-B__clean.png",
+        "pixel-diff-ab.json"
+      ],
+      "reason": "Reproducible zlib PNG maxAbs=18; changedChannels=216275/3686400; informal threshold=24 (not Gate PASS)",
+      "maxAbs": 18,
+      "changedRatio": 0.05866834852430555,
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel"
+    },
+    {
+      "id": "cirrocumulus__mode-C__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-C__clean.png",
+        "screenshots/cirrocumulus__mode-C__hud.png",
+        "diagnostics/cirrocumulus__mode-C.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__mode-C__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-C__clean.png",
+        "screenshots/cirrocumulus__mode-C__hud.png",
+        "diagnostics/cirrocumulus__mode-C.json"
+      ],
+      "reason": "worldStep active with positive average step meters",
+      "observed": {
+        "worldStepActive": true,
+        "iter": 15.014444444444445,
+        "avgStep": 102.84523415522092,
+        "maxStep": 107
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-C__support-skip-flag",
+      "category": "w10b-skip",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-C__clean.png",
+        "screenshots/cirrocumulus__mode-C__hud.png",
+        "diagnostics/cirrocumulus__mode-C.json"
+      ],
+      "reason": "support skipping requested/active",
+      "observed": {
+        "support": true,
+        "candidate": true
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-C__ign-halton",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-C__clean.png",
+        "screenshots/cirrocumulus__mode-C__hud.png",
+        "diagnostics/cirrocumulus__mode-C.json"
+      ],
+      "reason": "mode C keeps deterministic IGN/Halton",
+      "observed": {
+        "stochastic": "ign-halton"
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-D__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-D__clean.png",
+        "screenshots/cirrocumulus__mode-D__hud.png",
+        "diagnostics/cirrocumulus__mode-D.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__mode-D__stbn",
+      "category": "w10b-stbn",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-D__clean.png",
+        "screenshots/cirrocumulus__mode-D__hud.png",
+        "diagnostics/cirrocumulus__mode-D.json"
+      ],
+      "reason": "STBN active with frozen slice 7",
+      "observed": {
+        "stochastic": "stbn",
+        "frozen": 7
+      }
+    },
+    {
+      "id": "cirrocumulus__mode-D__world-step",
+      "category": "w10b-world-step",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-D__clean.png",
+        "screenshots/cirrocumulus__mode-D__hud.png",
+        "diagnostics/cirrocumulus__mode-D.json"
+      ],
+      "reason": "worldStep remains active under STBN",
+      "observed": {
+        "worldStepActive": true
+      }
+    },
+    {
+      "id": "stratocumulus__skip-support-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__skip-support-off__clean.png",
+        "diagnostics/stratocumulus__skip-support-off.json"
+      ],
+      "reason": "diagnostic flags consistent: support off; iter=28.415277777777778",
+      "observe": {
+        "support": false,
+        "candidate": true,
+        "world": true,
+        "iter": 28.415277777777778
+      }
+    },
+    {
+      "id": "stratocumulus__skip-candidate-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__skip-candidate-off__clean.png",
+        "diagnostics/stratocumulus__skip-candidate-off.json"
+      ],
+      "reason": "diagnostic flags consistent: candidate off; iter=8.05",
+      "observe": {
+        "support": true,
+        "candidate": false,
+        "world": true,
+        "iter": 8.05
+      }
+    },
+    {
+      "id": "stratocumulus__world-step-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__world-step-off__clean.png",
+        "diagnostics/stratocumulus__world-step-off.json"
+      ],
+      "reason": "diagnostic flags consistent: world-step off → fixed 64 iterations",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrocumulus__skip-support-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__skip-support-off__clean.png",
+        "diagnostics/cirrocumulus__skip-support-off.json"
+      ],
+      "reason": "diagnostic flags consistent: support off; iter=44.86833333333333",
+      "observe": {
+        "support": false,
+        "candidate": true,
+        "world": true,
+        "iter": 44.86833333333333
+      }
+    },
+    {
+      "id": "cirrocumulus__skip-candidate-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__skip-candidate-off__clean.png",
+        "diagnostics/cirrocumulus__skip-candidate-off.json"
+      ],
+      "reason": "diagnostic flags consistent: candidate off; iter=15.311944444444444",
+      "observe": {
+        "support": true,
+        "candidate": false,
+        "world": true,
+        "iter": 15.311944444444444
+      }
+    },
+    {
+      "id": "cirrocumulus__world-step-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__world-step-off__clean.png",
+        "diagnostics/cirrocumulus__world-step-off.json"
+      ],
+      "reason": "diagnostic flags consistent: world-step off → fixed 64 iterations",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratus__skip-support-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__skip-support-off__clean.png",
+        "diagnostics/stratus__skip-support-off.json"
+      ],
+      "reason": "diagnostic flags consistent: support off; iter=258.65777777777777",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": true,
+        "iter": 258.65777777777777
+      }
+    },
+    {
+      "id": "stratus__skip-candidate-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__skip-candidate-off__clean.png",
+        "diagnostics/stratus__skip-candidate-off.json"
+      ],
+      "reason": "diagnostic flags consistent: candidate off; iter=14.08361111111111",
+      "observe": {
+        "support": true,
+        "candidate": false,
+        "world": true,
+        "iter": 14.08361111111111
+      }
+    },
+    {
+      "id": "stratus__world-step-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__world-step-off__clean.png",
+        "diagnostics/stratus__world-step-off.json"
+      ],
+      "reason": "diagnostic flags consistent: world-step off → fixed 64 iterations",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "cirrostratus__skip-support-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__skip-support-off__clean.png",
+        "diagnostics/cirrostratus__skip-support-off.json"
+      ],
+      "reason": "diagnostic flags consistent: support off; iter=259.40277777777777",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": true,
+        "iter": 259.40277777777777
+      }
+    },
+    {
+      "id": "cirrostratus__skip-candidate-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__skip-candidate-off__clean.png",
+        "diagnostics/cirrostratus__skip-candidate-off.json"
+      ],
+      "reason": "diagnostic flags consistent: candidate off; iter=144.47444444444446",
+      "observe": {
+        "support": true,
+        "candidate": false,
+        "world": true,
+        "iter": 144.47444444444446
+      }
+    },
+    {
+      "id": "cirrostratus__world-step-off",
+      "category": "w10b-toggle-diagnostics",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__world-step-off__clean.png",
+        "diagnostics/cirrostratus__world-step-off.json"
+      ],
+      "reason": "diagnostic flags consistent: world-step off → fixed 64 iterations",
+      "observe": {
+        "support": false,
+        "candidate": false,
+        "world": false,
+        "iter": 64
+      }
+    },
+    {
+      "id": "stratocumulus__debug-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-11__clean.png",
+        "screenshots/stratocumulus__debug-12__clean.png",
+        "screenshots/stratocumulus__debug-13__clean.png",
+        "screenshots/stratocumulus__debug-14__clean.png",
+        "screenshots/stratocumulus__debug-15__clean.png"
+      ],
+      "reason": "Evidence files complete: debug views 11–15 clean PNGs present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-11__clean.png",
+        "screenshots/cirrocumulus__debug-12__clean.png",
+        "screenshots/cirrocumulus__debug-13__clean.png",
+        "screenshots/cirrocumulus__debug-14__clean.png",
+        "screenshots/cirrocumulus__debug-15__clean.png"
+      ],
+      "reason": "Evidence files complete: debug views 11–15 clean PNGs present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__motion-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__motion-D__f00.png",
+        "screenshots/stratocumulus__motion-D__f01.png",
+        "screenshots/stratocumulus__motion-D__f02.png",
+        "screenshots/stratocumulus__motion-D__f03.png",
+        "screenshots/stratocumulus__motion-D__f04.png",
+        "screenshots/stratocumulus__motion-D__f05.png",
+        "screenshots/stratocumulus__motion-D__f06.png",
+        "screenshots/stratocumulus__motion-D__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-D frames present (not a visual PASS; screen-lock judgment PENDING)"
+    },
+    {
+      "id": "cirrocumulus__motion-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__motion-D__f00.png",
+        "screenshots/cirrocumulus__motion-D__f01.png",
+        "screenshots/cirrocumulus__motion-D__f02.png",
+        "screenshots/cirrocumulus__motion-D__f03.png",
+        "screenshots/cirrocumulus__motion-D__f04.png",
+        "screenshots/cirrocumulus__motion-D__f05.png",
+        "screenshots/cirrocumulus__motion-D__f06.png",
+        "screenshots/cirrocumulus__motion-D__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-D frames present (not a visual PASS; screen-lock judgment PENDING)"
+    },
+    {
+      "id": "stratus__motion-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratus__motion-D__f00.png",
+        "screenshots/stratus__motion-D__f01.png",
+        "screenshots/stratus__motion-D__f02.png",
+        "screenshots/stratus__motion-D__f03.png",
+        "screenshots/stratus__motion-D__f04.png",
+        "screenshots/stratus__motion-D__f05.png",
+        "screenshots/stratus__motion-D__f06.png",
+        "screenshots/stratus__motion-D__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-D frames present (not a visual PASS; screen-lock judgment PENDING)"
+    },
+    {
+      "id": "cirrostratus__motion-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__motion-D__f00.png",
+        "screenshots/cirrostratus__motion-D__f01.png",
+        "screenshots/cirrostratus__motion-D__f02.png",
+        "screenshots/cirrostratus__motion-D__f03.png",
+        "screenshots/cirrostratus__motion-D__f04.png",
+        "screenshots/cirrostratus__motion-D__f05.png",
+        "screenshots/cirrostratus__motion-D__f06.png",
+        "screenshots/cirrostratus__motion-D__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-D frames present (not a visual PASS; screen-lock judgment PENDING)"
+    },
+    {
+      "id": "stratocumulus__iter-sample",
+      "category": "w10b-performance-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "diagnostics/stratocumulus__mode-A.json",
+        "diagnostics/stratocumulus__mode-C.json"
+      ],
+      "reason": "Single-shot sample only (not performance Gate): iter 64→6.553888888888889; cloudMs 0.8088→0.741088",
+      "iterA": 64,
+      "iterC": 6.553888888888889,
+      "cloudMsA": 0.8088,
+      "cloudMsC": 0.741088
+    },
+    {
+      "id": "cirrocumulus__cloud-ms-sample",
+      "category": "w10b-performance-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "diagnostics/cirrocumulus__mode-A.json",
+        "diagnostics/cirrocumulus__mode-C.json"
+      ],
+      "reason": "Single-shot cost sample (not a win, not Gate PASS): cloudMs 0.788928→0.961504; iter 64→15.014444444444445",
+      "iterA": 64,
+      "iterC": 15.014444444444445,
+      "cloudMsA": 0.788928,
+      "cloudMsC": 0.961504
+    },
+    {
+      "id": "w10a-contract-depth-velocity-semantics",
+      "category": "roadmap-hard-auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w10a-cloud-frame-rerun.log",
+        "scripts/check-w10a-cloud-frame-output.mjs"
+      ],
+      "reason": "Auto contract PASS: check-w10a asserts depth/velocity validity encoding, invalid clear, and TAA motion.w gate (static/source). Not runtime camera/wind visual proof."
+    },
+    {
+      "id": "w10a-contract-history-vs-gizmo-order",
+      "category": "roadmap-hard-auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w10a-cloud-frame-rerun.log",
+        "scripts/check-w10a-cloud-frame-output.mjs"
+      ],
+      "reason": "Auto contract PASS: check-w10a asserts cloud-only TAA bindings + composite before bounds/gizmo draw order. Not a rendered-frame visual proof that history is uncontaminated."
+    },
+    {
+      "id": "w10a-runtime-depth-velocity-static-pan-orbit-wind-empty",
+      "category": "roadmap-hard-visual",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "HEAD has no reliable camera-cut/discontinuity evidence API; setCamera is overwritten by interactive orbit follow and does not prove depth/velocity pixels",
+      "depth": {
+        "status": "UNABLE",
+        "reason": "HEAD has no reliable camera-cut/discontinuity evidence API; setCamera is overwritten by interactive orbit follow and does not prove depth/velocity pixels"
+      },
+      "provenance": {
+        "headCommit": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+        "gitDirty": true,
+        "dirtyPaths": [
+          "docs/roadmap-refactor.md",
+          "docs/evidence/w10-visual-qa/",
+          "openspec/changes/add-world-scale-cloud-raymarch/",
+          "openspec/changes/refactor-cloud-frame-output/"
+        ],
+        "srcDirtyPaths": [],
+        "shaderDirtyPaths": [],
+        "runtimeSourceDirty": false,
+        "docsOrOpenspecDirty": true,
+        "runtimeSourceMatchesHead": true,
+        "note": "src/shaders clean vs HEAD; working tree has docs/OpenSpec/other dirty paths only"
+      }
+    },
+    {
+      "id": "w10a-empty-sky-weak-api-observation",
+      "category": "w10a-weak-api-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Weak API only: empty validation errors after camera nudge — not empty-sky depth/velocity pixel proof",
+      "empty": {
+        "status": "OBSERVATION",
+        "reason": "Weak API only: empty validation errors after camera nudge — not empty-sky depth/velocity pixel proof"
+      }
+    },
+    {
+      "id": "w10a-wind-time-weak-api-observation",
+      "category": "w10a-weak-api-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Weak API only: contentRevision non-decreasing — not wind-advection depth/velocity pixel proof",
+      "wind": {
+        "status": "OBSERVATION",
+        "reason": "Weak API only: contentRevision non-decreasing — not wind-advection depth/velocity pixel proof"
+      }
+    },
+    {
+      "id": "w10a-runtime-history-sky-ground-gizmo-contamination",
+      "category": "roadmap-hard-visual",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Path ownership cloud-frame observed; sky/ground/gizmo non-contamination remains owner visual PENDING",
+      "hist": {
+        "status": "OBSERVATION",
+        "reason": "Path ownership cloud-frame observed; sky/ground/gizmo non-contamination remains owner visual PENDING"
+      }
+    },
+    {
+      "id": "w10b-contract-support-fixtures",
+      "category": "roadmap-hard-auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w10b-world-raymarch-rerun.log",
+        "scripts/check-w10b-world-raymarch.mjs"
+      ],
+      "reason": "Auto contract PASS: Support AABB/rotation/wind/merge/overflow anisotropic fixtures"
+    },
+    {
+      "id": "w10b-contract-candidate-hard-reject-proof",
+      "category": "roadmap-hard-auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w10b-raymarch-rerun.log",
+        "scripts/check-w10b-raymarch-contracts.mjs"
+      ],
+      "reason": "Auto contract PASS: hierarchical candidate hard-reject requires complete/non-overflow/generation-matched/count-zero; excludes coarse density as emptiness proof"
+    },
+    {
+      "id": "w10b-contract-thin-interval-refinement",
+      "category": "roadmap-hard-auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w10b-raymarch-rerun.log",
+        "scripts/check-w10b-raymarch-contracts.mjs"
+      ],
+      "reason": "Auto contract PASS: first-hit refinement numeric fixtures keep known thin-interval hit at min-step spacing"
+    },
+    {
+      "id": "w10b-runtime-hard-reject-false-negative-zero",
+      "category": "roadmap-hard-visual",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Support-skip conservatism API PASS (Support-skip off does not reduce primary iterations vs on (conservative direction); not FN=0 pixel suite); not a runtime false-negative=0 pixel suite",
+      "hard": {
+        "status": "PASS",
+        "reason": "Support-skip off does not reduce primary iterations vs on (conservative direction); not FN=0 pixel suite",
+        "iterOn": 6.553888888888889,
+        "iterOff": 28.233888888888888,
+        "supportSkipsOn": 0.27694444444444444,
+        "supportSkipsOff": 0
+      }
+    },
+    {
+      "id": "w10b-thin-ridge-hierarchical-visual",
+      "category": "roadmap-hard-visual",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json",
+        "screenshots/thin-ridge__mode-B-fixed__clean.png",
+        "screenshots/thin-ridge__mode-C-world__clean.png"
+      ],
+      "reason": "Screenshots captured; owner must judge sampling miss vs fixed-step (not auto PASS)",
+      "thinCap": {
+        "status": "PASS",
+        "reason": "Captured hierarchical thin-ridge fixed vs world diagnostics/screenshots; owner visual miss judgment still PENDING",
+        "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+        "fixedIter": 64,
+        "worldIter": 30.002222222222223,
+        "worldAvgStep": 101.78227384165821,
+        "storageActive": "hierarchical",
+        "shots": [
+          "screenshots/thin-ridge__mode-B-fixed__clean.png",
+          "screenshots/thin-ridge__mode-C-world__clean.png"
+        ]
+      },
+      "thinVis": {
+        "status": "UNABLE",
+        "reason": "Screenshots captured; owner must judge sampling miss vs fixed-step (not auto PASS)"
+      }
+    },
+    {
+      "id": "w10b-coarse-hint-independent-toggle",
+      "category": "roadmap-hard-feature",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json",
+        "diagnostics/"
+      ],
+      "reason": "No CloudParams/W10RuntimeOverrides field for coarse-hint; counter raymarchCoarseHintsPerPixel observed only",
+      "coarse": {
+        "status": "UNABLE",
+        "reason": "No CloudParams/W10RuntimeOverrides field for coarse-hint; counter raymarchCoarseHintsPerPixel observed only",
+        "observedCoarseHintsModeC": {
+          "count": 60,
+          "median": 0,
+          "p90": 0,
+          "min": 0,
+          "max": 0
+        }
+      }
+    },
+    {
+      "id": "w10a-steady-median-p90-evidence",
+      "category": "performance-evidence-completeness",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Evidence completeness only (≠ performance Gate PASS). warmup=30; samples=60; cloudCurrent median/p90=2.18512/2.376864ms; temporal=0.005808000000000001/0.00656; composite=0.006144/0.006464; head=bd266eb4ee335377a531cf5a087dc10d771aad55; runtimeSourceMatchesHead=true",
+      "timing": {
+        "mode": "B",
+        "description": "cloud-frame + fixed-step + IGN/Halton",
+        "available": true,
+        "reason": "",
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 2.18512,
+          "p90": 2.376864,
+          "min": 2.061792,
+          "max": 2.487424
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.005808000000000001,
+          "p90": 0.00656,
+          "min": 0.004736,
+          "max": 0.00688
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.006144,
+          "p90": 0.006464,
+          "min": 0.005312,
+          "max": 0.006784
+        },
+        "deviceInfo": {
+          "adapter": {
+            "vendor": "nvidia",
+            "architecture": "blackwell",
+            "device": "",
+            "description": ""
+          },
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-multi-draw-indirect",
+            "chromium-experimental-timestamp-query-inside-passes",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxStorageBufferBindingSize": 2147483644,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535
+          }
+        }
+      },
+      "provenance": {
+        "headCommit": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+        "gitDirty": true,
+        "dirtyPaths": [
+          "docs/roadmap-refactor.md",
+          "docs/evidence/w10-visual-qa/",
+          "openspec/changes/add-world-scale-cloud-raymarch/",
+          "openspec/changes/refactor-cloud-frame-output/"
+        ],
+        "srcDirtyPaths": [],
+        "shaderDirtyPaths": [],
+        "runtimeSourceDirty": false,
+        "docsOrOpenspecDirty": true,
+        "runtimeSourceMatchesHead": true,
+        "note": "src/shaders clean vs HEAD; working tree has docs/OpenSpec/other dirty paths only"
+      },
+      "meta": {
+        "dpr": 1,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+        "revision": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+        "runtimeSourceMatchesHead": true,
+        "gitDirty": true,
+        "exposedWithdrawnApis": {
+          "markCameraCut": false,
+          "setFixedCanvasSize": false
+        }
+      }
+    },
+    {
+      "id": "w10a-steady-median-p90",
+      "category": "performance-gate",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Data available ≠ performance Gate pass: no frozen Gate threshold / owner judgment",
+      "timing": {
+        "mode": "B",
+        "description": "cloud-frame + fixed-step + IGN/Halton",
+        "available": true,
+        "reason": "",
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 2.18512,
+          "p90": 2.376864,
+          "min": 2.061792,
+          "max": 2.487424
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.005808000000000001,
+          "p90": 0.00656,
+          "min": 0.004736,
+          "max": 0.00688
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.006144,
+          "p90": 0.006464,
+          "min": 0.005312,
+          "max": 0.006784
+        },
+        "deviceInfo": {
+          "adapter": {
+            "vendor": "nvidia",
+            "architecture": "blackwell",
+            "device": "",
+            "description": ""
+          },
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-multi-draw-indirect",
+            "chromium-experimental-timestamp-query-inside-passes",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxStorageBufferBindingSize": 2147483644,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535
+          }
+        }
+      },
+      "policy": "performanceGate remains UNABLE"
+    },
+    {
+      "id": "w10b-steady-median-p90-evidence",
+      "category": "performance-evidence-completeness",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Evidence completeness only (≠ performance Gate PASS). modeC cloud median/p90=9.244831999999999/9.68112ms; modeD=11.391888/12.039904ms; samples=60",
+      "modeC": {
+        "mode": "C",
+        "description": "cloud-frame + world-step + IGN/Halton",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 9.244831999999999,
+          "p90": 9.68112,
+          "min": 8.743488,
+          "max": 10.12288
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.006352,
+          "p90": 0.008032,
+          "min": 0.00528,
+          "max": 0.009312
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.0064,
+          "p90": 0.00736,
+          "min": 0.005216,
+          "max": 0.008064
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.553333333333334,
+          "p90": 6.554166666666666,
+          "min": 6.5488888888888885,
+          "max": 6.554166666666666
+        },
+        "avgStep": {
+          "count": 60,
+          "median": 105.75056140956987,
+          "p90": 105.7575408703661,
+          "min": 105.73163012831579,
+          "max": 105.76329725995855
+        },
+        "coarseHints": {
+          "count": 60,
+          "median": 0,
+          "p90": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "modeD": {
+        "mode": "D",
+        "description": "cloud-frame + world-step + STBN freeze 7",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 11.391888,
+          "p90": 12.039904,
+          "min": 10.922784,
+          "max": 12.440032
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.00608,
+          "p90": 0.00912,
+          "min": 0.005344,
+          "max": 0.015136
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.005824,
+          "p90": 0.006912,
+          "min": 0.005376,
+          "max": 0.009312
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.636666666666667,
+          "p90": 6.638055555555556,
+          "min": 6.635277777777778,
+          "max": 6.638055555555556
+        }
+      },
+      "provenance": {
+        "headCommit": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+        "gitDirty": true,
+        "dirtyPaths": [
+          "docs/roadmap-refactor.md",
+          "docs/evidence/w10-visual-qa/",
+          "openspec/changes/add-world-scale-cloud-raymarch/",
+          "openspec/changes/refactor-cloud-frame-output/"
+        ],
+        "srcDirtyPaths": [],
+        "shaderDirtyPaths": [],
+        "runtimeSourceDirty": false,
+        "docsOrOpenspecDirty": true,
+        "runtimeSourceMatchesHead": true,
+        "note": "src/shaders clean vs HEAD; working tree has docs/OpenSpec/other dirty paths only"
+      }
+    },
+    {
+      "id": "w10b-steady-median-p90",
+      "category": "performance-gate",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Data available ≠ performance Gate pass: no frozen Gate threshold / owner judgment",
+      "modeC": {
+        "mode": "C",
+        "description": "cloud-frame + world-step + IGN/Halton",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 9.244831999999999,
+          "p90": 9.68112,
+          "min": 8.743488,
+          "max": 10.12288
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.006352,
+          "p90": 0.008032,
+          "min": 0.00528,
+          "max": 0.009312
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.0064,
+          "p90": 0.00736,
+          "min": 0.005216,
+          "max": 0.008064
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.553333333333334,
+          "p90": 6.554166666666666,
+          "min": 6.5488888888888885,
+          "max": 6.554166666666666
+        },
+        "avgStep": {
+          "count": 60,
+          "median": 105.75056140956987,
+          "p90": 105.7575408703661,
+          "min": 105.73163012831579,
+          "max": 105.76329725995855
+        },
+        "coarseHints": {
+          "count": 60,
+          "median": 0,
+          "p90": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "modeD": {
+        "mode": "D",
+        "description": "cloud-frame + world-step + STBN freeze 7",
+        "available": true,
+        "cloudCurrentMs": {
+          "count": 60,
+          "median": 11.391888,
+          "p90": 12.039904,
+          "min": 10.922784,
+          "max": 12.440032
+        },
+        "temporalResolveMs": {
+          "count": 60,
+          "median": 0.00608,
+          "p90": 0.00912,
+          "min": 0.005344,
+          "max": 0.015136
+        },
+        "compositeMs": {
+          "count": 60,
+          "median": 0.005824,
+          "p90": 0.006912,
+          "min": 0.005376,
+          "max": 0.009312
+        },
+        "iter": {
+          "count": 60,
+          "median": 6.636666666666667,
+          "p90": 6.638055555555556,
+          "min": 6.635277777777778,
+          "max": 6.638055555555556
+        }
+      },
+      "policy": "performanceGate remains UNABLE"
+    },
+    {
+      "id": "owner-visual-signoff",
+      "category": "owner",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshot-manifest.json"
+      ],
+      "reason": "Owner visual approval PENDING; screenshot SHA256 manifest is inventory only, not visual PASS"
+    },
+    {
+      "id": "discontinuity-resize-device-loss-suite",
+      "category": "w10a-resilience",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "resize=UNABLE; featureOff=PASS; deviceLoss=UNABLE; pipelineFailure=UNABLE. Suite cannot PASS without resize/camera-cut/device-loss/pipeline evidence on HEAD APIs.",
+      "resize": {
+        "status": "UNABLE",
+        "reason": "HEAD has no setFixedCanvasSize evidence API; playwright viewport resize ignored under benchmark fixed canvas"
+      },
+      "featureOff": {
+        "status": "PASS",
+        "reason": "path=combined-feature-off fallback=cloud-frame-disabled",
+        "path": "combined-feature-off",
+        "fallback": "cloud-frame-disabled"
+      },
+      "deviceLoss": {
+        "status": "UNABLE",
+        "reason": "No safe automated WebGPU device-loss injection in this harness"
+      },
+      "pipeline": {
+        "status": "UNABLE",
+        "reason": "No safe automated MRT/pipeline-failure injection; feature-off path covered separately"
+      }
+    },
+    {
+      "id": "w10a-feature-off-fallback-api",
+      "category": "w10a-fallback-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "path=combined-feature-off fallback=cloud-frame-disabled",
+      "featureOff": {
+        "status": "PASS",
+        "reason": "path=combined-feature-off fallback=cloud-frame-disabled",
+        "path": "combined-feature-off",
+        "fallback": "cloud-frame-disabled"
+      }
+    },
+    {
+      "id": "local-screenshots-not-repo-evidence",
+      "category": "artifact-policy",
+      "status": "OBSERVATION",
+      "evidence": [
+        "../.gitignore",
+        "screenshot-manifest.json"
+      ],
+      "reason": "docs/evidence/.gitignore ignores screenshots/; local PNGs are not check-in evidence. Manifest records name/size/sha256 for local files."
+    }
+  ]
+}

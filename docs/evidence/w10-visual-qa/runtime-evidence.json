@@ -1,0 +1,292 @@
+{
+  "generatedAt": "2026-07-26T05:39:54.995Z",
+  "base": "http://127.0.0.1:5173/procedural-clouds/?benchmark=1",
+  "revision": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "warmupFrames": 30,
+  "sampleCount": 60,
+  "apiPolicy": "HEAD benchmark APIs only (setW10Options/start/getRuntimeDiagnostics/getEvidence). Withdrawn uncommitted markCameraCut/setFixedCanvasSize/isCameraPinned evidence APIs are not used.",
+  "provenance": {
+    "headCommit": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+    "gitDirty": true,
+    "dirtyPaths": [
+      "docs/roadmap-refactor.md",
+      "docs/evidence/w10-visual-qa/",
+      "openspec/changes/add-world-scale-cloud-raymarch/",
+      "openspec/changes/refactor-cloud-frame-output/"
+    ],
+    "srcDirtyPaths": [],
+    "shaderDirtyPaths": [],
+    "runtimeSourceDirty": false,
+    "docsOrOpenspecDirty": true,
+    "runtimeSourceMatchesHead": true,
+    "note": "src/shaders clean vs HEAD; working tree has docs/OpenSpec/other dirty paths only"
+  },
+  "checks": {
+    "depthVelocityCameraMotionApi": {
+      "status": "UNABLE",
+      "reason": "HEAD has no reliable camera-cut/discontinuity evidence API; setCamera is overwritten by interactive orbit follow and does not prove depth/velocity pixels"
+    },
+    "emptySkyLookApi": {
+      "status": "OBSERVATION",
+      "reason": "Weak API only: empty validation errors after camera nudge — not empty-sky depth/velocity pixel proof"
+    },
+    "windOrTimeContentRevisionApi": {
+      "status": "OBSERVATION",
+      "reason": "Weak API only: contentRevision non-decreasing — not wind-advection depth/velocity pixel proof"
+    },
+    "historyPathOwnershipApi": {
+      "status": "OBSERVATION",
+      "reason": "Path ownership cloud-frame observed; sky/ground/gizmo non-contamination remains owner visual PENDING"
+    },
+    "resizeDiscontinuityApi": {
+      "status": "UNABLE",
+      "reason": "HEAD has no setFixedCanvasSize evidence API; playwright viewport resize ignored under benchmark fixed canvas"
+    },
+    "featureOffFallbackApi": {
+      "status": "PASS",
+      "reason": "path=combined-feature-off fallback=cloud-frame-disabled",
+      "path": "combined-feature-off",
+      "fallback": "cloud-frame-disabled"
+    },
+    "deviceLossApi": {
+      "status": "UNABLE",
+      "reason": "No safe automated WebGPU device-loss injection in this harness"
+    },
+    "pipelineFailureEmergencyApi": {
+      "status": "UNABLE",
+      "reason": "No safe automated MRT/pipeline-failure injection; feature-off path covered separately"
+    },
+    "hardRejectRuntimeSupportToggle": {
+      "status": "PASS",
+      "reason": "Support-skip off does not reduce primary iterations vs on (conservative direction); not FN=0 pixel suite",
+      "iterOn": 6.553888888888889,
+      "iterOff": 28.233888888888888,
+      "supportSkipsOn": 0.27694444444444444,
+      "supportSkipsOff": 0
+    },
+    "coarseHintIndependentToggle": {
+      "status": "UNABLE",
+      "reason": "No CloudParams/W10RuntimeOverrides field for coarse-hint; counter raymarchCoarseHintsPerPixel observed only",
+      "observedCoarseHintsModeC": {
+        "count": 60,
+        "median": 0,
+        "p90": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "thinRidgeHierarchicalCapture": {
+      "status": "PASS",
+      "reason": "Captured hierarchical thin-ridge fixed vs world diagnostics/screenshots; owner visual miss judgment still PENDING",
+      "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+      "fixedIter": 64,
+      "worldIter": 30.002222222222223,
+      "worldAvgStep": 101.78227384165821,
+      "storageActive": "hierarchical",
+      "shots": [
+        "screenshots/thin-ridge__mode-B-fixed__clean.png",
+        "screenshots/thin-ridge__mode-C-world__clean.png"
+      ]
+    },
+    "thinRidgeHierarchicalVisual": {
+      "status": "UNABLE",
+      "reason": "Screenshots captured; owner must judge sampling miss vs fixed-step (not auto PASS)"
+    }
+  },
+  "timing": {
+    "w10a_modeB_cloudFrame_fixed": {
+      "mode": "B",
+      "description": "cloud-frame + fixed-step + IGN/Halton",
+      "available": true,
+      "reason": "",
+      "cloudCurrentMs": {
+        "count": 60,
+        "median": 2.18512,
+        "p90": 2.376864,
+        "min": 2.061792,
+        "max": 2.487424
+      },
+      "temporalResolveMs": {
+        "count": 60,
+        "median": 0.005808000000000001,
+        "p90": 0.00656,
+        "min": 0.004736,
+        "max": 0.00688
+      },
+      "compositeMs": {
+        "count": 60,
+        "median": 0.006144,
+        "p90": 0.006464,
+        "min": 0.005312,
+        "max": 0.006784
+      },
+      "deviceInfo": {
+        "adapter": {
+          "vendor": "nvidia",
+          "architecture": "blackwell",
+          "device": "",
+          "description": ""
+        },
+        "features": [
+          "bgra8unorm-storage",
+          "chromium-experimental-multi-draw-indirect",
+          "chromium-experimental-timestamp-query-inside-passes",
+          "clip-distances",
+          "core-features-and-limits",
+          "depth-clip-control",
+          "depth32float-stencil8",
+          "dual-source-blending",
+          "float32-blendable",
+          "float32-filterable",
+          "indirect-first-instance",
+          "primitive-index",
+          "rg11b10ufloat-renderable",
+          "shader-f16",
+          "subgroup-size-control",
+          "subgroups",
+          "texture-component-swizzle",
+          "texture-compression-bc",
+          "texture-compression-bc-sliced-3d",
+          "texture-formats-tier1",
+          "texture-formats-tier2",
+          "timestamp-query"
+        ],
+        "limits": {
+          "maxTextureDimension1D": 16384,
+          "maxTextureDimension2D": 16384,
+          "maxTextureDimension3D": 2048,
+          "maxTextureArrayLayers": 2048,
+          "maxBindGroups": 4,
+          "maxStorageBufferBindingSize": 2147483644,
+          "maxComputeWorkgroupStorageSize": 32768,
+          "maxComputeInvocationsPerWorkgroup": 1024,
+          "maxComputeWorkgroupSizeX": 1024,
+          "maxComputeWorkgroupSizeY": 1024,
+          "maxComputeWorkgroupSizeZ": 64,
+          "maxComputeWorkgroupsPerDimension": 65535
+        }
+      }
+    },
+    "w10a_modeA_combined_fixed": {
+      "mode": "A",
+      "description": "combined-feature-off + fixed-step",
+      "available": true,
+      "cloudCurrentMs": {
+        "count": 60,
+        "median": 1.91816,
+        "p90": 1.980992,
+        "min": 1.828576,
+        "max": 2.269984
+      },
+      "temporalResolveMs": {
+        "count": 60,
+        "median": 0.008576,
+        "p90": 0.009376,
+        "min": 0.007744,
+        "max": 0.01104
+      },
+      "compositeMs": {
+        "count": 60,
+        "median": 0,
+        "p90": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "w10b_modeC_world_ign": {
+      "mode": "C",
+      "description": "cloud-frame + world-step + IGN/Halton",
+      "available": true,
+      "cloudCurrentMs": {
+        "count": 60,
+        "median": 9.244831999999999,
+        "p90": 9.68112,
+        "min": 8.743488,
+        "max": 10.12288
+      },
+      "temporalResolveMs": {
+        "count": 60,
+        "median": 0.006352,
+        "p90": 0.008032,
+        "min": 0.00528,
+        "max": 0.009312
+      },
+      "compositeMs": {
+        "count": 60,
+        "median": 0.0064,
+        "p90": 0.00736,
+        "min": 0.005216,
+        "max": 0.008064
+      },
+      "iter": {
+        "count": 60,
+        "median": 6.553333333333334,
+        "p90": 6.554166666666666,
+        "min": 6.5488888888888885,
+        "max": 6.554166666666666
+      },
+      "avgStep": {
+        "count": 60,
+        "median": 105.75056140956987,
+        "p90": 105.7575408703661,
+        "min": 105.73163012831579,
+        "max": 105.76329725995855
+      },
+      "coarseHints": {
+        "count": 60,
+        "median": 0,
+        "p90": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "w10b_modeD_world_stbn": {
+      "mode": "D",
+      "description": "cloud-frame + world-step + STBN freeze 7",
+      "available": true,
+      "cloudCurrentMs": {
+        "count": 60,
+        "median": 11.391888,
+        "p90": 12.039904,
+        "min": 10.922784,
+        "max": 12.440032
+      },
+      "temporalResolveMs": {
+        "count": 60,
+        "median": 0.00608,
+        "p90": 0.00912,
+        "min": 0.005344,
+        "max": 0.015136
+      },
+      "compositeMs": {
+        "count": 60,
+        "median": 0.005824,
+        "p90": 0.006912,
+        "min": 0.005376,
+        "max": 0.009312
+      },
+      "iter": {
+        "count": 60,
+        "median": 6.636666666666667,
+        "p90": 6.638055555555556,
+        "min": 6.635277777777778,
+        "max": 6.638055555555556
+      }
+    }
+  },
+  "meta": {
+    "dpr": 1,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+    "revision": "bd266eb4ee335377a531cf5a087dc10d771aad55",
+    "runtimeSourceMatchesHead": true,
+    "gitDirty": true,
+    "exposedWithdrawnApis": {
+      "markCameraCut": false,
+      "setFixedCanvasSize": false
+    }
+  }
+}

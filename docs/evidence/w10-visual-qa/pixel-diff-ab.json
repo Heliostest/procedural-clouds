@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-07-26T05:26:52.368Z",
+  "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+  "threshold": 24,
+  "note": "Compares mode-A vs mode-B clean PNGs. TAA/grain may produce small nonzero maxAbs.",
+  "results": {
+    "stratus": {
+      "status": "PASS",
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+      "threshold": 24,
+      "width": 1280,
+      "height": 720,
+      "maxAbs": 7,
+      "changedChannels": 462798,
+      "totalChannels": 3686400,
+      "shaA": "20ed28bfecd3b15a6c1e9786b89df4e466df760ea71a781d92ba4052bc222f61",
+      "shaB": "714a0c30940f5e5cef8589cd23ee37ffcb61e83f65d21a32a8c739ed50e2fb40",
+      "evidence": [
+        "screenshots/stratus__mode-A__clean.png",
+        "screenshots/stratus__mode-B__clean.png"
+      ]
+    },
+    "cirrostratus": {
+      "status": "PASS",
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+      "threshold": 24,
+      "width": 1280,
+      "height": 720,
+      "maxAbs": 4,
+      "changedChannels": 1421882,
+      "totalChannels": 3686400,
+      "shaA": "56599695991966faeabaabd0ae931bdd374d31efc65a40da9f9a72c605ec441f",
+      "shaB": "9a6e508c3827d3768468d5941e25b387777bf757ac418edf3433fc214cb07b97",
+      "evidence": [
+        "screenshots/cirrostratus__mode-A__clean.png",
+        "screenshots/cirrostratus__mode-B__clean.png"
+      ]
+    },
+    "stratocumulus": {
+      "status": "PASS",
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+      "threshold": 24,
+      "width": 1280,
+      "height": 720,
+      "maxAbs": 12,
+      "changedChannels": 271635,
+      "totalChannels": 3686400,
+      "shaA": "de093eb6449634f7579fe79346cfc765c5c3996c6c4e4848aae7af62257b15f8",
+      "shaB": "39faf88e3c0d05fa8ce5c753b08316ee6da87f06b36c0a472d906d7ae35e57f8",
+      "evidence": [
+        "screenshots/stratocumulus__mode-A__clean.png",
+        "screenshots/stratocumulus__mode-B__clean.png"
+      ]
+    },
+    "cirrocumulus": {
+      "status": "PASS",
+      "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+      "threshold": 24,
+      "width": 1280,
+      "height": 720,
+      "maxAbs": 18,
+      "changedChannels": 216275,
+      "totalChannels": 3686400,
+      "shaA": "6403cf8586b7ffe8deae89e6a7680040193d5b36f86eb4e02e2bbcf3f25e53ec",
+      "shaB": "3da3d11d08b4e83c5da2d617660f9c5cd7a9cc023df38da3513dca8c0531c643",
+      "evidence": [
+        "screenshots/cirrocumulus__mode-A__clean.png",
+        "screenshots/cirrocumulus__mode-B__clean.png"
+      ]
+    }
+  },
+  "errors": []
+}
