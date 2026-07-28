@@ -67,10 +67,57 @@ const RAYMARCH_COUNTER = Object.freeze({
   refinements: 9,
 });
 
+const TAAU_DEPTH_REJECT_REL = 0.1;
+const TAAU_OPACITY_REACT_LO = 0.05;
+const TAAU_OPACITY_REJECT_HI = 0.25;
+const TAAU_CLOUD_OPACITY_THRESHOLD = 0.01;
+const TAAU_RESOLVE_COUNTER_BUFFER_BYTES = 32;
+const TAAU_RESOLVE_COUNTER = Object.freeze({
+  totalTexels: 0,
+  currentPhase: 1,
+  rejectNoVelocity: 2,
+  rejectViewport: 3,
+  rejectDepth: 4,
+  rejectOpacity: 5,
+  cloudCovered: 6,
+  cloudRejected: 7,
+});
+const SUN_DIRECTION_DISCONTINUITY_DEG = 2;
+const SUN_DIRECTION_DISCONTINUITY_DOT = Math.cos((SUN_DIRECTION_DISCONTINUITY_DEG * Math.PI) / 180);
+const DEBUG_VIEW_TAAU_PHASE = 16;
+const DEBUG_VIEW_TAAU_REJECTION = 17;
+const TAAU_DEBUG_VIEWS = Object.freeze([DEBUG_VIEW_TAAU_PHASE, DEBUG_VIEW_TAAU_REJECTION] as const);
+
+function isTaauDebugView(debugView: number): boolean {
+  return (TAAU_DEBUG_VIEWS as readonly number[]).includes(Math.round(debugView));
+}
+
+function sunDirectionFromAngles(azimuthDeg: number, elevationDeg: number): [number, number, number] {
+  const ar = (azimuthDeg * Math.PI) / 180;
+  const er = (elevationDeg * Math.PI) / 180;
+  const ce = Math.cos(er);
+  return [ce * Math.sin(ar), Math.sin(er), ce * Math.cos(ar)];
+}
+
 function halton(index: number, base: number): number {
   let f = 1, r = 0, i = index;
   while (i > 0) { f /= base; r += f * (i % base); i = Math.floor(i / base); }
   return r;
+}
+
+const W11_BAYER_INDICES = [
+  0, 12, 3, 15,
+  8, 4, 11, 7,
+  2, 14, 1, 13,
+  10, 6, 9, 5,
+] as const;
+
+function w11BayerSubpixel(phase: number): { sx: number; sy: number } {
+  const p = ((phase % 16) + 16) % 16;
+  for (let k = 0; k < 16; k++) {
+    if (W11_BAYER_INDICES[k] === p) return { sx: k % 4, sy: (k / 4) | 0 };
+  }
+  return { sx: 0, sy: 0 };
 }
 
 const BLOOM_LEVELS = 5;
@@ -344,6 +391,273 @@ struct VOut { @builtin(position) pos : vec4f };
 }
 `;
 
+const taauClassifySharedSource = /* wgsl */ `
+const BAYER : array<i32, 16> = array<i32, 16>(${W11_BAYER_INDICES.join(', ')});
+const TAAU_DEPTH_REJECT_REL : f32 = ${TAAU_DEPTH_REJECT_REL};
+const TAAU_OPACITY_REACT_LO : f32 = ${TAAU_OPACITY_REACT_LO};
+const TAAU_OPACITY_REJECT_HI : f32 = ${TAAU_OPACITY_REJECT_HI};
+const TAAU_CLOUD_OPACITY_THRESHOLD : f32 = ${TAAU_CLOUD_OPACITY_THRESHOLD};
+struct TaauU {
+  flags : vec4f,
+  sizes : vec4f,
+};
+@group(0) @binding(0) var currentCloud : texture_2d<f32>;
+@group(0) @binding(1) var currentDepthVelocity : texture_2d<f32>;
+@group(0) @binding(2) var historyCloud : texture_2d<f32>;
+@group(0) @binding(3) var historyDepth : texture_2d<f32>;
+@group(0) @binding(4) var samp : sampler;
+@group(0) @binding(5) var<uniform> u : TaauU;
+struct TaauClassifyOut {
+  category : i32,
+  cloudCovered : u32,
+  outColor : vec4f,
+  outDepthEnc : f32,
+};
+fn rgb2ycocg(c : vec3f) -> vec3f {
+  return vec3f(0.25 * c.r + 0.5 * c.g + 0.25 * c.b, 0.5 * c.r - 0.5 * c.b, -0.25 * c.r + 0.5 * c.g - 0.25 * c.b);
+}
+fn ycocg2rgb(c : vec3f) -> vec3f {
+  let t = c.x - c.z;
+  return vec3f(t + c.y, c.x + c.z, t - c.y);
+}
+fn encodeDepth(motion : vec4f) -> f32 {
+  return select(0.0, log2(1.0 + motion.x), motion.w > 0.5);
+}
+fn decodeDepth(enc : f32) -> f32 {
+  return exp2(enc) - 1.0;
+}
+fn taauClassify(coord : vec2i, fcXy : vec2f) -> TaauClassifyOut {
+  let sub = coord % 4;
+  let bayer = BAYER[sub.y * 4 + sub.x];
+  let phase = i32(u.flags.y);
+  let lowCoord = coord / 4;
+  let lowSize = vec2i(i32(u.sizes.x), i32(u.sizes.y));
+  let lowMax = lowSize - vec2i(1);
+  let fullSize = u.sizes.zw;
+  let cur = textureLoad(currentCloud, lowCoord, 0);
+  let curMotion = textureLoad(currentDepthVelocity, lowCoord, 0);
+  let curDepthEnc = encodeDepth(curMotion);
+  var out : TaauClassifyOut;
+  out.cloudCovered = 0u;
+  if (bayer == phase || u.flags.x < 0.5) {
+    out.category = 0;
+    out.outColor = cur;
+    out.outDepthEnc = curDepthEnc;
+    return out;
+  }
+  var m1 = vec3f(0.0);
+  var m2 = vec3f(0.0);
+  var minT = 1.0;
+  var maxT = 0.0;
+  for (var y = -1; y <= 1; y = y + 1) {
+    for (var x = -1; x <= 1; x = x + 1) {
+      let lc = clamp(lowCoord + vec2i(x, y), vec2i(0), lowMax);
+      let sample = textureLoad(currentCloud, lc, 0);
+      let yc = rgb2ycocg(sample.rgb);
+      m1 += yc;
+      m2 += yc * yc;
+      minT = min(minT, sample.a);
+      maxT = max(maxT, sample.a);
+    }
+  }
+  let neighborhoodMaxOpacity = 1.0 - minT;
+  let cloudCoveredSample = neighborhoodMaxOpacity > TAAU_CLOUD_OPACITY_THRESHOLD;
+  out.cloudCovered = select(0u, 1u, cloudCoveredSample);
+  var bestDepth = 1e7;
+  var bestOpacity = -1.0;
+  var bestMotion = vec4f(0.0);
+  var found = false;
+  for (var oy = -1; oy <= 1; oy = oy + 1) {
+    for (var ox = -1; ox <= 1; ox = ox + 1) {
+      let lc = clamp(lowCoord + vec2i(ox, oy), vec2i(0), lowMax);
+      let motion = textureLoad(currentDepthVelocity, lc, 0);
+      if (motion.w > 0.5) {
+        let sampleColor = textureLoad(currentCloud, lc, 0);
+        let opacity = 1.0 - sampleColor.a;
+        if (!found || motion.x < bestDepth || (motion.x == bestDepth && opacity > bestOpacity)) {
+          found = true;
+          bestDepth = motion.x;
+          bestOpacity = opacity;
+          bestMotion = motion;
+        }
+      }
+    }
+  }
+  if (!found) {
+    out.category = 1;
+    out.outColor = cur;
+    out.outDepthEnc = curDepthEnc;
+    return out;
+  }
+  let currentUv = fcXy / fullSize;
+  let prevUv = currentUv - bestMotion.yz;
+  if (any(prevUv < vec2f(0.0)) || any(prevUv > vec2f(1.0))) {
+    out.category = 2;
+    out.outColor = cur;
+    out.outDepthEnc = curDepthEnc;
+    return out;
+  }
+  let histCoord = clamp(vec2i(round(prevUv * fullSize - vec2f(0.5))), vec2i(0), vec2i(fullSize) - vec2i(1));
+  let histDepthEnc = textureLoad(historyDepth, histCoord, 0).x;
+  let curDepthValid = bestMotion.w > 0.5;
+  let histDepthValid = histDepthEnc > 0.0;
+  if (curDepthValid != histDepthValid) {
+    out.category = 3;
+    out.outColor = cur;
+    out.outDepthEnc = curDepthEnc;
+    return out;
+  }
+  if (curDepthValid && histDepthValid) {
+    let dCur = bestDepth;
+    let dHist = decodeDepth(histDepthEnc);
+    let rel = abs(dCur - dHist) / max(max(dCur, dHist), 1e-4);
+    if (rel > TAAU_DEPTH_REJECT_REL) {
+      out.category = 3;
+      out.outColor = cur;
+      out.outDepthEnc = curDepthEnc;
+      return out;
+    }
+  }
+  var hist = textureSampleLevel(historyCloud, samp, prevUv, 0.0);
+  let histOpacity = 1.0 - hist.a;
+  let minOpacity = 1.0 - maxT;
+  let maxOpacity = 1.0 - minT;
+  let opacityOutside = max(minOpacity - histOpacity, histOpacity - maxOpacity);
+  if (opacityOutside > TAAU_OPACITY_REJECT_HI) {
+    out.category = 4;
+    out.outColor = cur;
+    out.outDepthEnc = curDepthEnc;
+    return out;
+  }
+  let mean = m1 / 9.0;
+  let variance = max(m2 / 9.0 - mean * mean, vec3f(0.0));
+  let extent = sqrt(variance);
+  let histY = rgb2ycocg(hist.rgb);
+  let dir = histY - mean;
+  var clipScale = 1.0;
+  if (abs(dir.x) > 1e-5) { clipScale = min(clipScale, extent.x / abs(dir.x)); }
+  if (abs(dir.y) > 1e-5) { clipScale = min(clipScale, extent.y / abs(dir.y)); }
+  if (abs(dir.z) > 1e-5) { clipScale = min(clipScale, extent.z / abs(dir.z)); }
+  let clippedRgb = ycocg2rgb(mean + dir * clamp(clipScale, 0.0, 1.0));
+  let clippedT = clamp(hist.a, minT, maxT);
+  let clippedHist = vec4f(clippedRgb, clippedT);
+  let reactive = clamp(
+    (opacityOutside - TAAU_OPACITY_REACT_LO) / max(TAAU_OPACITY_REJECT_HI - TAAU_OPACITY_REACT_LO, 1e-5),
+    0.0,
+    1.0,
+  );
+  let outColor = mix(clippedHist, cur, reactive);
+  out.category = 5;
+  out.outColor = outColor;
+  out.outDepthEnc = histDepthEnc;
+  return out;
+}
+fn taauDebugOverlayColor(debugMode : i32, category : i32, bayer : i32, phase : i32) -> vec4f {
+  if (debugMode == 1) {
+    if (bayer == phase) {
+      return vec4f(1.0, 0.4, 0.05, 1.0);
+    }
+    let t = f32(bayer) / 15.0;
+    return vec4f(t * 0.35, t * 0.55, t, 1.0);
+  }
+  if (category == 0) { return vec4f(1.0, 1.0, 1.0, 1.0); }
+  if (category == 1) { return vec4f(1.0, 0.15, 0.15, 1.0); }
+  if (category == 2) { return vec4f(0.9, 0.2, 0.9, 1.0); }
+  if (category == 3) { return vec4f(0.15, 0.85, 0.95, 1.0); }
+  if (category == 4) { return vec4f(1.0, 0.85, 0.15, 1.0); }
+  return vec4f(0.08, 0.1, 0.14, 1.0);
+}
+`;
+
+const taauResolveShaderSource = /* wgsl */ `
+${taauClassifySharedSource}
+struct TaauResolveCounters {
+  totalTexels : atomic<u32>,
+  currentPhase : atomic<u32>,
+  rejectNoVelocity : atomic<u32>,
+  rejectViewport : atomic<u32>,
+  rejectDepth : atomic<u32>,
+  rejectOpacity : atomic<u32>,
+  cloudCovered : atomic<u32>,
+  cloudRejected : atomic<u32>,
+};
+@group(0) @binding(6) var<storage, read_write> counters : TaauResolveCounters;
+struct VOut { @builtin(position) pos : vec4f };
+struct TaauOut {
+  @location(0) color : vec4f,
+  @location(1) depth : f32,
+};
+@vertex fn vsTaau(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+@fragment fn fsTaau(@builtin(position) fc : vec4f) -> TaauOut {
+  let coord = vec2i(floor(fc.xy));
+  let sampleStats = (coord.x % 4) == 0 && (coord.y % 4) == 0;
+  let decision = taauClassify(coord, fc.xy);
+  if (decision.category == 0) {
+    if (sampleStats) { atomicAdd(&counters.currentPhase, 1u); }
+    return TaauOut(decision.outColor, decision.outDepthEnc);
+  }
+  if (sampleStats) { atomicAdd(&counters.totalTexels, 1u); }
+  if (sampleStats && decision.cloudCovered != 0u) { atomicAdd(&counters.cloudCovered, 1u); }
+  if (decision.category == 1) {
+    if (sampleStats) {
+      atomicAdd(&counters.rejectNoVelocity, 1u);
+      if (decision.cloudCovered != 0u) { atomicAdd(&counters.cloudRejected, 1u); }
+    }
+    return TaauOut(decision.outColor, decision.outDepthEnc);
+  }
+  if (decision.category == 2) {
+    if (sampleStats) {
+      atomicAdd(&counters.rejectViewport, 1u);
+      if (decision.cloudCovered != 0u) { atomicAdd(&counters.cloudRejected, 1u); }
+    }
+    return TaauOut(decision.outColor, decision.outDepthEnc);
+  }
+  if (decision.category == 3) {
+    if (sampleStats) {
+      atomicAdd(&counters.rejectDepth, 1u);
+      if (decision.cloudCovered != 0u) { atomicAdd(&counters.cloudRejected, 1u); }
+    }
+    return TaauOut(decision.outColor, decision.outDepthEnc);
+  }
+  if (decision.category == 4) {
+    if (sampleStats) {
+      atomicAdd(&counters.rejectOpacity, 1u);
+      if (decision.cloudCovered != 0u) { atomicAdd(&counters.cloudRejected, 1u); }
+    }
+    return TaauOut(decision.outColor, decision.outDepthEnc);
+  }
+  return TaauOut(decision.outColor, decision.outDepthEnc);
+}
+`;
+
+const taauDebugOverlayShaderSource = /* wgsl */ `
+${taauClassifySharedSource}
+struct VOut { @builtin(position) pos : vec4f };
+@vertex fn vsTaauDebug(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  return o;
+}
+@fragment fn fsTaauDebug(@builtin(position) fc : vec4f) -> @location(0) vec4f {
+  let coord = vec2i(floor(fc.xy));
+  let sub = coord % 4;
+  let bayer = BAYER[sub.y * 4 + sub.x];
+  let phase = i32(u.flags.y);
+  let debugMode = i32(u.flags.z);
+  if (debugMode == 1) {
+    return taauDebugOverlayColor(debugMode, 0, bayer, phase);
+  }
+  let decision = taauClassify(coord, fc.xy);
+  return taauDebugOverlayColor(debugMode, decision.category, bayer, phase);
+}
+`;
+
 const TOD_KNOTS = [-15, -6, 0, 5, 12, 25, 45, 90];
 const TOD_BG_LEGACY: [number, number, number][] = [
   [0.02, 0.03, 0.07],
@@ -547,9 +861,35 @@ export interface RenderStats {
   cloudFrameFallbackReason: string;
   cloudFrameAttachmentBytes: number;
   cloudFrameHistoryBytes: number;
+  cloudFrameLowResAttachmentBytes: number;
+  taauHistoryDepthBytes: number;
   cloudFrameResourceGeneration: number;
   cloudFrameContentRevision: number;
   cloudFrameDiscontinuityGeneration: number;
+  requestedTemporalMode: 'off' | 'full-res-taa' | 'taau-4x4';
+  activeTemporalMode: 'off' | 'full-res-taa' | 'taau-4x4';
+  temporalFallbackReason: string | null;
+  temporalBayerPhase: number;
+  taauCurrentWidth: number;
+  taauCurrentHeight: number;
+  taauBackgroundMs: number;
+  taauCurrentMs: number;
+  taauResolveMs: number;
+  taauHistoryRejectionRatio: number;
+  taauHistoryRejectionSampledEstimate: boolean;
+  taauRejectNoVelocityRatio: number;
+  taauRejectViewportRatio: number;
+  taauRejectDepthRatio: number;
+  taauRejectOpacityRatio: number;
+  taauCurrentPhaseSampleCount: number;
+  taauNonCurrentPhaseSampleCount: number;
+  taauCloudCoveredSampleCount: number;
+  taauCloudCoveredRejectionRatio: number;
+  taauCloudOpacityThreshold: number;
+  taauResolveCounterSampleId: number;
+  taauDepthRejectRel: number;
+  taauOpacityOutsideReactLo: number;
+  taauOpacityOutsideRejectHi: number;
   worldStepRequested: boolean;
   worldStepActive: boolean;
   worldStepMinMeters: number;
@@ -875,11 +1215,50 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     fragment: { module: cloudCompositeModule, entryPoint: 'fsComposite', targets: [{ format: OFFSCREEN_FORMAT }] },
     primitive: { topology: 'triangle-list' },
   });
+  const taauResolveModule = createShaderModuleTimed({ code: taauResolveShaderSource });
+  const taauResolvePipeline = createRenderPipelineTimed({
+    layout: 'auto',
+    vertex: { module: taauResolveModule, entryPoint: 'vsTaau' },
+    fragment: {
+      module: taauResolveModule,
+      entryPoint: 'fsTaau',
+      targets: [{ format: OFFSCREEN_FORMAT }, { format: 'r16float' }],
+    },
+    primitive: { topology: 'triangle-list' },
+  });
+  const taauDebugOverlayModule = createShaderModuleTimed({ code: taauDebugOverlayShaderSource });
+  const taauDebugOverlayPipeline = createRenderPipelineTimed({
+    layout: 'auto',
+    vertex: { module: taauDebugOverlayModule, entryPoint: 'vsTaauDebug' },
+    fragment: {
+      module: taauDebugOverlayModule,
+      entryPoint: 'fsTaauDebug',
+      targets: [{ format: OFFSCREEN_FORMAT }],
+    },
+    primitive: { topology: 'triangle-list' },
+  });
   const taaUniformBuffer = device.createBuffer({
     size: 160,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const taaData = new Float32Array(40);
+  const taauResolveUniformBuffer = device.createBuffer({
+    size: 32,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const taauResolveData = new Float32Array(8);
+  const taauResolveCountersBuffer = device.createBuffer({
+    label: 'w11-taau-resolve-counters',
+    size: TAAU_RESOLVE_COUNTER_BUFFER_BYTES,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+  });
+  const taauResolveCountersReadBuffer = device.createBuffer({
+    label: 'w11-taau-resolve-counters-readback',
+    size: TAAU_RESOLVE_COUNTER_BUFFER_BYTES,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+  let taauResolveCountersMapping = false;
+  let taauResolveCounterGeneration = 0;
 
   const postSampler = device.createSampler({
     magFilter: 'linear',
@@ -932,6 +1311,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
   let qualityBindings: DensityQualityBindings;
   let qualityBindingsReady = false;
+  let cloudFrameSceneTaauCurrent: GPUBindGroup | null = null;
 
   const lineModule = createShaderModuleTimed({ code: lineShaderSource });
   const linePipeline = createRenderPipelineTimed({
@@ -1011,7 +1391,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let shapeSignature = '';
 
   const cameraBuffer = device.createBuffer({
-    size: 160,
+    size: 192,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const cameraBufferTaauCurrent = device.createBuffer({
+    size: 192,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const paramsBuffer = device.createBuffer({
@@ -1200,10 +1584,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     ) {
       return;
     }
+    const shapeView = shapeTexture.createView({ dimension: '2d-array' });
     qualityBindings = createDensityQualityBindings(device, bundle, {
       cameraBuffer,
       paramsBuffer,
-      shapeView: shapeTexture.createView({ dimension: '2d-array' }),
+      shapeView,
       weatherSampler: linearSampler,
       presetBuffer,
       densityOutput,
@@ -1213,6 +1598,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       stbnView: stbnResources.view,
       raymarchCountersBuffer,
     });
+    cloudFrameSceneTaauCurrent = bundle.cloudFramePipeline ? device.createBindGroup({
+      label: `density-quality-${bundle.kind}-cloud-frame-scene-taau-current`,
+      layout: bundle.cloudFramePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: cameraBufferTaauCurrent } },
+        { binding: 1, resource: { buffer: paramsBuffer } },
+        { binding: 2, resource: shapeView },
+        { binding: 3, resource: linearSampler },
+        { binding: 4, resource: { buffer: presetBuffer } },
+      ],
+    }) : null;
     qualityBindingsReady = true;
     qualityConsumerGeneration = selection.activeGeneration;
     densityConsumerProducerGeneration = producerSelection.activeGeneration;
@@ -1254,17 +1650,25 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let sceneTexture: GPUTexture | null = null;
   let sceneView: GPUTextureView | null = null;
   let cloudFrameOutput: CloudFrameOutputResources | null = null;
+  let cloudFrameLowResOutput: CloudFrameOutputResources | null = null;
   let historyTex: [GPUTexture, GPUTexture] | null = null;
   let historyViews: [GPUTextureView, GPUTextureView];
+  let historyDepthTex: [GPUTexture, GPUTexture] | null = null;
+  let historyDepthViews: [GPUTextureView, GPUTextureView];
   let legacyTaaBindGroups: [GPUBindGroup, GPUBindGroup];
   let cloudTaaBindGroups: [GPUBindGroup, GPUBindGroup];
   let cloudCompositeBindGroups: [GPUBindGroup, GPUBindGroup];
+  let taauResolveBindGroups: [GPUBindGroup, GPUBindGroup];
+  let taauDebugOverlayBindGroups: [GPUBindGroup, GPUBindGroup];
   let histIndex = 0;
   let historyValid = false;
   let prevTaaEnabled = false;
+  let prevActiveTemporalMode: 0 | 1 | 2 = 1;
   let previousCloudFramePath: 'cloud-frame' | 'combined-feature-off' | 'combined-emergency' | null = null;
   let previousCameraDiscontinuityGeneration: number | null = null;
   let previousWorldMarchSignature = '';
+  let previousSunDir: [number, number, number] | null = null;
+  let previousBrickAllocationGeneration: number | null = null;
   const prevViewProj = new Float32Array(16);
   let previousJitterX = 0;
   let previousJitterY = 0;
@@ -1385,6 +1789,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (sceneTexture && sceneW === w && sceneH === h) return;
     if (sceneTexture) sceneTexture.destroy();
     if (historyTex) for (const t of historyTex) t.destroy();
+    if (historyDepthTex) for (const t of historyDepthTex) t.destroy();
     sceneW = w;
     sceneH = h;
     sceneTexture = device.createTexture({
@@ -1395,12 +1800,32 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     sceneView = sceneTexture.createView();
     if (cloudFrameOutput) cloudFrameOutput.resize(w, h);
     else cloudFrameOutput = new CloudFrameOutputResources({ device, width: w, height: h });
+    const lowW = Math.max(1, Math.ceil(w / 4));
+    const lowH = Math.max(1, Math.ceil(h / 4));
+    if (cloudFrameLowResOutput) {
+      cloudFrameLowResOutput.resize(lowW, lowH, { extentRounding: 'exact' });
+    } else {
+      cloudFrameLowResOutput = new CloudFrameOutputResources({
+        device,
+        width: lowW,
+        height: lowH,
+        label: 'w11-taau-lowres',
+        extentRounding: 'exact',
+      });
+    }
     historyTex = [0, 1].map(() => device.createTexture({
       size: [w, h],
       format: OFFSCREEN_FORMAT,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     })) as [GPUTexture, GPUTexture];
     historyViews = [historyTex[0].createView(), historyTex[1].createView()];
+    historyDepthTex = [0, 1].map((i) => device.createTexture({
+      label: `w11-taau-history-depth-${i}`,
+      size: [w, h],
+      format: 'r16float',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    })) as [GPUTexture, GPUTexture];
+    historyDepthViews = [historyDepthTex[0].createView(), historyDepthTex[1].createView()];
     legacyTaaBindGroups = [0, 1].map((i) => device.createBindGroup({
       layout: legacyTaaPipeline.getBindGroupLayout(0),
       entries: [
@@ -1428,8 +1853,32 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         { binding: 2, resource: postSampler },
       ],
     })) as [GPUBindGroup, GPUBindGroup];
+    taauResolveBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: taauResolvePipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: cloudFrameLowResOutput!.radianceTransmittanceView },
+        { binding: 1, resource: cloudFrameLowResOutput!.depthVelocityView },
+        { binding: 2, resource: historyViews[1 - i] },
+        { binding: 3, resource: historyDepthViews[1 - i] },
+        { binding: 4, resource: postSampler },
+        { binding: 5, resource: { buffer: taauResolveUniformBuffer } },
+        { binding: 6, resource: { buffer: taauResolveCountersBuffer } },
+      ],
+    })) as [GPUBindGroup, GPUBindGroup];
+    taauDebugOverlayBindGroups = [0, 1].map((i) => device.createBindGroup({
+      layout: taauDebugOverlayPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: cloudFrameLowResOutput!.radianceTransmittanceView },
+        { binding: 1, resource: cloudFrameLowResOutput!.depthVelocityView },
+        { binding: 2, resource: historyViews[1 - i] },
+        { binding: 3, resource: historyDepthViews[1 - i] },
+        { binding: 4, resource: postSampler },
+        { binding: 5, resource: { buffer: taauResolveUniformBuffer } },
+      ],
+    })) as [GPUBindGroup, GPUBindGroup];
     ensureBloomTextures(w, h);
     historyValid = false;
+    taauResolveCounterGeneration++;
   }
 
   let fixedCanvasSize: { width: number; height: number } | null = null;
@@ -1456,7 +1905,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let prevSceneTime = 0.0;
   let rendererDestroyed = false;
 
-  const TS_COUNT = 22; // + W5/W9 plus cloud-only temporal resolve and full-resolution composite
+  const TS_COUNT = 26;
   const tsQuerySet = hasTimestamp ? device.createQuerySet({ type: 'timestamp', count: TS_COUNT }) : null;
   const tsResolve = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
   const tsRead = hasTimestamp ? device.createBuffer({ size: TS_COUNT * 8, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ }) : null;
@@ -1488,9 +1937,35 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     cloudFrameFallbackReason: 'cloud-frame-not-rendered',
     cloudFrameAttachmentBytes: 0,
     cloudFrameHistoryBytes: 0,
+    cloudFrameLowResAttachmentBytes: 0,
+    taauHistoryDepthBytes: 0,
     cloudFrameResourceGeneration: 0,
     cloudFrameContentRevision: 0,
     cloudFrameDiscontinuityGeneration: 0,
+    requestedTemporalMode: 'full-res-taa',
+    activeTemporalMode: 'full-res-taa',
+    temporalFallbackReason: null,
+    temporalBayerPhase: 0,
+    taauCurrentWidth: 0,
+    taauCurrentHeight: 0,
+    taauBackgroundMs: 0,
+    taauCurrentMs: 0,
+    taauResolveMs: 0,
+    taauHistoryRejectionRatio: 0,
+    taauHistoryRejectionSampledEstimate: true,
+    taauRejectNoVelocityRatio: 0,
+    taauRejectViewportRatio: 0,
+    taauRejectDepthRatio: 0,
+    taauRejectOpacityRatio: 0,
+    taauCurrentPhaseSampleCount: 0,
+    taauNonCurrentPhaseSampleCount: 0,
+    taauCloudCoveredSampleCount: 0,
+    taauCloudCoveredRejectionRatio: 0,
+    taauCloudOpacityThreshold: TAAU_CLOUD_OPACITY_THRESHOLD,
+    taauResolveCounterSampleId: 0,
+    taauDepthRejectRel: TAAU_DEPTH_REJECT_REL,
+    taauOpacityOutsideReactLo: TAAU_OPACITY_REACT_LO,
+    taauOpacityOutsideRejectHi: TAAU_OPACITY_REJECT_HI,
     worldStepRequested: false,
     worldStepActive: false,
     worldStepMinMeters: 0,
@@ -1571,11 +2046,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityProducerSelector.handleDeviceLost(reason);
     densityQualityPipelineManager.destroy();
     cloudFrameOutput?.destroy();
+    cloudFrameLowResOutput?.destroy();
+    if (historyDepthTex) for (const t of historyDepthTex) t.destroy();
+    historyDepthTex = null;
+    historyValid = false;
     stats.gpuTiming = false;
     stats.gpuTimingError = reason.message || String(reason.reason);
     stats.cloudFrameActivePath = 'combined-emergency';
     stats.cloudFrameFallbackReason = `device-lost: ${reason.message || String(reason.reason)}`;
     stats.cloudFrameAttachmentBytes = 0;
+    stats.cloudFrameLowResAttachmentBytes = 0;
+    stats.taauHistoryDepthBytes = 0;
     if (cloudFrameOutput) {
       stats.cloudFrameResourceGeneration = cloudFrameOutput.resourceGeneration;
       stats.cloudFrameDiscontinuityGeneration = cloudFrameOutput.discontinuityGeneration;
@@ -1589,7 +2070,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   });
 
   const paramsData = new Float32Array(PARAMS_FLOAT_COUNT);
-  const cameraData = new Float32Array(40);
+  const cameraData = new Float32Array(48);
+  const cameraDataTaauCurrent = new Float32Array(48);
 
   function buildParams(
     params: CloudParams,
@@ -1890,10 +2372,36 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     previousWorldMarchSignature = worldMarchSignature;
 
-    const taaOn = params.taaEnabled && params.debugView < 0.5;
+    const taaOn = (params.taaEnabled && params.debugView < 0.5)
+      || (params.taaEnabled && isTaauDebugView(params.debugView));
+    const activeQualityBundleForTemporal = densityQualityPipelineManager.getActiveBundle();
+    const cloudFramePathForTemporal = !params.cloudFrameEnabled
+      ? 'combined-feature-off' as const
+      : activeQualityBundleForTemporal.cloudFramePipeline
+        ? 'cloud-frame' as const
+        : 'combined-emergency' as const;
+    let requestedTemporalModeNum: 0 | 1 | 2 = 1;
+    const rawTemporalQuality = Math.round(params.temporalQuality);
+    if (rawTemporalQuality === 0 || rawTemporalQuality === 1 || rawTemporalQuality === 2) {
+      requestedTemporalModeNum = rawTemporalQuality;
+    }
+    let activeTemporalModeNum: 0 | 1 | 2 = requestedTemporalModeNum;
+    let temporalFallbackReason: string | null = null;
+    if (!params.taaEnabled) {
+      activeTemporalModeNum = 0;
+      temporalFallbackReason = 'taa-disabled';
+    } else if (params.debugView >= 0.5 && !isTaauDebugView(params.debugView)) {
+      activeTemporalModeNum = 0;
+      temporalFallbackReason = 'debug-view';
+    } else if (cloudFramePathForTemporal !== 'cloud-frame' && activeTemporalModeNum === 2) {
+      activeTemporalModeNum = 1;
+      temporalFallbackReason = 'combined-path';
+    }
+    const temporalBayerPhase = frameIndex % 16;
+    const bayerSub = w11BayerSubpixel(temporalBayerPhase);
     let jitterX = 0.0;
     let jitterY = 0.0;
-    if (taaOn) {
+    if (taaOn && activeTemporalModeNum === 1) {
       const hi = (frameIndex % 8) + 1;
       jitterX = halton(hi, 2) - 0.5;
       jitterY = halton(hi, 3) - 0.5;
@@ -1907,6 +2415,15 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       historyValid = false;
       cloudFrameOutput?.markDiscontinuity();
     }
+    const sunDir = sunDirectionFromAngles(params.sunAzimuth, params.sunElevation);
+    if (previousSunDir !== null) {
+      const sunDot = previousSunDir[0] * sunDir[0] + previousSunDir[1] * sunDir[1] + previousSunDir[2] * sunDir[2];
+      if (sunDot < SUN_DIRECTION_DISCONTINUITY_DOT) {
+        historyValid = false;
+        cloudFrameOutput?.markDiscontinuity();
+      }
+    }
+    previousSunDir = sunDir;
     const shadowTexelMeters = (params.boxHalfExtent * 2) / groundShadowResolution;
     const shadowWindMotion = groundShadowWindMotionMeters();
     const shadowWindExceeded = shadowWindMotion > shadowTexelMeters * 0.5;
@@ -2031,6 +2548,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const transitionSharedStats = densityProducerSelector.getRecipeV2Stats()?.sharedFields;
     const sharedAtlasRan = transitionSharedStats?.atlasRan === true;
     const sharedMacroRan = transitionSharedStats?.macroRan === true;
+    const brickAllocationGeneration = currentDensityOutput.hierarchical?.valid === true
+      ? currentDensityOutput.hierarchical.allocationGeneration
+      : -1;
+    if (
+      previousBrickAllocationGeneration !== null
+      && brickAllocationGeneration !== previousBrickAllocationGeneration
+    ) {
+      historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
+    }
+    previousBrickAllocationGeneration = brickAllocationGeneration;
 
     if (groundShadowWillRun) {
       shadowRan = true;
@@ -2116,6 +2644,16 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       cloudFrameOutput!.markDiscontinuity();
       previousCloudFramePath = cloudFramePath;
     }
+
+    const temporalModeName = (mode: 0 | 1 | 2): 'off' | 'full-res-taa' | 'taau-4x4' => (
+      mode === 0 ? 'off' : mode === 2 ? 'taau-4x4' : 'full-res-taa'
+    );
+    if (activeTemporalModeNum !== prevActiveTemporalMode) {
+      historyValid = false;
+      cloudFrameOutput!.markDiscontinuity();
+      prevActiveTemporalMode = activeTemporalModeNum;
+    }
+
     const nextRaymarchConfigSignature = [
       cloudFramePath,
       qualitySelection.active,
@@ -2154,92 +2692,187 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     previousCameraDiscontinuityGeneration = cameraDiscontinuityGeneration;
 
-    cameraData.set(cam.invViewProj, 0);
-    cameraData.set(prevViewProj, 16);
-    cameraData[32] = cam.eye[0];
-    cameraData[33] = cam.eye[1];
-    cameraData[34] = cam.eye[2];
-    cameraData[35] = historyValid ? 1 : 0;
-    cameraData[36] = jitterX;
-    cameraData[37] = jitterY;
-    cameraData[38] = previousJitterX;
-    cameraData[39] = previousJitterY;
-    device.queue.writeBuffer(cameraBuffer, 0, cameraData);
+    const writeCameraUniform = (
+      data: Float32Array,
+      buffer: GPUBuffer,
+      passMode: number,
+      jx: number,
+      jy: number,
+      prevJx: number,
+      prevJy: number,
+    ): void => {
+      data.set(cam.invViewProj, 0);
+      data.set(prevViewProj, 16);
+      data[32] = cam.eye[0];
+      data[33] = cam.eye[1];
+      data[34] = cam.eye[2];
+      data[35] = historyValid ? 1 : 0;
+      data[36] = jx;
+      data[37] = jy;
+      data[38] = prevJx;
+      data[39] = prevJy;
+      data[40] = passMode;
+      data[41] = passMode === 1 ? bayerSub.sx + 0.5 : 0;
+      data[42] = passMode === 1 ? bayerSub.sy + 0.5 : 0;
+      data[43] = passMode === 1 ? temporalBayerPhase : 0;
+      data[44] = canvas.width;
+      data[45] = canvas.height;
+      data[46] = 1 / canvas.width;
+      data[47] = 1 / canvas.height;
+      device.queue.writeBuffer(buffer, 0, data);
+    };
 
+    const taauActive = activeTemporalModeNum === 2 && cloudFramePath === 'cloud-frame';
     commandEncoder.clearBuffer(raymarchCountersBuffer);
-    const renderPass = commandEncoder.beginRenderPass({
-      colorAttachments: cloudFramePath === 'cloud-frame'
-        ? [...cloudFrameOutput!.createClearAttachments()]
-        : [{
-            view: sceneView!,
+
+    if (taauActive) {
+      writeCameraUniform(cameraData, cameraBuffer, 2, 0, 0, 0, 0);
+      writeCameraUniform(cameraDataTaauCurrent, cameraBufferTaauCurrent, 1, 0, 0, 0, 0);
+
+      const bgPass = commandEncoder.beginRenderPass({
+        colorAttachments: [...cloudFrameOutput!.createClearAttachments()],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 22, endOfPassWriteIndex: 23 } } : {}),
+      });
+      bgPass.setPipeline(activeQualityBundle.cloudFramePipeline!);
+      bgPass.setBindGroup(0, qualityBindings.cloudFrameScene!);
+      if (qualityBindings.cloudFrameDensity) bgPass.setBindGroup(1, qualityBindings.cloudFrameDensity);
+      bgPass.setBindGroup(3, qualityBindings.cloudFrameGroundShadow!);
+      bgPass.draw(3);
+      bgPass.end();
+
+      const lowResPass = commandEncoder.beginRenderPass({
+        colorAttachments: [...cloudFrameLowResOutput!.createClearAttachments()],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 24, endOfPassWriteIndex: 25 } } : {}),
+      });
+      lowResPass.setPipeline(activeQualityBundle.cloudFramePipeline!);
+      lowResPass.setBindGroup(0, cloudFrameSceneTaauCurrent!);
+      if (qualityBindings.cloudFrameDensity) lowResPass.setBindGroup(1, qualityBindings.cloudFrameDensity);
+      lowResPass.setBindGroup(3, qualityBindings.cloudFrameGroundShadow!);
+      lowResPass.draw(3);
+      lowResPass.end();
+
+      if (cloudFramePath === 'cloud-frame') cloudFrameOutput!.markContent();
+      cloudFrameLowResOutput!.markContent();
+
+      taauResolveData[0] = historyValid ? 1 : 0;
+      taauResolveData[1] = temporalBayerPhase;
+      taauResolveData[2] = Math.round(params.debugView) === DEBUG_VIEW_TAAU_PHASE
+        ? 1
+        : Math.round(params.debugView) === DEBUG_VIEW_TAAU_REJECTION
+          ? 2
+          : 0;
+      taauResolveData[3] = 0;
+      taauResolveData[4] = cloudFrameLowResOutput!.width;
+      taauResolveData[5] = cloudFrameLowResOutput!.height;
+      taauResolveData[6] = canvas.width;
+      taauResolveData[7] = canvas.height;
+      device.queue.writeBuffer(taauResolveUniformBuffer, 0, taauResolveData);
+      commandEncoder.clearBuffer(taauResolveCountersBuffer);
+
+      const taauResolvePass = commandEncoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: historyViews[histIndex],
             loadOp: 'clear',
-            clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
             storeOp: 'store',
-          }],
-      ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
-    });
+          },
+          {
+            view: historyDepthViews[histIndex],
+            loadOp: 'clear',
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            storeOp: 'store',
+          },
+        ],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 18, endOfPassWriteIndex: 19 } } : {}),
+      });
+      taauResolvePass.setPipeline(taauResolvePipeline);
+      taauResolvePass.setBindGroup(0, taauResolveBindGroups[histIndex]);
+      taauResolvePass.draw(3);
+      taauResolvePass.end();
+    } else {
+      writeCameraUniform(cameraData, cameraBuffer, 0, jitterX, jitterY, previousJitterX, previousJitterY);
 
-    renderPass.setPipeline(cloudFramePath === 'cloud-frame'
-      ? activeQualityBundle.cloudFramePipeline!
-      : activeQualityBundle.cloudPipeline);
-    renderPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
-      ? qualityBindings.cloudFrameScene!
-      : qualityBindings.cloudScene);
-    const activeCloudDensity = cloudFramePath === 'cloud-frame'
-      ? qualityBindings.cloudFrameDensity
-      : qualityBindings.cloudDensity;
-    if (activeCloudDensity) {
-      renderPass.setBindGroup(1, activeCloudDensity);
+      const renderPass = commandEncoder.beginRenderPass({
+        colorAttachments: cloudFramePath === 'cloud-frame'
+          ? [...cloudFrameOutput!.createClearAttachments()]
+          : [{
+              view: sceneView!,
+              loadOp: 'clear',
+              clearValue: todBackground(params.sunElevation, params.todPaletteBlend),
+              storeOp: 'store',
+            }],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9 } } : {}),
+      });
+
+      renderPass.setPipeline(cloudFramePath === 'cloud-frame'
+        ? activeQualityBundle.cloudFramePipeline!
+        : activeQualityBundle.cloudPipeline);
+      renderPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
+        ? qualityBindings.cloudFrameScene!
+        : qualityBindings.cloudScene);
+      const activeCloudDensity = cloudFramePath === 'cloud-frame'
+        ? qualityBindings.cloudFrameDensity
+        : qualityBindings.cloudDensity;
+      if (activeCloudDensity) {
+        renderPass.setBindGroup(1, activeCloudDensity);
+      }
+      renderPass.setBindGroup(3, cloudFramePath === 'cloud-frame'
+        ? qualityBindings.cloudFrameGroundShadow!
+        : qualityBindings.cloudGroundShadow);
+      renderPass.draw(3);
+
+      if (lineVertCount > 0) {
+        lineCamData.set(cam.viewProj, 0);
+        lineCamData[16] = 1.0;
+        device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
+      }
+      if (cloudFramePath !== 'cloud-frame' && lineVertCount > 0) {
+        renderPass.setPipeline(linePipeline);
+        renderPass.setBindGroup(0, lineBindGroup);
+        renderPass.setVertexBuffer(0, lineVertexBuffer);
+        renderPass.draw(lineVertCount);
+      }
+      renderPass.end();
+      if (cloudFramePath === 'cloud-frame') cloudFrameOutput!.markContent();
+
+      const flagsX = (taaOn && historyValid) ? 1 : 0;
+      taaData.set(prevViewProj, 0);
+      taaData.set(cam.invViewProj, 16);
+      taaData[32] = cam.eye[0];
+      taaData[33] = cam.eye[1];
+      taaData[34] = cam.eye[2];
+      taaData[35] = 0;
+      taaData[36] = flagsX;
+      taaData[37] = params.taaBlend;
+      taaData[38] = 0;
+      taaData[39] = 0;
+      device.queue.writeBuffer(taaUniformBuffer, 0, taaData);
+
+      const taaPass = commandEncoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: historyViews[histIndex],
+            loadOp: 'clear',
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            storeOp: 'store',
+          },
+        ],
+        ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 18, endOfPassWriteIndex: 19 } } : {}),
+      });
+      taaPass.setPipeline(cloudFramePath === 'cloud-frame' ? cloudTaaPipeline : legacyTaaPipeline);
+      taaPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
+        ? cloudTaaBindGroups[histIndex]
+        : legacyTaaBindGroups[histIndex]);
+      taaPass.draw(3);
+      taaPass.end();
     }
-    renderPass.setBindGroup(3, cloudFramePath === 'cloud-frame'
-      ? qualityBindings.cloudFrameGroundShadow!
-      : qualityBindings.cloudGroundShadow);
-    renderPass.draw(3);
 
-    if (lineVertCount > 0) {
+    if (lineVertCount > 0 && taauActive) {
       lineCamData.set(cam.viewProj, 0);
       lineCamData[16] = 1.0;
       device.queue.writeBuffer(lineCamBuffer, 0, lineCamData);
     }
-    if (cloudFramePath !== 'cloud-frame' && lineVertCount > 0) {
-      renderPass.setPipeline(linePipeline);
-      renderPass.setBindGroup(0, lineBindGroup);
-      renderPass.setVertexBuffer(0, lineVertexBuffer);
-      renderPass.draw(lineVertCount);
-    }
-    renderPass.end();
-    if (cloudFramePath === 'cloud-frame') cloudFrameOutput!.markContent();
-
-    const flagsX = (taaOn && historyValid) ? 1 : 0;
-    taaData.set(prevViewProj, 0);
-    taaData.set(cam.invViewProj, 16);
-    taaData[32] = cam.eye[0];
-    taaData[33] = cam.eye[1];
-    taaData[34] = cam.eye[2];
-    taaData[35] = 0;
-    taaData[36] = flagsX;
-    taaData[37] = params.taaBlend;
-    taaData[38] = 0;
-    taaData[39] = 0;
-    device.queue.writeBuffer(taaUniformBuffer, 0, taaData);
-
-    const taaPass = commandEncoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: historyViews[histIndex],
-          loadOp: 'clear',
-          clearValue: { r: 0, g: 0, b: 0, a: 0 },
-          storeOp: 'store',
-        },
-      ],
-      ...(timestampEnabled && tsQuerySet ? { timestampWrites: { querySet: tsQuerySet, beginningOfPassWriteIndex: 18, endOfPassWriteIndex: 19 } } : {}),
-    });
-    taaPass.setPipeline(cloudFramePath === 'cloud-frame' ? cloudTaaPipeline : legacyTaaPipeline);
-    taaPass.setBindGroup(0, cloudFramePath === 'cloud-frame'
-      ? cloudTaaBindGroups[histIndex]
-      : legacyTaaBindGroups[histIndex]);
-    taaPass.draw(3);
-    taaPass.end();
 
     if (cloudFramePath === 'cloud-frame') {
       const compositePass = commandEncoder.beginRenderPass({
@@ -2266,6 +2899,21 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         linePass.draw(lineVertCount);
         linePass.end();
       }
+
+      if (taauActive && isTaauDebugView(params.debugView)) {
+        const taauDebugOverlayPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: sceneView!,
+            loadOp: 'clear',
+            clearValue: { r: 0, g: 0, b: 0, a: 1 },
+            storeOp: 'store',
+          }],
+        });
+        taauDebugOverlayPass.setPipeline(taauDebugOverlayPipeline);
+        taauDebugOverlayPass.setBindGroup(0, taauDebugOverlayBindGroups[histIndex]);
+        taauDebugOverlayPass.draw(3);
+        taauDebugOverlayPass.end();
+      }
     }
     historyValid = true;
     prevViewProj.set(cam.viewProj);
@@ -2274,10 +2922,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
 
     const resolvedSceneView = cloudFramePath === 'cloud-frame' ? sceneView! : historyViews[histIndex];
 
-    const ar = (params.sunAzimuth * Math.PI) / 180;
-    const er = (params.sunElevation * Math.PI) / 180;
-    const ce = Math.cos(er);
-    const sd = [ce * Math.sin(ar), Math.sin(er), ce * Math.cos(ar)];
+    const sd = sunDir;
     const sw = [cam.eye[0] + sd[0] * 1000, cam.eye[1] + sd[1] * 1000, cam.eye[2] + sd[2] * 1000, 1];
     const vp = cam.viewProj;
     const c = [0, 0, 0, 0];
@@ -2408,6 +3053,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         RAYMARCH_COUNTER_BUFFER_BYTES,
       );
     }
+    const taauResolveCountersWillRead = taauActive && !taauResolveCountersMapping;
+    const taauResolveCounterGenerationAtSubmit = taauResolveCounterGeneration;
+    if (taauResolveCountersWillRead) {
+      commandEncoder.copyBufferToBuffer(
+        taauResolveCountersBuffer,
+        0,
+        taauResolveCountersReadBuffer,
+        0,
+        TAAU_RESOLVE_COUNTER_BUFFER_BYTES,
+      );
+    }
     if (timestampEnabled && tsQuerySet && tsResolve && tsRead && !tsMapping) {
       commandEncoder.resolveQuerySet(tsQuerySet, 0, TS_COUNT, tsResolve, 0);
       commandEncoder.copyBufferToBuffer(tsResolve, 0, tsRead, 0, TS_COUNT * 8);
@@ -2450,6 +3106,44 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           raymarchCountersMapping = false;
         });
     }
+    if (taauResolveCountersWillRead) {
+      taauResolveCountersMapping = true;
+      void device.queue.onSubmittedWorkDone()
+        .then(() => taauResolveCountersReadBuffer.mapAsync(GPUMapMode.READ))
+        .then(() => {
+          const counters = new Uint32Array(taauResolveCountersReadBuffer.getMappedRange().slice(0));
+          taauResolveCountersReadBuffer.unmap();
+          if (taauResolveCounterGenerationAtSubmit !== taauResolveCounterGeneration) {
+            taauResolveCountersMapping = false;
+            return;
+          }
+          const reconstruct = counters[TAAU_RESOLVE_COUNTER.totalTexels] ?? 0;
+          const rejectNoVelocity = counters[TAAU_RESOLVE_COUNTER.rejectNoVelocity] ?? 0;
+          const rejectViewport = counters[TAAU_RESOLVE_COUNTER.rejectViewport] ?? 0;
+          const rejectDepth = counters[TAAU_RESOLVE_COUNTER.rejectDepth] ?? 0;
+          const rejectOpacity = counters[TAAU_RESOLVE_COUNTER.rejectOpacity] ?? 0;
+          const rejected = rejectNoVelocity + rejectViewport + rejectDepth + rejectOpacity;
+          const cloudCovered = counters[TAAU_RESOLVE_COUNTER.cloudCovered] ?? 0;
+          const cloudRejected = counters[TAAU_RESOLVE_COUNTER.cloudRejected] ?? 0;
+          stats.taauHistoryRejectionRatio = reconstruct > 0 ? rejected / reconstruct : 0;
+          stats.taauHistoryRejectionSampledEstimate = true;
+          stats.taauRejectNoVelocityRatio = reconstruct > 0 ? rejectNoVelocity / reconstruct : 0;
+          stats.taauRejectViewportRatio = reconstruct > 0 ? rejectViewport / reconstruct : 0;
+          stats.taauRejectDepthRatio = reconstruct > 0 ? rejectDepth / reconstruct : 0;
+          stats.taauRejectOpacityRatio = reconstruct > 0 ? rejectOpacity / reconstruct : 0;
+          stats.taauCurrentPhaseSampleCount = counters[TAAU_RESOLVE_COUNTER.currentPhase] ?? 0;
+          stats.taauNonCurrentPhaseSampleCount = reconstruct;
+          stats.taauCloudCoveredSampleCount = cloudCovered;
+          stats.taauCloudCoveredRejectionRatio = cloudCovered > 0 ? cloudRejected / cloudCovered : 0;
+          stats.taauCloudOpacityThreshold = TAAU_CLOUD_OPACITY_THRESHOLD;
+          stats.taauResolveCounterSampleId++;
+          taauResolveCountersMapping = false;
+        })
+        .catch((error: unknown) => {
+          stats.gpuValidationErrors.push(`taau-resolve-counter-readback: ${error instanceof Error ? error.message : String(error)}`);
+          taauResolveCountersMapping = false;
+        });
+    }
     densityProducerSelector.afterSubmit();
     densityProducerSelector.commitTransition();
     if (densityProducerSelector.getSelection().activeGeneration !== producerSelection.activeGeneration) {
@@ -2471,9 +3165,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         : activeQualityBundle.cloudFrameFailureReason || 'cloud-frame-pipeline-unavailable';
     stats.cloudFrameAttachmentBytes = cloudFrameOutput!.attachmentBytes;
     stats.cloudFrameHistoryBytes = canvas.width * canvas.height * 8 * 2;
+    stats.cloudFrameLowResAttachmentBytes = cloudFrameLowResOutput!.attachmentBytes;
+    stats.taauHistoryDepthBytes = canvas.width * canvas.height * 2 * 2;
     stats.cloudFrameResourceGeneration = cloudFrameOutput!.resourceGeneration;
     stats.cloudFrameContentRevision = cloudFrameOutput!.contentRevision;
     stats.cloudFrameDiscontinuityGeneration = cloudFrameOutput!.discontinuityGeneration;
+    stats.requestedTemporalMode = temporalModeName(requestedTemporalModeNum);
+    stats.activeTemporalMode = temporalModeName(activeTemporalModeNum);
+    stats.temporalFallbackReason = temporalFallbackReason;
+    stats.temporalBayerPhase = temporalBayerPhase;
+    stats.taauCurrentWidth = activeTemporalModeNum === 2 ? cloudFrameLowResOutput!.width : 0;
+    stats.taauCurrentHeight = activeTemporalModeNum === 2 ? cloudFrameLowResOutput!.height : 0;
     stats.worldStepRequested = params.worldStepEnabled;
     stats.worldStepActive = paramsData[WORLD_MARCH_BASE] > 0.5;
     stats.worldStepMaxIterations = paramsData[WORLD_MARCH_BASE + 1];
@@ -2549,13 +3251,25 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       device.queue.onSubmittedWorkDone().then(() => tsRead.mapAsync(GPUMapMode.READ)).then(() => {
         const ts = new BigInt64Array(tsRead.getMappedRange().slice(0));
         tsRead.unmap();
+        const taauBgNs = Number(ts[23] - ts[22]);
+        const taauCurNs = Number(ts[25] - ts[24]);
         const renderNs = Number(ts[9] - ts[8]);
-        if (renderNs >= 0) {
+        if (activeTemporalModeNum === 2 && taauCurNs >= 0) {
+          stats.cloudMs = ((taauBgNs >= 0 ? taauBgNs : 0) + taauCurNs) / 1e6;
+          stats.cloudCurrentMs = taauCurNs / 1e6;
+          stats.taauBackgroundMs = taauBgNs >= 0 ? taauBgNs / 1e6 : 0;
+          stats.taauCurrentMs = taauCurNs / 1e6;
+        } else if (renderNs >= 0) {
           stats.cloudMs = renderNs / 1e6;
           stats.cloudCurrentMs = renderNs / 1e6;
+          stats.taauBackgroundMs = 0;
+          stats.taauCurrentMs = 0;
         }
         const temporalResolveNs = Number(ts[19] - ts[18]);
-        if (temporalResolveNs >= 0) stats.temporalResolveMs = temporalResolveNs / 1e6;
+        if (temporalResolveNs >= 0) {
+          stats.temporalResolveMs = temporalResolveNs / 1e6;
+          stats.taauResolveMs = activeTemporalModeNum === 2 ? temporalResolveNs / 1e6 : 0;
+        }
         if (cloudFramePath === 'cloud-frame') {
           const compositeNs = Number(ts[21] - ts[20]);
           if (compositeNs >= 0) stats.compositeMs = compositeNs / 1e6;
@@ -2615,9 +3329,14 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityQualityPipelineManager.destroy();
     densityProducerSelector.destroy();
     cloudFrameOutput?.destroy();
+    cloudFrameLowResOutput?.destroy();
+    if (historyDepthTex) for (const t of historyDepthTex) t.destroy();
+    historyDepthTex = null;
     stbnResources.destroy();
     raymarchCountersBuffer.destroy();
     raymarchCountersReadBuffer.destroy();
+    taauResolveCountersBuffer.destroy();
+    taauResolveCountersReadBuffer.destroy();
     densitySharedDebugUniformBuffer?.destroy();
     device.destroy();
   }

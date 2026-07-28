@@ -8,6 +8,8 @@ struct Camera {
   position    : vec3f,
   historyValid : f32,
   jitterPixels : vec4f, // current xy, previous xy
+  taauMode : vec4f,
+  taauTargetSize : vec4f,
 };
 
 struct Globals {
@@ -1173,14 +1175,34 @@ fn debugCloudFrame(color : vec3f) -> CloudFrameSample {
 fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   let skipLight = params.g.skipLight > 0.5;
   let numSteps = i32(params.g.rayMarchSteps);
-  let texelNdc = vec2f(dpdx(uv.x), dpdy(uv.y));
-  let pixelUvSize = abs(texelNdc) * 0.5;
-  let jitterOn = select(1.0, 0.0, params.g.debugView > 0.5);
-  let uvJ = uv + vec2f(params.g.jitterX, params.g.jitterY) * texelNdc * jitterOn;
+  let passMode = i32(camera.taauMode.x);
+  var pixelUvSize : vec2f;
+  var uvJ : vec2f;
+  var sampleUv : vec2f;
+  var backgroundUv : vec2f;
+  if (passMode == 1) {
+    let lowCoord = floor(fragCoord.xy);
+    let fullPix = lowCoord * 4.0 + camera.taauMode.yz;
+    let ndc = vec2f(
+      fullPix.x * camera.taauTargetSize.z * 2.0 - 1.0,
+      1.0 - fullPix.y * camera.taauTargetSize.w * 2.0,
+    );
+    pixelUvSize = camera.taauTargetSize.zw;
+    uvJ = ndc;
+    sampleUv = ndc;
+    backgroundUv = ndc;
+  } else {
+    let texelNdc = vec2f(dpdx(uv.x), dpdy(uv.y));
+    pixelUvSize = abs(texelNdc) * 0.5;
+    let jitterOn = select(1.0, 0.0, params.g.debugView > 0.5);
+    uvJ = uv + vec2f(params.g.jitterX, params.g.jitterY) * texelNdc * jitterOn;
+    sampleUv = uv;
+    backgroundUv = uv;
+  }
   let world_near = camera.invViewProj * vec4f(uvJ, 0.0, 1.0);
   let world_far  = camera.invViewProj * vec4f(uvJ, 1.0, 1.0);
-  let backgroundNear = camera.invViewProj * vec4f(uv, 0.0, 1.0);
-  let backgroundFar = camera.invViewProj * vec4f(uv, 1.0, 1.0);
+  let backgroundNear = camera.invViewProj * vec4f(backgroundUv, 0.0, 1.0);
+  let backgroundFar = camera.invViewProj * vec4f(backgroundUv, 1.0, 1.0);
   let ro = camera.position;
   let rd = normalize(world_far.xyz/world_far.w - world_near.xyz/world_near.w);
   let unjitteredRd = normalize(
@@ -1199,7 +1221,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   }
 
   let counterCoord = vec2u(fragCoord.xy);
-  let recordCounters = counterCoord.x % 16u == 0u && counterCoord.y % 16u == 0u;
+  let recordCounters = passMode != 2 && counterCoord.x % 16u == 0u && counterCoord.y % 16u == 0u;
   if (recordCounters) { atomicAdd(&raymarchCounters.sampledPixels, 1u); }
 
   let hit = intersectBox(ro, rd);
@@ -1228,7 +1250,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   var worldStepSumMeters = 0.0;
   var worldStepCount = 0u;
 
-  if (hit.hit) {
+  if (passMode != 2 && hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
     let worldMarch = params.march.controls.x > 0.5;
     let rayMetric = metersPerRayT(rd);
@@ -1601,7 +1623,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
       - approximateCloudVelocity(representativePoint) * max(params.g.deltaTime, 0.0);
     let prevClip = camera.prevViewProj * vec4f(previousPoint, 1.0);
     if (prevClip.w > 1e-5) {
-      let currentUv = vec2f(uv.x * 0.5 + 0.5, 0.5 - uv.y * 0.5);
+      let currentUv = vec2f(sampleUv.x * 0.5 + 0.5, 0.5 - sampleUv.y * 0.5);
       let prevNdc = prevClip.xy / prevClip.w;
       let prevUv = vec2f(prevNdc.x * 0.5 + 0.5, 0.5 - prevNdc.y * 0.5)
         - camera.jitterPixels.zw * pixelUvSize;

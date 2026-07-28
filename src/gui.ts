@@ -623,6 +623,7 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     const aaFolder = renderFolder.addFolder(t('renderAA'));
     tipKey(aaFolder.add(params, 'cloudFrameEnabled').name(t('cloudFrameEnabled')), 'cloudFrameEnabled');
     tipKey(aaFolder.add(params, 'taaEnabled').name(t('taaEnabled')), 'taaEnabled');
+    tipKey(aaFolder.add(params, 'temporalQuality', { Off: 0, 'Full-res TAA': 1, 'TAAU 4×4': 2 }).name(t('temporalQuality')), 'temporalQuality');
     tipKey(aaFolder.add(params, 'taaBlend', 0.5, 0.98, 0.01).name(t('taaBlend')), 'taaBlend');
 
     const cacheFolder = renderFolder.addFolder(t('renderCache'));
@@ -692,6 +693,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugStbnJitter')] = 13;
     debugOptions[t('debugWorldSkipReason')] = 14;
     debugOptions[t('debugWorldStepMeters')] = 15;
+    debugOptions[t('debugTaauPhase')] = 16;
+    debugOptions[t('debugTaauRejection')] = 17;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
     tipKey(debugFolder.add(params, 'sharedFieldDebugSlice', 0, 1, 0.001).name(t('sharedFieldDebugSlice')), 'sharedFieldDebugSlice');
     tipKey(debugFolder.add(params, 'sharedFieldDebugChannel', { R: 0, G: 1, B: 2, A: 3 }).name(t('sharedFieldDebugChannel')), 'sharedFieldDebugChannel');

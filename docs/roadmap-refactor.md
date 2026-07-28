@@ -2,7 +2,7 @@
 
 本文给出云密度与形态系统的实施路线，但**不是 OpenSpec 提案，也不是实施授权**。旧提案 `refactor-cloud-density-recipes` 已废弃；每个 Wave 的实际范围、任务与批准状态仍以对应 OpenSpec change 为准。
 
-> 状态（2026-07-27）：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`），但 `establish-density-v2-baseline` change 仍以 26/28 active 保留最终基线/证据责任；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 已完成共享场验收并于 2026-07-12 归档（实现 `b3595e2`，归档 `cf1e98a`）；W6 已在 benchmark 修正 `9a8d33a` 后由项目所有者验收并归档（归档 `5615a71`，精确性能阈值记为 `owner-waived`）；W7 已于 2026-07-14 由项目所有者归档（`openspec/changes/archive/2026-07-14-add-density-v2-stratiform-family/`，任务 35/47，视觉/性能 Gate 按 owner 决策归档）；W8 已完成代码与自动检查，但独立 report verdict 因 Ac/Cc 形态、尺度顺序与 ripple 连续性失败而为 **Stop**，仍处于修复阶段；W9 已于 2026-07-16 获准作为 W8 Stop 的受控架构修复例外实施，当前 44/57 tasks 已完成，runtime/protocol 自动检查通过，但现存 Gate report 的 verdict 仍为 **Stop**（visual=`review`、performance=`fail`、owner approval=`pending`），最终 disposition 仍为 `pending`。该 Gate 证据基于旧 revision `1257786`，当前 HEAD 已包含后续 W9 validation/performance 修正，必须重新采集，不能把代码完成等同于 W9 final Continue；W10A/W10B **代码已在** `c0de3a5`/`bd266eb` 落地，并已于 2026-07-27 由项目所有者决策归档：`openspec/changes/archive/2026-07-27-refactor-cloud-frame-output/`（tasks 13/13）与 `openspec/changes/archive/2026-07-27-add-world-scale-cloud-raymarch/`（tasks 15/15）；Gate 报告 `docs/evidence/w10-visual-qa/gate-w10a.md` / `gate-w10b.md` 已更新为 `Decision: CONTINUE (owner-approved 2026-07-27)`、`Formal Continue: YES (owner decision; visual/performance evidence owner-waived)`——这是 **owner 决策 Continue，不是实测等价通过**；共享矩阵仍为 78 PASS / 0 FAIL / 13 UNABLE / 9 OBSERVATION，`visualGate=UNABLE`、`performanceGate=UNABLE`，PNG diff 仍为 OBSERVATION 而非视觉等价 PASS；owner-waived 项：W10A 的 owner visual approval、steady-state GPU median/p90 作为性能 Gate、resize/camera-cut/device-loss 与 depth/velocity 的像素级证明；W10B 的 owner visual approval（miss/banding/screen-lock）、steady-state GPU median/p90 与 counter series、stratus/cirrostratus toggle+motion 完整套件；W9 final disposition 仍为 `pending`，owner 明确豁免「W10A 开始前必须先正式记录 W9 final disposition」这一前置条件，不得把 W9 写成已 Continue；delta specs 已同步进主 specs（新建 `cloud-frame-output`、`cloud-stochastic-sampling`；修改 `cloud-rendering`、`cloud-params`、`cloud-physical-units`、`cloud-lighting`），`npx openspec validate --specs --strict` 为 22 passed / 0 failed，`test:w10a-cloud-frame`、`test:w10b-world-raymarch`、`test:w10b-raymarch` 均通过；W11 change `add-temporal-cloud-upscaling` 已进入提案阶段（proposal/design/tasks/spec deltas 已创建，尚未实施，Gate 未开始）；W12–W18 尚未建立提案。
+> 状态（2026-07-28）：roadmap 评审稿；W0 工具已落地并由项目所有者人工签核（timing/截图非阻塞，提交 `1c62d25`），但 `establish-density-v2-baseline` change 仍以 26/28 active 保留最终基线/证据责任；W1 已于 2026-07-11 归档；W2 已完成视觉验收并归档（提交 `3e5fd15`）；W3 已完成空密度验收并于 2026-07-12 归档（提交 `338b61a`）；W4 已完成验收并于 2026-07-12 归档（提交 `a6940f6`，验收修复 `43b3cca`）；W5 已完成共享场验收并于 2026-07-12 归档（实现 `b3595e2`，归档 `cf1e98a`）；W6 已在 benchmark 修正 `9a8d33a` 后由项目所有者验收并归档（归档 `5615a71`，精确性能阈值记为 `owner-waived`）；W7 已于 2026-07-14 由项目所有者归档（`openspec/changes/archive/2026-07-14-add-density-v2-stratiform-family/`，任务 35/47，视觉/性能 Gate 按 owner 决策归档）；W8 已完成代码与自动检查，但独立 report verdict 因 Ac/Cc 形态、尺度顺序与 ripple 连续性失败而为 **Stop**，仍处于修复阶段；W9 已于 2026-07-16 获准作为 W8 Stop 的受控架构修复例外实施，当前 44/57 tasks 已完成，runtime/protocol 自动检查通过，但现存 Gate report 的 verdict 仍为 **Stop**（visual=`review`、performance=`fail`、owner approval=`pending`），最终 disposition 仍为 `pending`。该 Gate 证据基于旧 revision `1257786`，当前 HEAD 已包含后续 W9 validation/performance 修正，必须重新采集，不能把代码完成等同于 W9 final Continue；W10A/W10B **代码已在** `c0de3a5`/`bd266eb` 落地，并已于 2026-07-27 由项目所有者决策归档：`openspec/changes/archive/2026-07-27-refactor-cloud-frame-output/`（tasks 13/13）与 `openspec/changes/archive/2026-07-27-add-world-scale-cloud-raymarch/`（tasks 15/15）；Gate 报告 `docs/evidence/w10-visual-qa/gate-w10a.md` / `gate-w10b.md` 已更新为 `Decision: CONTINUE (owner-approved 2026-07-27)`、`Formal Continue: YES (owner decision; visual/performance evidence owner-waived)`——这是 **owner 决策 Continue，不是实测等价通过**；共享矩阵仍为 78 PASS / 0 FAIL / 13 UNABLE / 9 OBSERVATION，`visualGate=UNABLE`、`performanceGate=UNABLE`，PNG diff 仍为 OBSERVATION 而非视觉等价 PASS；owner-waived 项：W10A 的 owner visual approval、steady-state GPU median/p90 作为性能 Gate、resize/camera-cut/device-loss 与 depth/velocity 的像素级证明；W10B 的 owner visual approval（miss/banding/screen-lock）、steady-state GPU median/p90 与 counter series、stratus/cirrostratus toggle+motion 完整套件；W9 final disposition 仍为 `pending`，owner 明确豁免「W10A 开始前必须先正式记录 W9 final disposition」这一前置条件，不得把 W9 写成已 Continue；delta specs 已同步进主 specs（新建 `cloud-frame-output`、`cloud-stochastic-sampling`；修改 `cloud-rendering`、`cloud-params`、`cloud-physical-units`、`cloud-lighting`），`npx openspec validate --specs --strict` 为 22 passed / 0 failed，`test:w10a-cloud-frame`、`test:w10b-world-raymarch`、`test:w10b-raymarch` 均通过；W11 change `add-temporal-cloud-upscaling` **代码已实施**，tasks 1–7 完成（27 条），4 个 `test:w11-*` 通过；修复后证据已重采/重跑（runtime-evidence 2026-07-28T07:33:03Z；png-diff/review 已重跑），矩阵为 64 PASS / 0 FAIL / 11 UNABLE / 16 OBSERVATION，`visualGate=UNABLE`、`performanceGate=UNABLE`，Gate report `docs/evidence/w11-visual-qa/gate-w11.md` 的 verdict 为 **REVIEW (pending owner)**，Formal Continue: NO，disposition 未决；timing 因 src 未提交而 `runtimeSourceMatchesHead=false`，不可作为干净 revision 的 Gate 数据；W12–W18 尚未建立提案。
 >
 > 主目标：Cached 与 Hybrid。Realtime 只保持可选兼容，不承担本路线的性能目标。
 >
@@ -687,29 +687,33 @@ Full resolution quality:
 cloud current full-res → TAA resolve → cloud history full-res
 
 Temporal upscale quality:
-cloud current width/4 × height/4（每帧一个 4×4 phase）
+full-res background-only（跳过 raymarch / light march）
++ low-res Bayer current（⌈W/4⌉×⌈H/4⌉，每帧一个 4×4 phase）
 → TAAU resolve full-res
 → cloud history full-res
 ```
 
 ### 16.2 低分辨率 current pass
 
-- current cloud target 宽高各为 full resolution 的 `1/4`，raymarched texel 数为 `1/16`；文档与 HUD 不得把它误写成“只降到四分之一像素数”；
+- TAAU 帧内除 low-res current 外，仍跑全分辨率 background-only pass（天空 / 地面 / 地面云影），供 composite 使用；不得把 1/4 背景放大回去。因此 `1/16` 只描述 raymarched texel 数，不得暗示整帧 GPU 开销降到 1/16；
+- current cloud target 宽高各为 full resolution 的 `1/4`（ceil），raymarched texel 数为 `1/16`；文档与 HUD 不得把它误写成“只降到四分之一像素数”；
+- 低分辨率 texel `(lx, ly)` 的 ray 精确穿过全分辨率像素 `(4lx + sx, 4ly + sy)` 中心（由全分辨率尺寸反算 NDC），不是把低分辨率 uv 线性缩放；不能被 4 整除时右/下越界 texel 照常渲染但 resolve 读不到；
 - 使用固定 4×4 Bayer sequence 或等价覆盖序列，`frame % 16` 决定本帧 subpixel phase；
-- full-res TAA 模式继续使用现有 Halton camera jitter；TAAU 模式由 Bayer offset 独占 projection/current-pixel jitter，不再叠加 Halton，避免双重 jitter。W10B 的 STBN/IGN 只扰动 ray 起点/步进与采样序列，不改变 4×4 pixel phase；
+- full-res TAA 模式继续使用现有 Halton camera jitter；TAAU 模式下 Halton 与 `jitterPixels` 置 0，Bayer 不与 Halton 叠加。W10B 的 STBN/IGN 只扰动 ray 起点/步进与采样序列，不改变 4×4 pixel phase；
 - Bayer offset 必须同时进入 current ray direction、current projection、previous-jitter/reprojection 与 velocity 约定，不能只偏 uv 而让 history 认为相机未抖动；
-- low-res target 仍输出 radiance/transmittance 与 depth/velocity，不能从合成后的地面/天空反推云深度；
+- low-res target 仍输出 radiance/transmittance 与 depth/velocity，不能从合成后的地面/天空反推云深度；low-res 为 renderer 私有第二份 `CloudFrameOutputResources`（`w11-taau-lowres`），不改 W10A 公开 ABI；
 - render target 尺寸向上取整时，右/下边界坐标和 full→low mapping 必须有 fixture；
 - full-resolution current path 始终可切回，用于视觉真值、运动回归和设备 fallback。
 
 ### 16.3 Full-resolution resolve
 
-- 对当前 phase 对应的 full-res texel 直接使用本帧 current sample；其他 15 个 phase 从重投影 history 恢复；
+- 对当前 phase 对应的 full-res texel 直接使用本帧 current sample；其他 15 个 phase 从重投影 history 恢复；`taaBlend` 不接入 TAAU（非当前 phase 默认纯 clipped history，仅 reactive 提高 current 权重）；
 - 使用 low-res 3×3 邻域中最近的有效云深度/最高 opacity 样本选择 velocity；这里 `opacity = 1 - T` 只由固定的 transmittance 通道推导，不是第二种 attachment 语义，且不得让稀薄边缘借用天空 invalid velocity；
-- history 先做视口、depth、derived opacity、generation 和 camera-cut rejection，再做 YCoCg variance clip；
+- history 先做视口、depth、derived opacity、generation 和 camera-cut rejection，再做 YCoCg variance clip；representative depth 使用独立全分辨率 `r16float` ping-pong（`log2(1+depth)`，最近采样）；
 - 增加 reactive/disocclusion 规则：当前/历史 derived opacity、代表深度或 storage generation 差异超过阈值时提高 current 权重或完全拒绝；
 - cloud color、transmittance 和 representative depth 的 history 策略分开，禁止把 color clipping 结果当作物理深度；
-- W9 allocation/resource generation、brick 重分配、producer/storage/quality 切换、sun discontinuity、scene time jump、resize 和 device loss 属于结构性不连续，必须整屏 invalidation；正常 density cache 内容更新、连续风平流和可重投影的 content revision 不得每帧整屏 reset，而应依靠 velocity、reactive mask 和局部 rejection。proposal 必须给 resource generation、content revision 和 discontinuity flag 不同名字；
+- W9 allocation/resource generation、brick 重分配（经 `hierarchical.allocationGeneration`）、producer/storage/quality 切换、sun discontinuity（方向跳变 > 2°）、scene time jump、resize 和 device loss 属于结构性不连续，必须整屏 invalidation；正常 density cache 内容更新、连续风平流和可重投影的 content revision 不得每帧整屏 reset，而应依靠 velocity、reactive mask 和局部 rejection。proposal 必须给 resource generation、content revision 和 discontinuity flag 不同名字；
+- rejection 比率按 1/16 稀疏格点估计，HUD 标注为估计值，Gate 不得作精确硬阈值；
 - 稀薄云 history smearing 为已知高风险；必须用 sparse Ci/Cs、Cc ripple、cloud/sky edge、cloud/ground overlap 和快速相机 yaw 固定 case 验证。
 
 ### 16.4 质量与性能 Gate
@@ -720,8 +724,8 @@ Continue 条件：
 
 - 静态 16 帧收敛后，主要轮廓、薄层连续性和 W12 前基线细节接近 full-res TAA；
 - 慢速/快速相机运动、风平流和 Body 生命周期变化无明显拖尾、双影、棋盘残留或 16 帧亮度呼吸；
-- cloud current raymarch GPU 成本相对 full-res 显著下降；理论 `1/16` 只作解释，Gate 必须报告实际 current、resolve、composite 和总 GPU median/p90；
-- resolve 成本、history 显存和额外 bandwidth 单独报告，不能只展示 cloud pass；
+- cloud current raymarch GPU 成本相对 full-res 显著下降；理论 `1/16` 只解释 raymarch texel 数（背景仍全分辨率），Gate 必须分别报告 background、current、resolve、composite 和总 GPU median/p90；
+- resolve 成本、history 显存和额外 bandwidth 单独报告，不能只展示 cloud pass；rejection 比率仅为稀疏估计；
 - 若高运动下只能靠过度 current blend 消除鬼影并失去重建收益，Gate 为 Review；full-res TAA 保持默认直到目标设备矩阵通过。
 
 ## 17. W12 — Recipe-aware 多尺度有界细节与边缘侵蚀
@@ -1178,7 +1182,7 @@ W10B 后先看 `support skip / coarse probe / detailed hit / light hit` 计数�
 - 不在性能提交中同时改变视觉参数；需要调参时先固定实现 revision，再单独提交 calibration 并重采 A/B；
 - 每个 Wave 结束时 Legacy、global-only V2 和该 Wave 的 feature-off 回退必须按适用范围可用；
 - 资源格式、binding 或 history owner 改动要与调用方原子提交，禁止留下“shader 编译但运行时读取旧布局”的中间状态；
-- 未经新 OpenSpec 批准，不开始任何 W11–W18 实施提交。W10A/W10B 已归档；W11 提案已创建但尚未实施；W12–W18 change ID 仍为候选名，不代表 proposal 已创建或获准。
+- 未经新 OpenSpec 批准，不开始任何 W12–W18 实施提交。W10A/W10B 已归档；W11 代码已实施但第 8 节 Gate / disposition 仍未决，不得写成已 Continue 或已归档；W12–W18 change ID 仍为候选名，不代表 proposal 已创建或获准。
 
 ### 自动检查计划
 
@@ -1238,7 +1242,7 @@ W10B 后先看 `support skip / coarse probe / detailed hit / light hit` 计数�
 
 ## 26. 分 Wave OpenSpec 入口
 
-各 Wave 的 OpenSpec 入口如下；W0 baseline change 仍 active，W1–W7 与 W10A/W10B 已归档，W8 与 W9 及 `add-height-weather-shaping`/`add-height-ambient-tint` 等为当前 active changes；W11 `add-temporal-cloud-upscaling` 为新建提案（工件已建、尚未实施）。W12–W18 仍只是本 roadmap 的候选分解，必须逐项建立 proposal/design/tasks/spec deltas、验证并获准后才能实施：
+各 Wave 的 OpenSpec 入口如下；W0 baseline change 仍 active，W1–W7 与 W10A/W10B 已归档，W8 与 W9 及 `add-height-weather-shaping`/`add-height-ambient-tint` 等为当前 active changes；W11 `add-temporal-cloud-upscaling` 代码已实施（tasks 1–7 完成），第 8 节 Gate / disposition 仍未决。W12–W18 仍只是本 roadmap 的候选分解，必须逐项建立 proposal/design/tasks/spec deltas、验证并获准后才能实施：
 
 - Proposal：`openspec/changes/establish-density-v2-baseline/proposal.md`
 - Design：`openspec/changes/establish-density-v2-baseline/design.md`
@@ -1316,13 +1320,13 @@ W9（2026-07-16 已批准实施，44/57 tasks；runtime/protocol 通过，旧 re
 
 ### W10A、W10B 归档与 W11–W18 候选 changes
 
-下表是 proposal 拆分边界。W10A/W10B 已于 2026-07-27 按 owner 决策归档（owner-approved Continue，非实测等价通过；详见状态段与 Gate 报告），delta specs 已同步主 specs；W11 `add-temporal-cloud-upscaling` 提案工件已创建、尚未实施。若后续 OpenSpec 评审发现其他 Wave 仍需拆分，以更小、可独立回退的 change 为准，不得为了沿用候选 ID 扩大单次实施面。
+下表是 proposal 拆分边界。W10A/W10B 已于 2026-07-27 按 owner 决策归档（owner-approved Continue，非实测等价通过；详见状态段与 Gate 报告），delta specs 已同步主 specs；W11 `add-temporal-cloud-upscaling` 代码已实施、tasks 1–7 完成，第 8 节 Gate / disposition 仍未决。若后续 OpenSpec 评审发现其他 Wave 仍需拆分，以更小、可独立回退的 change 为准，不得为了沿用候选 ID 扩大单次实施面。
 
 | Wave | 建议 change ID | 预计修改/新增的 specs | 建立 proposal 前置条件 | 当前记录 |
 | --- | --- | --- | --- | --- |
 | W10A | `refactor-cloud-frame-output` | 新增 `cloud-frame-output`；修改 `cloud-rendering` | 正式记录 W9 final disposition=Continue/Stop；冻结命名 revision 下的旧 combined cloud/TAA/composite attachment、pass 顺序、视觉与 GPU 基线；所有 `cloud-rendering` 重叠 active change 已归档、撤销或写明串行边界 | 已归档 `openspec/changes/archive/2026-07-27-refactor-cloud-frame-output/`（tasks 13/13）；owner-approved Continue，非实测等价通过 |
 | W10B | `add-world-scale-cloud-raymarch` | 新增 `cloud-stochastic-sampling`；修改 `cloud-rendering`、`cloud-params`、`cloud-physical-units`、`cloud-lighting` | W10A Continue 并归档；冻结 fixed-step、Support/candidate、IGN/Halton 与 GPU 基线；所有 `cloud-params`/`cloud-lighting` 重叠 active change 已处置；空 `raymarch-occupancy` 占位已移除或明确 superseded；若需要新保守 payload，独立 `density-cache-production` amendment 已先完成 | 已归档 `openspec/changes/archive/2026-07-27-add-world-scale-cloud-raymarch/`（tasks 15/15）；owner-approved Continue，非实测等价通过 |
-| W11 | `add-temporal-cloud-upscaling` | 修改 `cloud-rendering`、`cloud-params` | W10A 的 output/depth/velocity/validity/discontinuity ABI 稳定，且 W10B Continue 并归档后的 step/skip/jitter 基线冻结；legacy combined emergency fallback 不作为输入 | 提案已创建；工件已建、尚未实施；Gate 未开始 |
+| W11 | `add-temporal-cloud-upscaling` | 修改 `cloud-rendering`、`cloud-params` | W10A 的 output/depth/velocity/validity/discontinuity ABI 稳定，且 W10B Continue 并归档后的 step/skip/jitter 基线冻结；legacy combined emergency fallback 不作为输入 | 代码已实施；修复后证据已重采/重跑；矩阵 64 PASS / 0 FAIL / 11 UNABLE / 16 OBSERVATION；visualGate=UNABLE、performanceGate=UNABLE；gate-w11.md verdict=REVIEW (pending owner)；Formal Continue: NO；disposition 未决；runtimeSourceMatchesHead=false |
 | W12 | `add-bounded-render-time-cloud-detail` | 修改 `density-shared-fields`、`cloud-rendering`、`cloud-params`、`cloud-edge-shaping` | W11 full-res/TAAU history 契约稳定；明确 W5 shared fields 的 renderer 只读接口与 W9 final Stop fallback | 尚未创建 |
 | W13 | `add-cascaded-beer-shadow-maps` | 修改 `cloud-lighting`、`cloud-rendering`、`cloud-params` | W12 `finalDensity`/`roughDensity` 语义与 sample budget 冻结；独立冻结现有 ground-shadow 与 local light march 基线 | 尚未创建 |
 | W14 | `integrate-atmosphere-cloud-lighting` | 修改 `cloud-lighting`、`cloud-rendering`、`cloud-params`、`cloud-physical-units` | W13 明确 radiance/extinction 单位；provider 与 analytic fallback 责任边界获批 | 尚未创建 |
@@ -1335,7 +1339,7 @@ W9（2026-07-16 已批准实施，44/57 tasks；runtime/protocol 通过，旧 re
 
 W10A、W10B 与 W11–W14 都会触及 `cloud-rendering` 或其直接 consumer，默认实施顺序为 W10A→归档→W10B→归档→W11→W12→W13→W14。W11 proposal 可在 W10A 归档后预先起草，但实现与 Gate 等待 W10B Continue 并归档；W12 与 W13 的 proposal 设计阶段可在 W11 后并行讨论，但 W13 实现与 Gate 必须等待 W12 的 `finalDensity`/`roughDensity` 语义和预算冻结。detail calibration 与 BSM 对照使用分开的 commit/evidence。W15/W16 是形态迁移，不得与这些 renderer ABI 变更同时合入。
 
-W1–W7 与 W10A/W10B 均已按项目所有者决定归档；其中 W7 以 35/47 tasks 和明确的视觉/性能 owner 决策归档，W10A/W10B 以 owner-approved Continue（visual/performance evidence owner-waived，非实测等价通过）归档，不能概括成所有任务/Gate 自然完成。W8 已批准并完成实现与自动检查，但当前 Gate verdict=Stop、终态尚未决定；W9 已作为受控修复例外获准实施，但旧 report verdict=Stop、final disposition=pending（owner 豁免了「W10A 开始前必须先正式记录 W9 final disposition」前置，但未替 W9 做 Continue/Stop）；W11 提案 `add-temporal-cloud-upscaling` 已创建、尚未实施，W12–W18 仍必须逐项建立并批准。后续提案仍需分别把以下决定写成规范性要求：
+W1–W7 与 W10A/W10B 均已按项目所有者决定归档；其中 W7 以 35/47 tasks 和明确的视觉/性能 owner 决策归档，W10A/W10B 以 owner-approved Continue（visual/performance evidence owner-waived，非实测等价通过）归档，不能概括成所有任务/Gate 自然完成。W8 已批准并完成实现与自动检查，但当前 Gate verdict=Stop、终态尚未决定；W9 已作为受控修复例外获准实施，但旧 report verdict=Stop、final disposition=pending（owner 豁免了「W10A 开始前必须先正式记录 W9 final disposition」前置，但未替 W9 做 Continue/Stop）；W11 代码已实施、tasks 1–7 完成，但第 8 节 Gate / disposition 仍未决，不得写成已 Continue 或已归档；W12–W18 仍必须逐项建立并批准。后续提案仍需分别把以下决定写成规范性要求：
 
 - V2 禁止完整 4D Voronoi 主路径和固定算子预算；
 - tile-body mask 的保守性要求；

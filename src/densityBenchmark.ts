@@ -128,6 +128,7 @@ export type W10RuntimeOverrides = Partial<Pick<CloudParams,
   | 'stochasticSampling'
   | 'stbnFrozenSlice'
   | 'taaEnabled'
+  | 'temporalQuality'
   | 'debugView'>>;
 
 export interface DensityBenchmarkController {
@@ -190,6 +191,40 @@ export interface DensityBenchmarkController {
       | 'raymarchMaxStepMeters'
       | 'raymarchRefinementsPerPixel'
       | 'raymarchCoarseHintsPerPixel'>;
+    temporal: Pick<RenderStats,
+      | 'requestedTemporalMode'
+      | 'activeTemporalMode'
+      | 'temporalFallbackReason'
+      | 'temporalBayerPhase'
+      | 'taauCurrentWidth'
+      | 'taauCurrentHeight'
+      | 'taauBackgroundMs'
+      | 'taauCurrentMs'
+      | 'taauResolveMs'
+      | 'temporalResolveMs'
+      | 'compositeMs'
+      | 'cloudCurrentMs'
+      | 'taauHistoryRejectionRatio'
+      | 'taauHistoryRejectionSampledEstimate'
+      | 'taauRejectNoVelocityRatio'
+      | 'taauRejectViewportRatio'
+      | 'taauRejectDepthRatio'
+      | 'taauRejectOpacityRatio'
+      | 'taauCurrentPhaseSampleCount'
+      | 'taauNonCurrentPhaseSampleCount'
+      | 'taauCloudCoveredSampleCount'
+      | 'taauCloudCoveredRejectionRatio'
+      | 'taauCloudOpacityThreshold'
+      | 'cloudFrameLowResAttachmentBytes'
+      | 'taauHistoryDepthBytes'
+      | 'cloudFrameHistoryBytes'
+      | 'taauDepthRejectRel'
+      | 'taauOpacityOutsideReactLo'
+      | 'taauOpacityOutsideRejectHi'
+      | 'taauResolveCounterSampleId'> & {
+      timedPassSumMs: number;
+      timedPassSumCovers: string;
+    };
   };
   getResults(): DensityBenchmarkCaseResult[];
   getEvidence(): DensityBenchmarkEvidence;
@@ -682,8 +717,17 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
     raymarch: DensityBenchmarkController['getRuntimeDiagnostics'] extends () => infer T
       ? T extends { raymarch: infer R } ? R : never
       : never;
+    temporal: DensityBenchmarkController['getRuntimeDiagnostics'] extends () => infer T
+      ? T extends { temporal: infer U } ? U : never
+      : never;
   } {
     const stats = renderer.getStats();
+    const timedPassSumMs = (stats.cacheRan ? stats.cacheMs : 0)
+      + (stats.shadowRan ? stats.shadowMs : 0)
+      + stats.cloudMs
+      + stats.temporalResolveMs
+      + stats.compositeMs
+      + stats.postMs;
     return {
       producer: producerDiagnostics(stats),
       shadowHistoryResetReason: stats.shadowHistoryResetReason,
@@ -731,6 +775,40 @@ export function createDensityBenchmarkController(options: DensityBenchmarkOption
         raymarchMaxStepMeters: stats.raymarchMaxStepMeters,
         raymarchRefinementsPerPixel: stats.raymarchRefinementsPerPixel,
         raymarchCoarseHintsPerPixel: stats.raymarchCoarseHintsPerPixel,
+      },
+      temporal: {
+        requestedTemporalMode: stats.requestedTemporalMode,
+        activeTemporalMode: stats.activeTemporalMode,
+        temporalFallbackReason: stats.temporalFallbackReason,
+        temporalBayerPhase: stats.temporalBayerPhase,
+        taauCurrentWidth: stats.taauCurrentWidth,
+        taauCurrentHeight: stats.taauCurrentHeight,
+        taauBackgroundMs: stats.taauBackgroundMs,
+        taauCurrentMs: stats.taauCurrentMs,
+        taauResolveMs: stats.taauResolveMs,
+        temporalResolveMs: stats.temporalResolveMs,
+        compositeMs: stats.compositeMs,
+        cloudCurrentMs: stats.cloudCurrentMs,
+        taauHistoryRejectionRatio: stats.taauHistoryRejectionRatio,
+        taauHistoryRejectionSampledEstimate: stats.taauHistoryRejectionSampledEstimate,
+        taauRejectNoVelocityRatio: stats.taauRejectNoVelocityRatio,
+        taauRejectViewportRatio: stats.taauRejectViewportRatio,
+        taauRejectDepthRatio: stats.taauRejectDepthRatio,
+        taauRejectOpacityRatio: stats.taauRejectOpacityRatio,
+        taauCurrentPhaseSampleCount: stats.taauCurrentPhaseSampleCount,
+        taauNonCurrentPhaseSampleCount: stats.taauNonCurrentPhaseSampleCount,
+        taauCloudCoveredSampleCount: stats.taauCloudCoveredSampleCount,
+        taauCloudCoveredRejectionRatio: stats.taauCloudCoveredRejectionRatio,
+        taauCloudOpacityThreshold: stats.taauCloudOpacityThreshold,
+        cloudFrameLowResAttachmentBytes: stats.cloudFrameLowResAttachmentBytes,
+        taauHistoryDepthBytes: stats.taauHistoryDepthBytes,
+        cloudFrameHistoryBytes: stats.cloudFrameHistoryBytes,
+        taauDepthRejectRel: stats.taauDepthRejectRel,
+        taauOpacityOutsideReactLo: stats.taauOpacityOutsideReactLo,
+        taauOpacityOutsideRejectHi: stats.taauOpacityOutsideRejectHi,
+        taauResolveCounterSampleId: stats.taauResolveCounterSampleId,
+        timedPassSumMs,
+        timedPassSumCovers: 'cacheMs(if cacheRan)+shadowMs(if shadowRan)+cloudMs+temporalResolveMs+compositeMs+postMs; instrumented passes only, not full-frame GPU wall time; excludes brick and shared atlas/macro timestamps',
       },
     };
   }

@@ -29,11 +29,19 @@ export type CloudFrameOutputClearAttachments = readonly [
   GPURenderPassColorAttachment,
 ];
 
+export type CloudFrameOutputExtentRounding = 'floor' | 'exact';
+
 export interface CloudFrameOutputResourcesOptions {
   device: GPUDevice;
   width: number;
   height: number;
   label?: string;
+  extentRounding?: CloudFrameOutputExtentRounding;
+}
+
+export interface CloudFrameOutputResizeOptions {
+  label?: string;
+  extentRounding?: CloudFrameOutputExtentRounding;
 }
 
 const BYTES_PER_RGBA16FLOAT_PIXEL = 8;
@@ -44,9 +52,21 @@ interface CloudFrameOutputAllocation {
   views: CloudFrameOutputViews;
 }
 
-function normalizedExtent(value: number, dimension: 'width' | 'height'): number {
+function normalizedExtent(
+  value: number,
+  dimension: 'width' | 'height',
+  rounding: CloudFrameOutputExtentRounding,
+): number {
   if (!Number.isFinite(value) || value < 1) {
     throw new RangeError(`Cloud frame output ${dimension} must be a positive finite number; received ${value}`);
+  }
+  if (rounding === 'exact') {
+    if (!Number.isInteger(value)) {
+      throw new RangeError(
+        `Cloud frame output ${dimension} must be an integer when extentRounding is 'exact'; received ${value}`,
+      );
+    }
+    return value;
   }
   return Math.floor(value);
 }
@@ -61,7 +81,8 @@ function normalizedExtent(value: number, dimension: 'width' | 'height'): number 
  */
 export class CloudFrameOutputResources {
   private readonly device: GPUDevice;
-  private readonly label: string;
+  private label: string;
+  private extentRounding: CloudFrameOutputExtentRounding;
   private textureSet: CloudFrameOutputTextures | null = null;
   private viewSet: CloudFrameOutputViews | null = null;
   private destroyed = false;
@@ -75,9 +96,10 @@ export class CloudFrameOutputResources {
   constructor(options: CloudFrameOutputResourcesOptions) {
     this.device = options.device;
     this.label = options.label ?? 'cloud-frame-output';
+    this.extentRounding = options.extentRounding ?? 'floor';
     this.allocate(
-      normalizedExtent(options.width, 'width'),
-      normalizedExtent(options.height, 'height'),
+      normalizedExtent(options.width, 'width', this.extentRounding),
+      normalizedExtent(options.height, 'height', this.extentRounding),
     );
   }
 
@@ -170,10 +192,12 @@ export class CloudFrameOutputResources {
   }
 
   /** Returns true only when a new allocation was created. */
-  resize(width: number, height: number): boolean {
+  resize(width: number, height: number, options?: CloudFrameOutputResizeOptions): boolean {
     this.assertAlive('resize');
-    const nextWidth = normalizedExtent(width, 'width');
-    const nextHeight = normalizedExtent(height, 'height');
+    if (options?.label !== undefined) this.label = options.label;
+    if (options?.extentRounding !== undefined) this.extentRounding = options.extentRounding;
+    const nextWidth = normalizedExtent(width, 'width', this.extentRounding);
+    const nextHeight = normalizedExtent(height, 'height', this.extentRounding);
     if (nextWidth === this.width && nextHeight === this.height) return false;
 
     const nextAllocation = this.createAllocation(nextWidth, nextHeight);

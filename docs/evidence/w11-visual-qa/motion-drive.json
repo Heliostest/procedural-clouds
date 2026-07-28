@@ -1,0 +1,687 @@
+{
+  "drag": {
+    "method": "playwright-canvas-pointer-drag",
+    "note": "Orbit yaw via canvas pointer drag; setCamera is overwritten by followInteractiveCamera under active benchmark case",
+    "stepsPx": [
+      56,
+      56,
+      56,
+      56,
+      56,
+      56,
+      56,
+      56
+    ],
+    "dyPx": 0
+  },
+  "status": "OBSERVATION",
+  "reason": "Orbit yaw driven by fixed canvas pointer-drag sequence; owner visual judgment PENDING",
+  "frames": {
+    "method": "playwright-canvas-pointer-drag",
+    "note": "Orbit yaw via canvas pointer drag; setCamera is overwritten by followInteractiveCamera under active benchmark case",
+    "stepsPx": [
+      56,
+      56,
+      56,
+      56,
+      56,
+      56,
+      56,
+      56
+    ],
+    "dyPx": 0,
+    "paths": {
+      "T0": {
+        "moved": true,
+        "camBefore": {
+          "eye": [
+            10.499999999999998,
+            13.5,
+            10.5
+          ],
+          "target": [
+            0,
+            3.8,
+            0
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ],
+          "fovYRadians": 0.7853981633974483,
+          "near": 0.05,
+          "far": 220
+        },
+        "frames": [
+          {
+            "stem": "stratocumulus__motion-T0__f00",
+            "eyeDeltaFromStart": 2.744338352201776,
+            "camera": {
+              "eye": [
+                8.388443754256214,
+                13.5,
+                12.252918484250188
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f01",
+            "eyeDeltaFromStart": 6.4848171038036915,
+            "camera": {
+              "eye": [
+                5.023933440663464,
+                13.5,
+                13.973549756013442
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f02",
+            "eyeDeltaFromStart": 10.455657767870083,
+            "camera": {
+              "eye": [
+                0.9771945488178828,
+                13.5,
+                14.817054053142973
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f03",
+            "eyeDeltaFromStart": 14.224891852957052,
+            "camera": {
+              "eye": [
+                -3.1474414074238855,
+                13.5,
+                14.511843872741794
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f04",
+            "eyeDeltaFromStart": 17.73098789430134,
+            "camera": {
+              "eye": [
+                -7.043376502796872,
+                13.5,
+                13.07252261194636
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f05",
+            "eyeDeltaFromStart": 20.883214893319174,
+            "camera": {
+              "eye": [
+                -10.38289374782571,
+                13.5,
+                10.615814496371051
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f06",
+            "eyeDeltaFromStart": 23.62535199854319,
+            "camera": {
+              "eye": [
+                -12.912151881507109,
+                13.5,
+                7.333234878884789
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T0__f07",
+            "eyeDeltaFromStart": 25.904811684568912,
+            "camera": {
+              "eye": [
+                -14.435608125600918,
+                13.5,
+                3.480404867840048
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          }
+        ]
+      },
+      "T1": {
+        "moved": true,
+        "camBefore": {
+          "eye": [
+            -14.74769229678546,
+            13.5,
+            1.733658535968029
+          ],
+          "target": [
+            0,
+            3.8,
+            0
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ],
+          "fovYRadians": 0.7853981633974483,
+          "near": 0.05,
+          "far": 220
+        },
+        "frames": [
+          {
+            "stem": "stratocumulus__motion-T1__f00",
+            "eyeDeltaFromStart": 2.4598757296327505,
+            "camera": {
+              "eye": [
+                -14.831543509798333,
+                13.5,
+                -0.7247876357657608
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f01",
+            "eyeDeltaFromStart": 6.493406095903174,
+            "camera": {
+              "eye": [
+                -14.077421540635669,
+                13.5,
+                -4.725061138995646
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f02",
+            "eyeDeltaFromStart": 10.467885306788892,
+            "camera": {
+              "eye": [
+                -12.22698666668135,
+                13.5,
+                -8.426197069425593
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f03",
+            "eyeDeltaFromStart": 14.243117036140042,
+            "camera": {
+              "eye": [
+                -9.422716225411122,
+                13.5,
+                -11.476603109604074
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f04",
+            "eyeDeltaFromStart": 17.729072833967702,
+            "camera": {
+              "eye": [
+                -5.896957190336029,
+                13.5,
+                -13.62812884791394
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f05",
+            "eyeDeltaFromStart": 20.881614376888205,
+            "camera": {
+              "eye": [
+                -1.899357867051683,
+                13.5,
+                -14.727268575430708
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f06",
+            "eyeDeltaFromStart": 23.62545151941957,
+            "camera": {
+              "eye": [
+                2.2467130048057813,
+                13.5,
+                -14.67829283922475
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T1__f07",
+            "eyeDeltaFromStart": 25.905177111699313,
+            "camera": {
+              "eye": [
+                6.215141407966987,
+                13.5,
+                -13.485993373829535
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          }
+        ]
+      },
+      "T2": {
+        "moved": true,
+        "camBefore": {
+          "eye": [
+            7.787677455904271,
+            13.5,
+            -12.643262231038332
+          ],
+          "target": [
+            0,
+            3.8,
+            0
+          ],
+          "up": [
+            0,
+            1,
+            0
+          ],
+          "fovYRadians": 0.7853981633974483,
+          "near": 0.05,
+          "far": 220
+        },
+        "frames": [
+          {
+            "stem": "stratocumulus__motion-T2__f00",
+            "eyeDeltaFromStart": 2.4623095393045196,
+            "camera": {
+              "eye": [
+                9.769905130215497,
+                13.5,
+                -11.1825289512967
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f01",
+            "eyeDeltaFromStart": 6.4922030700642255,
+            "camera": {
+              "eye": [
+                12.437404093053596,
+                13.5,
+                -8.112396651181058
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f02",
+            "eyeDeltaFromStart": 10.478235197476383,
+            "camera": {
+              "eye": [
+                14.19668665036478,
+                13.5,
+                -4.353629307985972
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f03",
+            "eyeDeltaFromStart": 14.254743143253616,
+            "camera": {
+              "eye": [
+                14.846979276743234,
+                13.5,
+                -0.25924188696445116
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f04",
+            "eyeDeltaFromStart": 17.732037142343817,
+            "camera": {
+              "eye": [
+                14.346502251561638,
+                13.5,
+                3.8311712498838832
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f05",
+            "eyeDeltaFromStart": 20.883088970845503,
+            "camera": {
+              "eye": [
+                12.72895246380059,
+                13.5,
+                7.6468143154064405
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f06",
+            "eyeDeltaFromStart": 23.625443001375736,
+            "camera": {
+              "eye": [
+                10.119934266767082,
+                13.5,
+                10.866781052193577
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          },
+          {
+            "stem": "stratocumulus__motion-T2__f07",
+            "eyeDeltaFromStart": 25.91153580598471,
+            "camera": {
+              "eye": [
+                6.711602386069662,
+                13.5,
+                13.245919877883303
+              ],
+              "target": [
+                0,
+                3.8,
+                0
+              ],
+              "up": [
+                0,
+                1,
+                0
+              ],
+              "fovYRadians": 0.7853981633974483,
+              "near": 0.05,
+              "far": 220
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -341,6 +341,7 @@ export interface CloudParams {
   groundShadowFilterRadius: number;
   cloudFrameEnabled: boolean;
   taaEnabled: boolean;
+  temporalQuality: number;
   taaBlend: number;
   bloomEnabled: boolean;
   bloomThreshold: number;
@@ -575,6 +576,7 @@ export function createDefaultParams(): CloudParams {
     groundShadowFilterRadius: 1,
     cloudFrameEnabled: true,
     taaEnabled: true,
+    temporalQuality: 1,
     taaBlend: 0.95,
     bloomEnabled: false,
     bloomThreshold: 1.0,

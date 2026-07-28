@@ -109,7 +109,8 @@ if (!contracts.includes('getSharedFieldDiagnostics(): DensitySharedFieldDiagnost
   || !contracts.includes('sharedFields: DensitySharedFieldStats | null')) {
   throw new Error('W5 read-only diagnostics contract is incomplete');
 }
-if (!renderer.includes('const TS_COUNT = 22')
+const tsCountMatch = renderer.match(/\bconst TS_COUNT = (\d+)\b/);
+if (!tsCountMatch || Number(tsCountMatch[1]) < 22
   || !renderer.includes('beginningOfPassWriteIndex: 12')
   || !renderer.includes('beginningOfPassWriteIndex: 14')
   || !renderer.includes('beginningOfPassWriteIndex: 16')

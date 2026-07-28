@@ -1,0 +1,566 @@
+{
+  "generatedAt": "2026-07-28T08:45:51.289Z",
+  "role": "disk-inventory-only",
+  "policy": "Produced by build-visual-review.mjs from on-disk diagnostics/screenshots. Not the capture provenance index.",
+  "resultCount": 93,
+  "results": [
+    {
+      "stem": "cirrocumulus__conv-T1-f00",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f00.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f00.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f01",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f01.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f01.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f02",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f02.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f02.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f03",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f03.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f03.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f04",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f04.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f04.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f05",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f05.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f05.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f06",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f06.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f06.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f07",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f07.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f07.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f08",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f08.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f08.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f09",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f09.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f09.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f10",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f10.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f10.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f11",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f11.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f11.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f12",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f12.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f12.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f13",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f13.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f13.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f14",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f14.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f14.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f15",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f15.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f15.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f16",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f16.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f16.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-T1-f17",
+      "cleanPath": "screenshots/cirrocumulus__conv-T1-f17.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-T1-f17.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f00",
+      "cleanPath": "screenshots/cirrocumulus__conv-f00.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f00.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f01",
+      "cleanPath": "screenshots/cirrocumulus__conv-f01.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f01.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f02",
+      "cleanPath": "screenshots/cirrocumulus__conv-f02.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f02.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f03",
+      "cleanPath": "screenshots/cirrocumulus__conv-f03.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f03.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f04",
+      "cleanPath": "screenshots/cirrocumulus__conv-f04.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f04.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f05",
+      "cleanPath": "screenshots/cirrocumulus__conv-f05.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f05.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f06",
+      "cleanPath": "screenshots/cirrocumulus__conv-f06.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f06.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f07",
+      "cleanPath": "screenshots/cirrocumulus__conv-f07.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f07.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f08",
+      "cleanPath": "screenshots/cirrocumulus__conv-f08.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f08.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f09",
+      "cleanPath": "screenshots/cirrocumulus__conv-f09.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f09.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f10",
+      "cleanPath": "screenshots/cirrocumulus__conv-f10.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f10.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f11",
+      "cleanPath": "screenshots/cirrocumulus__conv-f11.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f11.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f12",
+      "cleanPath": "screenshots/cirrocumulus__conv-f12.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f12.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f13",
+      "cleanPath": "screenshots/cirrocumulus__conv-f13.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f13.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f14",
+      "cleanPath": "screenshots/cirrocumulus__conv-f14.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f14.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f15",
+      "cleanPath": "screenshots/cirrocumulus__conv-f15.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f15.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f16",
+      "cleanPath": "screenshots/cirrocumulus__conv-f16.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f16.json"
+    },
+    {
+      "stem": "cirrocumulus__conv-f17",
+      "cleanPath": "screenshots/cirrocumulus__conv-f17.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/cirrocumulus__conv-f17.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-0",
+      "cleanPath": "screenshots/cirrocumulus__debug-0__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-0__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-0.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-1",
+      "cleanPath": "screenshots/cirrocumulus__debug-1__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-1__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-1.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-10",
+      "cleanPath": "screenshots/cirrocumulus__debug-10__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-10__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-10.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-11",
+      "cleanPath": "screenshots/cirrocumulus__debug-11__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-11__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-11.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-16",
+      "cleanPath": "screenshots/cirrocumulus__debug-16__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-16__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-16.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-17",
+      "cleanPath": "screenshots/cirrocumulus__debug-17__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-17__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-17.json"
+    },
+    {
+      "stem": "cirrocumulus__debug-6",
+      "cleanPath": "screenshots/cirrocumulus__debug-6__clean.png",
+      "hudPath": "screenshots/cirrocumulus__debug-6__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__debug-6.json"
+    },
+    {
+      "stem": "cirrocumulus__temporal-T0",
+      "cleanPath": "screenshots/cirrocumulus__temporal-T0__clean.png",
+      "hudPath": "screenshots/cirrocumulus__temporal-T0__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__temporal-T0.json"
+    },
+    {
+      "stem": "cirrocumulus__temporal-T1-steady",
+      "cleanPath": "screenshots/cirrocumulus__temporal-T1-steady__clean.png",
+      "hudPath": "screenshots/cirrocumulus__temporal-T1-steady__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__temporal-T1-steady.json"
+    },
+    {
+      "stem": "cirrocumulus__temporal-T1",
+      "cleanPath": "screenshots/cirrocumulus__temporal-T1__clean.png",
+      "hudPath": "screenshots/cirrocumulus__temporal-T1__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__temporal-T1.json"
+    },
+    {
+      "stem": "cirrocumulus__temporal-T2",
+      "cleanPath": "screenshots/cirrocumulus__temporal-T2__clean.png",
+      "hudPath": "screenshots/cirrocumulus__temporal-T2__hud.png",
+      "diagPath": "diagnostics/cirrocumulus__temporal-T2.json"
+    },
+    {
+      "stem": "cirrostratus__temporal-T0",
+      "cleanPath": "screenshots/cirrostratus__temporal-T0__clean.png",
+      "hudPath": "screenshots/cirrostratus__temporal-T0__hud.png",
+      "diagPath": "diagnostics/cirrostratus__temporal-T0.json"
+    },
+    {
+      "stem": "cirrostratus__temporal-T1",
+      "cleanPath": "screenshots/cirrostratus__temporal-T1__clean.png",
+      "hudPath": "screenshots/cirrostratus__temporal-T1__hud.png",
+      "diagPath": "diagnostics/cirrostratus__temporal-T1.json"
+    },
+    {
+      "stem": "cirrostratus__temporal-T2",
+      "cleanPath": "screenshots/cirrostratus__temporal-T2__clean.png",
+      "hudPath": "screenshots/cirrostratus__temporal-T2__hud.png",
+      "diagPath": "diagnostics/cirrostratus__temporal-T2.json"
+    },
+    {
+      "stem": "cirrus__debug-1",
+      "cleanPath": "screenshots/cirrus__debug-1__clean.png",
+      "hudPath": "screenshots/cirrus__debug-1__hud.png",
+      "diagPath": "diagnostics/cirrus__debug-1.json"
+    },
+    {
+      "stem": "cirrus__temporal-T0",
+      "cleanPath": "screenshots/cirrus__temporal-T0__clean.png",
+      "hudPath": "screenshots/cirrus__temporal-T0__hud.png",
+      "diagPath": "diagnostics/cirrus__temporal-T0.json"
+    },
+    {
+      "stem": "cirrus__temporal-T1",
+      "cleanPath": "screenshots/cirrus__temporal-T1__clean.png",
+      "hudPath": "screenshots/cirrus__temporal-T1__hud.png",
+      "diagPath": "diagnostics/cirrus__temporal-T1.json"
+    },
+    {
+      "stem": "cirrus__temporal-T2",
+      "cleanPath": "screenshots/cirrus__temporal-T2__clean.png",
+      "hudPath": "screenshots/cirrus__temporal-T2__hud.png",
+      "diagPath": "diagnostics/cirrus__temporal-T2.json"
+    },
+    {
+      "stem": "stratocumulus__debug-0",
+      "cleanPath": "screenshots/stratocumulus__debug-0__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-0__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-0.json"
+    },
+    {
+      "stem": "stratocumulus__debug-1",
+      "cleanPath": "screenshots/stratocumulus__debug-1__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-1__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-1.json"
+    },
+    {
+      "stem": "stratocumulus__debug-10",
+      "cleanPath": "screenshots/stratocumulus__debug-10__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-10__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-10.json"
+    },
+    {
+      "stem": "stratocumulus__debug-11",
+      "cleanPath": "screenshots/stratocumulus__debug-11__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-11__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-11.json"
+    },
+    {
+      "stem": "stratocumulus__debug-16",
+      "cleanPath": "screenshots/stratocumulus__debug-16__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-16__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-16.json"
+    },
+    {
+      "stem": "stratocumulus__debug-17",
+      "cleanPath": "screenshots/stratocumulus__debug-17__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-17__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-17.json"
+    },
+    {
+      "stem": "stratocumulus__debug-6",
+      "cleanPath": "screenshots/stratocumulus__debug-6__clean.png",
+      "hudPath": "screenshots/stratocumulus__debug-6__hud.png",
+      "diagPath": "diagnostics/stratocumulus__debug-6.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f00",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f00.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f00.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f01",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f01.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f01.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f02",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f02.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f02.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f03",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f03.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f03.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f04",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f04.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f04.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f05",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f05.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f05.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f06",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f06.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f06.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T0__f07",
+      "cleanPath": "screenshots/stratocumulus__motion-T0__f07.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T0__f07.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f00",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f00.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f00.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f01",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f01.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f01.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f02",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f02.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f02.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f03",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f03.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f03.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f04",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f04.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f04.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f05",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f05.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f05.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f06",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f06.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f06.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T1__f07",
+      "cleanPath": "screenshots/stratocumulus__motion-T1__f07.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T1__f07.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f00",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f00.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f00.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f01",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f01.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f01.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f02",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f02.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f02.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f03",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f03.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f03.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f04",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f04.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f04.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f05",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f05.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f05.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f06",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f06.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f06.json"
+    },
+    {
+      "stem": "stratocumulus__motion-T2__f07",
+      "cleanPath": "screenshots/stratocumulus__motion-T2__f07.png",
+      "hudPath": null,
+      "diagPath": "diagnostics/stratocumulus__motion-T2__f07.json"
+    },
+    {
+      "stem": "stratocumulus__temporal-T0",
+      "cleanPath": "screenshots/stratocumulus__temporal-T0__clean.png",
+      "hudPath": "screenshots/stratocumulus__temporal-T0__hud.png",
+      "diagPath": "diagnostics/stratocumulus__temporal-T0.json"
+    },
+    {
+      "stem": "stratocumulus__temporal-T1",
+      "cleanPath": "screenshots/stratocumulus__temporal-T1__clean.png",
+      "hudPath": "screenshots/stratocumulus__temporal-T1__hud.png",
+      "diagPath": "diagnostics/stratocumulus__temporal-T1.json"
+    },
+    {
+      "stem": "stratocumulus__temporal-T2",
+      "cleanPath": "screenshots/stratocumulus__temporal-T2__clean.png",
+      "hudPath": "screenshots/stratocumulus__temporal-T2__hud.png",
+      "diagPath": "diagnostics/stratocumulus__temporal-T2.json"
+    },
+    {
+      "stem": "thin-ridge__debug-16",
+      "cleanPath": "screenshots/thin-ridge__debug-16__clean.png",
+      "hudPath": "screenshots/thin-ridge__debug-16__hud.png",
+      "diagPath": "diagnostics/thin-ridge__debug-16.json"
+    },
+    {
+      "stem": "thin-ridge__debug-17",
+      "cleanPath": "screenshots/thin-ridge__debug-17__clean.png",
+      "hudPath": "screenshots/thin-ridge__debug-17__hud.png",
+      "diagPath": "diagnostics/thin-ridge__debug-17.json"
+    },
+    {
+      "stem": "thin-ridge__temporal-T0",
+      "cleanPath": "screenshots/thin-ridge__temporal-T0__clean.png",
+      "hudPath": "screenshots/thin-ridge__temporal-T0__hud.png",
+      "diagPath": "diagnostics/thin-ridge__temporal-T0.json"
+    },
+    {
+      "stem": "thin-ridge__temporal-T1",
+      "cleanPath": "screenshots/thin-ridge__temporal-T1__clean.png",
+      "hudPath": "screenshots/thin-ridge__temporal-T1__hud.png",
+      "diagPath": "diagnostics/thin-ridge__temporal-T1.json"
+    },
+    {
+      "stem": "thin-ridge__temporal-T2",
+      "cleanPath": "screenshots/thin-ridge__temporal-T2__clean.png",
+      "hudPath": "screenshots/thin-ridge__temporal-T2__hud.png",
+      "diagPath": "diagnostics/thin-ridge__temporal-T2.json"
+    }
+  ]
+}

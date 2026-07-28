@@ -1,0 +1,72 @@
+[
+  {
+    "sceneId": "single-cirrostratus",
+    "short": "cirrostratus",
+    "role": "sparse-cs",
+    "category83": "sparse Ci/Cs",
+    "note": "sparse Cs proxy; has cloud signal (light samples > 0)",
+    "discriminativePower": "usable-cs",
+    "caseId": "w7--single-cirrostratus--recipe-v2--cached--normal",
+    "producer": "recipe-v2",
+    "quality": "cached",
+    "view": "normal",
+    "storage": null,
+    "approximate": true
+  },
+  {
+    "sceneId": "single-cirrus",
+    "short": "cirrus",
+    "role": "sparse-ci",
+    "category83": "sparse Ci/Cs",
+    "note": "NO DISCRIMINATIVE POWER: empty sky under current camera/body (raymarchLightSamplesPerPixel=0; T1≡T2). Manifest has no alternate sparse-Ci case with visible cloud; Cs uses cirrostratus.",
+    "discriminativePower": "none-empty-sky",
+    "caseId": "w8--single-cirrus--recipe-v2--cached--normal",
+    "producer": "recipe-v2",
+    "quality": "cached",
+    "view": "normal",
+    "storage": null,
+    "approximate": true
+  },
+  {
+    "sceneId": "single-cirrocumulus",
+    "short": "cirrocumulus",
+    "role": "cc-ripple",
+    "category83": "Cc ripple",
+    "note": "single-Cc as Cc ripple proxy (no dedicated ripple gate case with hierarchical normal)",
+    "discriminativePower": "usable",
+    "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+    "producer": "recipe-v2",
+    "quality": "cached",
+    "view": "normal",
+    "storage": "hierarchical",
+    "approximate": true
+  },
+  {
+    "sceneId": "w9-thin-ridge-proxy",
+    "short": "thin-ridge",
+    "role": "cloud-sky-edge",
+    "category83": "cloud/sky edge",
+    "note": "thin-ridge proxy for cloud/sky edge",
+    "discriminativePower": "usable",
+    "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+    "producer": "recipe-v2",
+    "quality": "cached",
+    "view": "normal",
+    "storage": "hierarchical",
+    "approximate": true
+  },
+  {
+    "sceneId": "single-stratocumulus",
+    "short": "stratocumulus",
+    "role": "cloud-ground-overlap",
+    "category83": "cloud/ground overlap",
+    "note": "Sc as cloud/ground overlap proxy",
+    "discriminativePower": "usable",
+    "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+    "producer": "recipe-v2",
+    "quality": "cached",
+    "view": "normal",
+    "storage": "hierarchical",
+    "approximate": true
+  }
+]

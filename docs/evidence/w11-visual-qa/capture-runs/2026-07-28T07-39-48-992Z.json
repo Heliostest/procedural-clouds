@@ -1,0 +1,115 @@
+{
+  "runId": "2026-07-28T07-39-48-992Z",
+  "base": "http://127.0.0.1:5173/procedural-clouds/?benchmark=1",
+  "launchUsed": "chrome-headless-webgpu",
+  "launchErrors": [],
+  "scenes": [
+    {
+      "sceneId": "single-cirrostratus",
+      "short": "cirrostratus",
+      "role": "sparse-cs",
+      "category83": "sparse Ci/Cs",
+      "note": "sparse Cs proxy; has cloud signal (light samples > 0)",
+      "discriminativePower": "usable-cs"
+    },
+    {
+      "sceneId": "single-cirrus",
+      "short": "cirrus",
+      "role": "sparse-ci",
+      "category83": "sparse Ci/Cs",
+      "note": "NO DISCRIMINATIVE POWER: empty sky under current camera/body (raymarchLightSamplesPerPixel=0; T1≡T2). Manifest has no alternate sparse-Ci case with visible cloud; Cs uses cirrostratus.",
+      "discriminativePower": "none-empty-sky"
+    },
+    {
+      "sceneId": "single-cirrocumulus",
+      "short": "cirrocumulus",
+      "role": "cc-ripple",
+      "category83": "Cc ripple",
+      "note": "single-Cc as Cc ripple proxy (no dedicated ripple gate case with hierarchical normal)",
+      "discriminativePower": "usable"
+    },
+    {
+      "sceneId": "w9-thin-ridge-proxy",
+      "short": "thin-ridge",
+      "role": "cloud-sky-edge",
+      "category83": "cloud/sky edge",
+      "note": "thin-ridge proxy for cloud/sky edge",
+      "discriminativePower": "usable"
+    },
+    {
+      "sceneId": "single-stratocumulus",
+      "short": "stratocumulus",
+      "role": "cloud-ground-overlap",
+      "category83": "cloud/ground overlap",
+      "note": "Sc as cloud/ground overlap proxy",
+      "discriminativePower": "usable"
+    }
+  ],
+  "debugViews": [
+    {
+      "id": 0,
+      "name": "normal"
+    },
+    {
+      "id": 10,
+      "name": "raw-density",
+      "note": "gui density-integral / VIEW_MODE density-debug (=raw density path)"
+    },
+    {
+      "id": 1,
+      "name": "transmittance"
+    },
+    {
+      "id": 6,
+      "name": "depth"
+    },
+    {
+      "id": 11,
+      "name": "velocity"
+    },
+    {
+      "id": 16,
+      "name": "phase"
+    },
+    {
+      "id": 17,
+      "name": "rejection"
+    }
+  ],
+  "motionEvidence": {
+    "drag": {
+      "method": "playwright-canvas-pointer-drag",
+      "note": "Orbit yaw via canvas pointer drag; setCamera is overwritten by followInteractiveCamera under active benchmark case",
+      "stepsPx": [
+        56,
+        56,
+        56,
+        56,
+        56,
+        56,
+        56,
+        56
+      ],
+      "dyPx": 0
+    },
+    "status": "PENDING",
+    "reason": "",
+    "frames": []
+  },
+  "policy": {
+    "temporalModes": "T0=off / T1=full-res-taa / T2=taau-4x4 on all selected scenes",
+    "debugViews": "cirrocumulus+stratocumulus+thin-ridge; thin-ridge limited to phase/rejection; values from gui.ts",
+    "convergence": "cirrocumulus T2 f00..f17 + T1 f00..f17 control + T1 steady; sceneClock frozen via benchmark frame override",
+    "convergenceSceneClock": {
+      "frozen": true,
+      "mechanism": "densityBenchmark.getFrameOverride().sceneClock fixed at scene.sceneTimeSeconds; bodies windSpeedMps=0 morphRate=0 via freezeBody",
+      "note": "Convergence adjacent-frame diffs are under frozen scene time; wind advection is not advancing"
+    },
+    "motion": "stratocumulus T0/T1/T2 × 8 frames via canvas drag",
+    "indexMerge": "merge by stem into capture-index.json; never silent wipe"
+  },
+  "results": [],
+  "errors": [
+    "page.waitForFunction: Timeout 60000ms exceeded.\n    at D:\\heli-workspace\\app\\cloudy-cloud\\procedural-clouds\\docs\\evidence\\w11-visual-qa\\capture-w11-visual.mjs:300:16"
+  ]
+}

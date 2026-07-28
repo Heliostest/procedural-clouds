@@ -326,7 +326,6 @@ assertIncludes(renderer, [
   'cloudCurrentMs: number',
   'temporalResolveMs: number',
   'compositeMs: number',
-  'const TS_COUNT = 22',
   'beginningOfPassWriteIndex: 8, endOfPassWriteIndex: 9',
   'beginningOfPassWriteIndex: 18, endOfPassWriteIndex: 19',
   'beginningOfPassWriteIndex: 20, endOfPassWriteIndex: 21',
@@ -334,6 +333,11 @@ assertIncludes(renderer, [
   'stats.temporalResolveMs = temporalResolveNs / 1e6',
   'stats.compositeMs = compositeNs / 1e6',
 ], 'split cloud current/resolve/composite timings');
+const tsCountMatch = renderer.match(/\bconst TS_COUNT = (\d+)\b/);
+assert(
+  tsCountMatch !== null && Number(tsCountMatch[1]) >= 22,
+  `TS_COUNT must be declared and cover slots through 21 (got ${tsCountMatch ? tsCountMatch[1] : 'missing'})`,
+);
 
 const bundleFactory = blockStartingAt(
   quality,

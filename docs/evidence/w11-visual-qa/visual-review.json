@@ -1,0 +1,2870 @@
+{
+  "gate": "W11 independent visual QA",
+  "rebuiltAt": "2026-07-28T08:45:51.294Z",
+  "gateVerdict": "REVIEW/PENDING",
+  "formalContinue": false,
+  "screenshotPolicy": "Local PNGs are not repository-committable evidence. SHA256 inventory only; not visual PASS.",
+  "screenshotManifest": {
+    "path": "screenshot-manifest.json",
+    "count": 126
+  },
+  "caseSelection": [
+    {
+      "sceneId": "single-cirrostratus",
+      "short": "cirrostratus",
+      "role": "sparse-cs",
+      "category83": "sparse Ci/Cs",
+      "note": "sparse Cs proxy; has cloud signal (light samples > 0)",
+      "discriminativePower": "usable-cs",
+      "caseId": "w7--single-cirrostratus--recipe-v2--cached--normal",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "storage": null,
+      "approximate": true
+    },
+    {
+      "sceneId": "single-cirrus",
+      "short": "cirrus",
+      "role": "sparse-ci",
+      "category83": "sparse Ci/Cs",
+      "note": "NO DISCRIMINATIVE POWER: empty sky under current camera/body (raymarchLightSamplesPerPixel=0; T1≡T2). Manifest has no alternate sparse-Ci case with visible cloud; Cs uses cirrostratus.",
+      "discriminativePower": "none-empty-sky",
+      "caseId": "w8--single-cirrus--recipe-v2--cached--normal",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "storage": null,
+      "approximate": true
+    },
+    {
+      "sceneId": "single-cirrocumulus",
+      "short": "cirrocumulus",
+      "role": "cc-ripple",
+      "category83": "Cc ripple",
+      "note": "single-Cc as Cc ripple proxy (no dedicated ripple gate case with hierarchical normal)",
+      "discriminativePower": "usable",
+      "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--cached--normal",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "storage": "hierarchical",
+      "approximate": true
+    },
+    {
+      "sceneId": "w9-thin-ridge-proxy",
+      "short": "thin-ridge",
+      "role": "cloud-sky-edge",
+      "category83": "cloud/sky edge",
+      "note": "thin-ridge proxy for cloud/sky edge",
+      "discriminativePower": "usable",
+      "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--cached--normal",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "storage": "hierarchical",
+      "approximate": true
+    },
+    {
+      "sceneId": "single-stratocumulus",
+      "short": "stratocumulus",
+      "role": "cloud-ground-overlap",
+      "category83": "cloud/ground overlap",
+      "note": "Sc as cloud/ground overlap proxy",
+      "discriminativePower": "usable",
+      "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--cached--normal",
+      "producer": "recipe-v2",
+      "quality": "cached",
+      "view": "normal",
+      "storage": "hierarchical",
+      "approximate": true
+    }
+  ],
+  "captureIndexSummary": {
+    "path": "capture-index.json",
+    "role": "capture-provenance-index",
+    "resultCount": 93
+  },
+  "captureDiskInventorySummary": {
+    "path": "capture-disk-inventory.json",
+    "role": "disk-inventory-only",
+    "resultCount": 93
+  },
+  "pixelDiffSummary": {
+    "status": "OBSERVATION",
+    "note": "PNG maxAbs recorded; referenceThreshold not normative; visual equivalence remains UNABLE/owner PENDING",
+    "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+    "referenceThreshold": 24,
+    "results": {
+      "cirrostratus__T1-vs-T2": {
+        "status": "OBSERVATION",
+        "kind": "temporal-T1-vs-T2",
+        "scene": "cirrostratus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 13,
+        "changedChannels": 1351215,
+        "totalChannels": 3686400,
+        "changedPixels": 665953,
+        "aboveThresholdPixels": 0,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.7226052517361111,
+        "aboveThresholdPixelRatio": 0,
+        "pixelDiffThreshold": 24,
+        "shaA": "1765aad6e138b597f37550778dfec231bf43e1c9fe9365ee4f00e439f9985d7e",
+        "shaB": "45ee75aa20a409f6bfffb1a526679a699fb9000d960929806a2ac96c30749f6a",
+        "evidence": [
+          "screenshots/cirrostratus__temporal-T1__clean.png",
+          "screenshots/cirrostratus__temporal-T2__clean.png"
+        ]
+      },
+      "cirrus__T1-vs-T2": {
+        "status": "OBSERVATION",
+        "kind": "temporal-T1-vs-T2",
+        "scene": "cirrus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 0,
+        "changedChannels": 0,
+        "totalChannels": 3686400,
+        "changedPixels": 0,
+        "aboveThresholdPixels": 0,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0,
+        "aboveThresholdPixelRatio": 0,
+        "pixelDiffThreshold": 24,
+        "shaA": "181cfb42d12d74b84192c9a6a4208464a005d6cd5cf12fff29b7685500534956",
+        "shaB": "181cfb42d12d74b84192c9a6a4208464a005d6cd5cf12fff29b7685500534956",
+        "evidence": [
+          "screenshots/cirrus__temporal-T1__clean.png",
+          "screenshots/cirrus__temporal-T2__clean.png"
+        ]
+      },
+      "cirrocumulus__T1-vs-T2": {
+        "status": "OBSERVATION",
+        "kind": "temporal-T1-vs-T2",
+        "scene": "cirrocumulus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 33,
+        "changedChannels": 56965,
+        "totalChannels": 3686400,
+        "changedPixels": 24220,
+        "aboveThresholdPixels": 20,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.026280381944444445,
+        "aboveThresholdPixelRatio": 0.00002170138888888889,
+        "pixelDiffThreshold": 24,
+        "shaA": "aa18083e2894d9087d3e410760eba76eccdbeefdd853e3fa39058d2bf4f622e8",
+        "shaB": "b213360268a1ee6891d344006a7c5f92cdfc52cacb50c6c5ce89ad1b573016ed",
+        "evidence": [
+          "screenshots/cirrocumulus__temporal-T1__clean.png",
+          "screenshots/cirrocumulus__temporal-T2__clean.png"
+        ]
+      },
+      "thin-ridge__T1-vs-T2": {
+        "status": "OBSERVATION",
+        "kind": "temporal-T1-vs-T2",
+        "scene": "thin-ridge",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 76,
+        "changedChannels": 86766,
+        "totalChannels": 3686400,
+        "changedPixels": 36296,
+        "aboveThresholdPixels": 1558,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.03938368055555556,
+        "aboveThresholdPixelRatio": 0.0016905381944444444,
+        "pixelDiffThreshold": 24,
+        "shaA": "519a242c0f4d109255311b6dd8175dc3d5aff0a7ad17c782e4ee853141e73481",
+        "shaB": "fa32ffe4d7ac354a2bddda9ce6086fa26e44a1017fe0e58a4a7577b0af9ebfe9",
+        "evidence": [
+          "screenshots/thin-ridge__temporal-T1__clean.png",
+          "screenshots/thin-ridge__temporal-T2__clean.png"
+        ]
+      },
+      "stratocumulus__T1-vs-T2": {
+        "status": "OBSERVATION",
+        "kind": "temporal-T1-vs-T2",
+        "scene": "stratocumulus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 34,
+        "changedChannels": 134703,
+        "totalChannels": 3686400,
+        "changedPixels": 52150,
+        "aboveThresholdPixels": 13,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.056586371527777776,
+        "aboveThresholdPixelRatio": 0.000014105902777777777,
+        "pixelDiffThreshold": 24,
+        "shaA": "a7720c177173e3abea38efa2b0fa4da0837e64e66fe5267b8eb4b9099764a46b",
+        "shaB": "12785069c23a26c82053a5f2c44af4df7a6514da421d4df1bf75837bb783cb99",
+        "evidence": [
+          "screenshots/stratocumulus__temporal-T1__clean.png",
+          "screenshots/stratocumulus__temporal-T2__clean.png"
+        ]
+      },
+      "cirrocumulus__conv-f16-vs-f17": {
+        "status": "OBSERVATION",
+        "kind": "convergence-adjacent-T2",
+        "scene": "cirrocumulus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "TAAU adjacent frames under frozen sceneClock",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 42,
+        "changedChannels": 39598,
+        "totalChannels": 3686400,
+        "changedPixels": 18552,
+        "aboveThresholdPixels": 46,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.020130208333333333,
+        "aboveThresholdPixelRatio": 0.00004991319444444445,
+        "pixelDiffThreshold": 24,
+        "shaA": "e47835326c08f3c23e5d4ef0d68446ab3feec3fed4eb45318588a8e6695d1d16",
+        "shaB": "5bb6f84b91c3c304afc8b8cbb6083b061313a022b7bdd3212df8906a6e13124c",
+        "evidence": [
+          "screenshots/cirrocumulus__conv-f16.png",
+          "screenshots/cirrocumulus__conv-f17.png"
+        ]
+      },
+      "cirrocumulus__conv-T1-f16-vs-f17": {
+        "status": "OBSERVATION",
+        "kind": "convergence-adjacent-T1-control",
+        "scene": "cirrocumulus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "full-res TAA adjacent-frame control under same frozen sceneClock",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 24,
+        "changedChannels": 32221,
+        "totalChannels": 3686400,
+        "changedPixels": 18128,
+        "aboveThresholdPixels": 0,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.01967013888888889,
+        "aboveThresholdPixelRatio": 0,
+        "pixelDiffThreshold": 24,
+        "shaA": "426935be1f34df29b1f3292a2972ad1ef427d9cd8c8252c829e19d1c32895af8",
+        "shaB": "9c7f64c3c06b76cb0f0bb5d7c478ebc1adde58e922cee508b1d3d56393900d53",
+        "evidence": [
+          "screenshots/cirrocumulus__conv-T1-f16.png",
+          "screenshots/cirrocumulus__conv-T1-f17.png"
+        ]
+      },
+      "cirrocumulus__conv-f17-vs-T1-steady": {
+        "status": "OBSERVATION",
+        "kind": "convergence-vs-fullres-taa",
+        "scene": "cirrocumulus",
+        "algorithm": "png-zlib-idat-filter01234-rgba8-maxAbsPerChannel",
+        "referenceThreshold": 24,
+        "note": "OBSERVATION only; referenceThreshold is non-normative and must not be promoted to visual PASS",
+        "width": 1280,
+        "height": 720,
+        "maxAbs": 42,
+        "changedChannels": 57077,
+        "totalChannels": 3686400,
+        "changedPixels": 24254,
+        "aboveThresholdPixels": 23,
+        "pixelCount": 921600,
+        "changedPixelRatio": 0.026317274305555555,
+        "aboveThresholdPixelRatio": 0.000024956597222222224,
+        "pixelDiffThreshold": 24,
+        "shaA": "5bb6f84b91c3c304afc8b8cbb6083b061313a022b7bdd3212df8906a6e13124c",
+        "shaB": "bb5e45658ea9748d8ec31165e08686e553729298ce93177463840afedcc24b6b",
+        "evidence": [
+          "screenshots/cirrocumulus__conv-f17.png",
+          "screenshots/cirrocumulus__temporal-T1-steady__clean.png"
+        ]
+      }
+    },
+    "evidence": "pixel-diff.json"
+  },
+  "runtimeEvidenceSummary": {
+    "path": "runtime-evidence.json",
+    "revision": "6121d43486b7c4b24a5594ca34dbe6ded810d414",
+    "provenance": {
+      "headCommit": "6121d43486b7c4b24a5594ca34dbe6ded810d414",
+      "gitDirty": true,
+      "dirtyPaths": [
+        "docs/roadmap-refactor.md",
+        "openspec/changes/add-temporal-cloud-upscaling/design.md",
+        "openspec/changes/add-temporal-cloud-upscaling/tasks.md",
+        "package.json",
+        "scripts/check-density-shared-fields.mjs",
+        "scripts/check-w10a-cloud-frame-output.mjs",
+        "shaders/cloud.wgsl",
+        "src/densityBenchmark.ts",
+        "src/gui.ts",
+        "src/i18n.ts",
+        "src/main.ts",
+        "src/params.ts",
+        "src/renderer.ts",
+        "src/rendering/cloudFrameOutput.ts",
+        "docs/evidence/w11-visual-qa/",
+        "scripts/check-w11-bayer-phase.mjs",
+        "scripts/check-w11-history-invalidation.mjs",
+        "scripts/check-w11-lowres-mapping.mjs",
+        "scripts/check-w11-taau-resolve.mjs"
+      ],
+      "srcDirtyPaths": [
+        "src/densityBenchmark.ts",
+        "src/gui.ts",
+        "src/i18n.ts",
+        "src/main.ts",
+        "src/params.ts",
+        "src/renderer.ts",
+        "src/rendering/cloudFrameOutput.ts"
+      ],
+      "shaderDirtyPaths": [
+        "shaders/cloud.wgsl"
+      ],
+      "runtimeSourceDirty": true,
+      "docsOrOpenspecDirty": true,
+      "runtimeSourceMatchesHead": false,
+      "note": "src and/or shaders dirty vs HEAD — do not treat timings as clean-revision Gate data"
+    },
+    "warmupFrames": 30,
+    "sampleCount": 60,
+    "meta": {
+      "dpr": 1,
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+      "revision": "6121d43486b7c4b24a5594ca34dbe6ded810d414",
+      "runtimeSourceMatchesHead": false,
+      "gitDirty": true,
+      "launchUsed": "chrome-headless-webgpu"
+    },
+    "checks": {
+      "activeTemporalModeTaau": "PASS",
+      "taauCurrentResolutionCeil": "PASS",
+      "bayerPhaseRotation": "PASS",
+      "combinedPathFallback": "PASS",
+      "taaDisabledFallback": "PASS",
+      "nonTaauDebugForcesOff": "PASS",
+      "taauDebugViewsKeepTaau": "PASS",
+      "gpuValidationErrorsEmpty": "PASS",
+      "historyRejectionRatioRange": "PASS",
+      "historyRejectionRatioValue": "OBSERVATION",
+      "historyRejectionReasonSplit": "PASS",
+      "cloudCoveredRejectionRatio": "OBSERVATION",
+      "resizeDiscontinuityApi": "UNABLE",
+      "deviceLossApi": "UNABLE",
+      "cameraCutPixelProof": "UNABLE",
+      "steadyTimingAsPerformanceGate": "UNABLE",
+      "taauVsFullresTaaVisualEquivalence": "UNABLE",
+      "ghostingBreathingVisual": "UNABLE"
+    },
+    "timingKeys": [
+      "temporal_T0_off",
+      "temporal_T1_fullres_taa",
+      "temporal_T2_taau_4x4"
+    ],
+    "note": "Data available ≠ performance Gate pass"
+  },
+  "autoContracts": {
+    "test:w11-bayer": {
+      "status": "PASS"
+    },
+    "test:w11-lowres": {
+      "status": "PASS"
+    },
+    "test:w11-invalidation": {
+      "status": "PASS"
+    },
+    "test:w11-resolve": {
+      "status": "PASS"
+    }
+  },
+  "counts": {
+    "PASS": 64,
+    "FAIL": 0,
+    "UNABLE": 11,
+    "OBSERVATION": 16,
+    "total": 91
+  },
+  "passCount": 64,
+  "failCount": 0,
+  "unableCount": 11,
+  "observationCount": 16,
+  "visualGate": "UNABLE",
+  "performanceGate": "UNABLE",
+  "rows": [
+    {
+      "id": "test:w11-bayer",
+      "category": "auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w11-bayer.log",
+        "scripts/check-w11-bayer-phase.mjs"
+      ],
+      "reason": "test:w11-bayer passed"
+    },
+    {
+      "id": "test:w11-lowres",
+      "category": "auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w11-lowres.log",
+        "scripts/check-w11-lowres-mapping.mjs"
+      ],
+      "reason": "test:w11-lowres passed"
+    },
+    {
+      "id": "test:w11-invalidation",
+      "category": "auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w11-invalidation.log",
+        "scripts/check-w11-history-invalidation.mjs"
+      ],
+      "reason": "test:w11-invalidation passed"
+    },
+    {
+      "id": "test:w11-resolve",
+      "category": "auto-contract",
+      "status": "PASS",
+      "evidence": [
+        "test-w11-resolve.log",
+        "scripts/check-w11-taau-resolve.mjs"
+      ],
+      "reason": "test:w11-resolve passed"
+    },
+    {
+      "id": "cirrostratus__temporal-T0__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T0__clean.png",
+        "screenshots/cirrostratus__temporal-T0__hud.png",
+        "diagnostics/cirrostratus__temporal-T0.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__temporal-T0__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T0__clean.png",
+        "screenshots/cirrostratus__temporal-T0__hud.png",
+        "diagnostics/cirrostratus__temporal-T0.json"
+      ],
+      "reason": "expected=off; active=off; reason=null",
+      "activeTemporalMode": "off",
+      "requestedTemporalMode": "off"
+    },
+    {
+      "id": "cirrostratus__temporal-T1__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T1__clean.png",
+        "screenshots/cirrostratus__temporal-T1__hud.png",
+        "diagnostics/cirrostratus__temporal-T1.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__temporal-T1__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T1__clean.png",
+        "screenshots/cirrostratus__temporal-T1__hud.png",
+        "diagnostics/cirrostratus__temporal-T1.json"
+      ],
+      "reason": "expected=full-res-taa; active=full-res-taa; reason=null",
+      "activeTemporalMode": "full-res-taa",
+      "requestedTemporalMode": "full-res-taa"
+    },
+    {
+      "id": "cirrostratus__temporal-T2__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T2__clean.png",
+        "screenshots/cirrostratus__temporal-T2__hud.png",
+        "diagnostics/cirrostratus__temporal-T2.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrostratus__temporal-T2__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrostratus__temporal-T2__clean.png",
+        "screenshots/cirrostratus__temporal-T2__hud.png",
+        "diagnostics/cirrostratus__temporal-T2.json"
+      ],
+      "reason": "expected=taau-4x4; active=taau-4x4; reason=null",
+      "activeTemporalMode": "taau-4x4",
+      "requestedTemporalMode": "taau-4x4"
+    },
+    {
+      "id": "cirrus__temporal-T0__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T0__clean.png",
+        "screenshots/cirrus__temporal-T0__hud.png",
+        "diagnostics/cirrus__temporal-T0.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrus__temporal-T0__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T0__clean.png",
+        "screenshots/cirrus__temporal-T0__hud.png",
+        "diagnostics/cirrus__temporal-T0.json"
+      ],
+      "reason": "expected=off; active=off; reason=null",
+      "activeTemporalMode": "off",
+      "requestedTemporalMode": "off"
+    },
+    {
+      "id": "cirrus__temporal-T1__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T1__clean.png",
+        "screenshots/cirrus__temporal-T1__hud.png",
+        "diagnostics/cirrus__temporal-T1.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrus__temporal-T1__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T1__clean.png",
+        "screenshots/cirrus__temporal-T1__hud.png",
+        "diagnostics/cirrus__temporal-T1.json"
+      ],
+      "reason": "expected=full-res-taa; active=full-res-taa; reason=null",
+      "activeTemporalMode": "full-res-taa",
+      "requestedTemporalMode": "full-res-taa"
+    },
+    {
+      "id": "cirrus__temporal-T2__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T2__clean.png",
+        "screenshots/cirrus__temporal-T2__hud.png",
+        "diagnostics/cirrus__temporal-T2.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrus__temporal-T2__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrus__temporal-T2__clean.png",
+        "screenshots/cirrus__temporal-T2__hud.png",
+        "diagnostics/cirrus__temporal-T2.json"
+      ],
+      "reason": "expected=taau-4x4; active=taau-4x4; reason=null",
+      "activeTemporalMode": "taau-4x4",
+      "requestedTemporalMode": "taau-4x4"
+    },
+    {
+      "id": "cirrocumulus__temporal-T0__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T0__clean.png",
+        "screenshots/cirrocumulus__temporal-T0__hud.png",
+        "diagnostics/cirrocumulus__temporal-T0.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__temporal-T0__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T0__clean.png",
+        "screenshots/cirrocumulus__temporal-T0__hud.png",
+        "diagnostics/cirrocumulus__temporal-T0.json"
+      ],
+      "reason": "expected=off; active=off; reason=null",
+      "activeTemporalMode": "off",
+      "requestedTemporalMode": "off"
+    },
+    {
+      "id": "cirrocumulus__temporal-T1__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T1__clean.png",
+        "screenshots/cirrocumulus__temporal-T1__hud.png",
+        "diagnostics/cirrocumulus__temporal-T1.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__temporal-T1__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T1__clean.png",
+        "screenshots/cirrocumulus__temporal-T1__hud.png",
+        "diagnostics/cirrocumulus__temporal-T1.json"
+      ],
+      "reason": "expected=full-res-taa; active=full-res-taa; reason=null",
+      "activeTemporalMode": "full-res-taa",
+      "requestedTemporalMode": "full-res-taa"
+    },
+    {
+      "id": "cirrocumulus__temporal-T2__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T2__clean.png",
+        "screenshots/cirrocumulus__temporal-T2__hud.png",
+        "diagnostics/cirrocumulus__temporal-T2.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "cirrocumulus__temporal-T2__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__temporal-T2__clean.png",
+        "screenshots/cirrocumulus__temporal-T2__hud.png",
+        "diagnostics/cirrocumulus__temporal-T2.json"
+      ],
+      "reason": "expected=taau-4x4; active=taau-4x4; reason=null",
+      "activeTemporalMode": "taau-4x4",
+      "requestedTemporalMode": "taau-4x4"
+    },
+    {
+      "id": "thin-ridge__temporal-T0__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T0__clean.png",
+        "screenshots/thin-ridge__temporal-T0__hud.png",
+        "diagnostics/thin-ridge__temporal-T0.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "thin-ridge__temporal-T0__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T0__clean.png",
+        "screenshots/thin-ridge__temporal-T0__hud.png",
+        "diagnostics/thin-ridge__temporal-T0.json"
+      ],
+      "reason": "expected=off; active=off; reason=null",
+      "activeTemporalMode": "off",
+      "requestedTemporalMode": "off"
+    },
+    {
+      "id": "thin-ridge__temporal-T1__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T1__clean.png",
+        "screenshots/thin-ridge__temporal-T1__hud.png",
+        "diagnostics/thin-ridge__temporal-T1.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "thin-ridge__temporal-T1__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T1__clean.png",
+        "screenshots/thin-ridge__temporal-T1__hud.png",
+        "diagnostics/thin-ridge__temporal-T1.json"
+      ],
+      "reason": "expected=full-res-taa; active=full-res-taa; reason=null",
+      "activeTemporalMode": "full-res-taa",
+      "requestedTemporalMode": "full-res-taa"
+    },
+    {
+      "id": "thin-ridge__temporal-T2__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T2__clean.png",
+        "screenshots/thin-ridge__temporal-T2__hud.png",
+        "diagnostics/thin-ridge__temporal-T2.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "thin-ridge__temporal-T2__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__temporal-T2__clean.png",
+        "screenshots/thin-ridge__temporal-T2__hud.png",
+        "diagnostics/thin-ridge__temporal-T2.json"
+      ],
+      "reason": "expected=taau-4x4; active=taau-4x4; reason=null",
+      "activeTemporalMode": "taau-4x4",
+      "requestedTemporalMode": "taau-4x4"
+    },
+    {
+      "id": "stratocumulus__temporal-T0__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T0__clean.png",
+        "screenshots/stratocumulus__temporal-T0__hud.png",
+        "diagnostics/stratocumulus__temporal-T0.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__temporal-T0__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T0__clean.png",
+        "screenshots/stratocumulus__temporal-T0__hud.png",
+        "diagnostics/stratocumulus__temporal-T0.json"
+      ],
+      "reason": "expected=off; active=off; reason=null",
+      "activeTemporalMode": "off",
+      "requestedTemporalMode": "off"
+    },
+    {
+      "id": "stratocumulus__temporal-T1__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T1__clean.png",
+        "screenshots/stratocumulus__temporal-T1__hud.png",
+        "diagnostics/stratocumulus__temporal-T1.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__temporal-T1__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T1__clean.png",
+        "screenshots/stratocumulus__temporal-T1__hud.png",
+        "diagnostics/stratocumulus__temporal-T1.json"
+      ],
+      "reason": "expected=full-res-taa; active=full-res-taa; reason=null",
+      "activeTemporalMode": "full-res-taa",
+      "requestedTemporalMode": "full-res-taa"
+    },
+    {
+      "id": "stratocumulus__temporal-T2__gpu-validation",
+      "category": "gpu-validation",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T2__clean.png",
+        "screenshots/stratocumulus__temporal-T2__hud.png",
+        "diagnostics/stratocumulus__temporal-T2.json"
+      ],
+      "reason": "gpuValidationErrors empty"
+    },
+    {
+      "id": "stratocumulus__temporal-T2__active-mode",
+      "category": "temporal-mode",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__temporal-T2__clean.png",
+        "screenshots/stratocumulus__temporal-T2__hud.png",
+        "diagnostics/stratocumulus__temporal-T2.json"
+      ],
+      "reason": "expected=taau-4x4; active=taau-4x4; reason=null",
+      "activeTemporalMode": "taau-4x4",
+      "requestedTemporalMode": "taau-4x4"
+    },
+    {
+      "id": "cirrocumulus__debug-0__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-0__clean.png",
+        "diagnostics/cirrocumulus__debug-0.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-10__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-10__clean.png",
+        "diagnostics/cirrocumulus__debug-10.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-1__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-1__clean.png",
+        "diagnostics/cirrocumulus__debug-1.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-6__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-6__clean.png",
+        "diagnostics/cirrocumulus__debug-6.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-11__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-11__clean.png",
+        "diagnostics/cirrocumulus__debug-11.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-16__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-16__clean.png",
+        "diagnostics/cirrocumulus__debug-16.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrocumulus__debug-17__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__debug-17__clean.png",
+        "diagnostics/cirrocumulus__debug-17.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-0__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-0__clean.png",
+        "diagnostics/stratocumulus__debug-0.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-10__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-10__clean.png",
+        "diagnostics/stratocumulus__debug-10.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-1__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-1__clean.png",
+        "diagnostics/stratocumulus__debug-1.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-6__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-6__clean.png",
+        "diagnostics/stratocumulus__debug-6.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-11__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-11__clean.png",
+        "diagnostics/stratocumulus__debug-11.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-16__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-16__clean.png",
+        "diagnostics/stratocumulus__debug-16.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__debug-17__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__debug-17__clean.png",
+        "diagnostics/stratocumulus__debug-17.json"
+      ],
+      "reason": "Debug capture files present (not a visual PASS)"
+    },
+    {
+      "id": "thin-ridge__debug-16__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__debug-16__clean.png",
+        "diagnostics/thin-ridge__debug-16.json"
+      ],
+      "reason": "thin-ridge phase/rejection debug files present (not a visual PASS)"
+    },
+    {
+      "id": "thin-ridge__debug-17__files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/thin-ridge__debug-17__clean.png",
+        "diagnostics/thin-ridge__debug-17.json"
+      ],
+      "reason": "thin-ridge phase/rejection debug files present (not a visual PASS)"
+    },
+    {
+      "id": "cirrus__discriminative-power",
+      "category": "case-selection",
+      "status": "OBSERVATION",
+      "evidence": [
+        "selected-cases.json",
+        "screenshots/cirrus__temporal-T1__clean.png",
+        "screenshots/cirrus__temporal-T2__clean.png",
+        "screenshots/cirrus__debug-1__clean.png",
+        "diagnostics/cirrus__temporal-T2.json"
+      ],
+      "reason": "sparse Ci case has no discriminative power under current camera/body; lightSamples/px=0; discriminativePower=none-empty-sky; sparse Ci only has approximate/empty substitute",
+      "raymarchLightSamplesPerPixel": 0,
+      "discriminativePower": "none-empty-sky"
+    },
+    {
+      "id": "taau-rejection-reason-split",
+      "category": "temporal-diagnostics",
+      "status": "OBSERVATION",
+      "evidence": [
+        "diagnostics/stratocumulus__temporal-T2.json",
+        "runtime-evidence.json"
+      ],
+      "reason": "aggregate=0.9372395833333333; nv=0.9333159722222222; vp=0; d=0.003923611111111111; o=0; cloud=0.021305654192843484 (n=3661, thr=0.01); phaseN=0/57600",
+      "taauHistoryRejectionRatio": 0.9372395833333333,
+      "taauRejectNoVelocityRatio": 0.9333159722222222,
+      "taauRejectViewportRatio": 0,
+      "taauRejectDepthRatio": 0.003923611111111111,
+      "taauRejectOpacityRatio": 0,
+      "taauCloudCoveredRejectionRatio": 0.021305654192843484,
+      "taauCloudCoveredSampleCount": 3661,
+      "taauCloudOpacityThreshold": 0.01
+    },
+    {
+      "id": "thin-ridge__edge-degradation-signals",
+      "category": "visual-gate",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "diagnostics/thin-ridge__temporal-T2.json",
+        "screenshots/thin-ridge__debug-16__clean.png",
+        "screenshots/thin-ridge__debug-17__clean.png"
+      ],
+      "reason": "T1vsT2 maxAbs=76; aboveThrPixelRatio=0.0016905381944444444; cloudReject=0.14067879980324643; aggregateReject=0.9684895833333333",
+      "maxAbs": 76,
+      "aboveThresholdPixelRatio": 0.0016905381944444444,
+      "changedPixelRatio": 0.03938368055555556,
+      "taauCloudCoveredRejectionRatio": 0.14067879980324643,
+      "taauHistoryRejectionRatio": 0.9684895833333333
+    },
+    {
+      "id": "convergence-adjacent-T1-vs-T2-control",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json"
+      ],
+      "reason": "sceneClock frozen via benchmark frame override; T2 adj maxAbs=42; T1 adj maxAbs=24; if T1≈T2 magnitude then scene motion not the driver",
+      "t2": {
+        "maxAbs": 42,
+        "aboveThresholdPixelRatio": 0.00004991319444444445
+      },
+      "t1": {
+        "maxAbs": 24,
+        "aboveThresholdPixelRatio": 0
+      },
+      "sceneClockFrozen": true
+    },
+    {
+      "id": "cirrocumulus__convergence-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/cirrocumulus__conv-f00.png",
+        "screenshots/cirrocumulus__conv-f01.png",
+        "screenshots/cirrocumulus__conv-f02.png",
+        "screenshots/cirrocumulus__conv-f03.png",
+        "screenshots/cirrocumulus__conv-f04.png",
+        "screenshots/cirrocumulus__conv-f05.png",
+        "screenshots/cirrocumulus__conv-f06.png",
+        "screenshots/cirrocumulus__conv-f07.png",
+        "screenshots/cirrocumulus__conv-f08.png",
+        "screenshots/cirrocumulus__conv-f09.png",
+        "screenshots/cirrocumulus__conv-f10.png",
+        "screenshots/cirrocumulus__conv-f11.png",
+        "screenshots/cirrocumulus__conv-f12.png",
+        "screenshots/cirrocumulus__conv-f13.png",
+        "screenshots/cirrocumulus__conv-f14.png",
+        "screenshots/cirrocumulus__conv-f15.png",
+        "screenshots/cirrocumulus__conv-f16.png",
+        "screenshots/cirrocumulus__conv-f17.png"
+      ],
+      "reason": "Evidence files complete: 18 TAAU convergence frames (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__motion-T0-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__motion-T0__f00.png",
+        "screenshots/stratocumulus__motion-T0__f01.png",
+        "screenshots/stratocumulus__motion-T0__f02.png",
+        "screenshots/stratocumulus__motion-T0__f03.png",
+        "screenshots/stratocumulus__motion-T0__f04.png",
+        "screenshots/stratocumulus__motion-T0__f05.png",
+        "screenshots/stratocumulus__motion-T0__f06.png",
+        "screenshots/stratocumulus__motion-T0__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-T0 frames (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__motion-T1-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__motion-T1__f00.png",
+        "screenshots/stratocumulus__motion-T1__f01.png",
+        "screenshots/stratocumulus__motion-T1__f02.png",
+        "screenshots/stratocumulus__motion-T1__f03.png",
+        "screenshots/stratocumulus__motion-T1__f04.png",
+        "screenshots/stratocumulus__motion-T1__f05.png",
+        "screenshots/stratocumulus__motion-T1__f06.png",
+        "screenshots/stratocumulus__motion-T1__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-T1 frames (not a visual PASS)"
+    },
+    {
+      "id": "stratocumulus__motion-T2-suite-files",
+      "category": "artifact-completeness",
+      "status": "PASS",
+      "evidence": [
+        "screenshots/stratocumulus__motion-T2__f00.png",
+        "screenshots/stratocumulus__motion-T2__f01.png",
+        "screenshots/stratocumulus__motion-T2__f02.png",
+        "screenshots/stratocumulus__motion-T2__f03.png",
+        "screenshots/stratocumulus__motion-T2__f04.png",
+        "screenshots/stratocumulus__motion-T2__f05.png",
+        "screenshots/stratocumulus__motion-T2__f06.png",
+        "screenshots/stratocumulus__motion-T2__f07.png"
+      ],
+      "reason": "Evidence files complete: 8 motion-T2 frames (not a visual PASS)"
+    },
+    {
+      "id": "motion-drive-reproducibility",
+      "category": "motion-drive",
+      "status": "OBSERVATION",
+      "evidence": [
+        "motion-drive.json"
+      ],
+      "reason": "Orbit yaw driven by fixed canvas pointer-drag sequence; owner visual judgment PENDING",
+      "motionDrive": {
+        "drag": {
+          "method": "playwright-canvas-pointer-drag",
+          "note": "Orbit yaw via canvas pointer drag; setCamera is overwritten by followInteractiveCamera under active benchmark case",
+          "stepsPx": [
+            56,
+            56,
+            56,
+            56,
+            56,
+            56,
+            56,
+            56
+          ],
+          "dyPx": 0
+        },
+        "status": "OBSERVATION",
+        "reason": "Orbit yaw driven by fixed canvas pointer-drag sequence; owner visual judgment PENDING",
+        "frames": {
+          "method": "playwright-canvas-pointer-drag",
+          "note": "Orbit yaw via canvas pointer drag; setCamera is overwritten by followInteractiveCamera under active benchmark case",
+          "stepsPx": [
+            56,
+            56,
+            56,
+            56,
+            56,
+            56,
+            56,
+            56
+          ],
+          "dyPx": 0,
+          "paths": {
+            "T0": {
+              "moved": true,
+              "camBefore": {
+                "eye": [
+                  10.499999999999998,
+                  13.5,
+                  10.5
+                ],
+                "target": [
+                  0,
+                  3.8,
+                  0
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ],
+                "fovYRadians": 0.7853981633974483,
+                "near": 0.05,
+                "far": 220
+              },
+              "frames": [
+                {
+                  "stem": "stratocumulus__motion-T0__f00",
+                  "eyeDeltaFromStart": 2.744338352201776,
+                  "camera": {
+                    "eye": [
+                      8.388443754256214,
+                      13.5,
+                      12.252918484250188
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f01",
+                  "eyeDeltaFromStart": 6.4848171038036915,
+                  "camera": {
+                    "eye": [
+                      5.023933440663464,
+                      13.5,
+                      13.973549756013442
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f02",
+                  "eyeDeltaFromStart": 10.455657767870083,
+                  "camera": {
+                    "eye": [
+                      0.9771945488178828,
+                      13.5,
+                      14.817054053142973
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f03",
+                  "eyeDeltaFromStart": 14.224891852957052,
+                  "camera": {
+                    "eye": [
+                      -3.1474414074238855,
+                      13.5,
+                      14.511843872741794
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f04",
+                  "eyeDeltaFromStart": 17.73098789430134,
+                  "camera": {
+                    "eye": [
+                      -7.043376502796872,
+                      13.5,
+                      13.07252261194636
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f05",
+                  "eyeDeltaFromStart": 20.883214893319174,
+                  "camera": {
+                    "eye": [
+                      -10.38289374782571,
+                      13.5,
+                      10.615814496371051
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f06",
+                  "eyeDeltaFromStart": 23.62535199854319,
+                  "camera": {
+                    "eye": [
+                      -12.912151881507109,
+                      13.5,
+                      7.333234878884789
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T0__f07",
+                  "eyeDeltaFromStart": 25.904811684568912,
+                  "camera": {
+                    "eye": [
+                      -14.435608125600918,
+                      13.5,
+                      3.480404867840048
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                }
+              ]
+            },
+            "T1": {
+              "moved": true,
+              "camBefore": {
+                "eye": [
+                  -14.74769229678546,
+                  13.5,
+                  1.733658535968029
+                ],
+                "target": [
+                  0,
+                  3.8,
+                  0
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ],
+                "fovYRadians": 0.7853981633974483,
+                "near": 0.05,
+                "far": 220
+              },
+              "frames": [
+                {
+                  "stem": "stratocumulus__motion-T1__f00",
+                  "eyeDeltaFromStart": 2.4598757296327505,
+                  "camera": {
+                    "eye": [
+                      -14.831543509798333,
+                      13.5,
+                      -0.7247876357657608
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f01",
+                  "eyeDeltaFromStart": 6.493406095903174,
+                  "camera": {
+                    "eye": [
+                      -14.077421540635669,
+                      13.5,
+                      -4.725061138995646
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f02",
+                  "eyeDeltaFromStart": 10.467885306788892,
+                  "camera": {
+                    "eye": [
+                      -12.22698666668135,
+                      13.5,
+                      -8.426197069425593
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f03",
+                  "eyeDeltaFromStart": 14.243117036140042,
+                  "camera": {
+                    "eye": [
+                      -9.422716225411122,
+                      13.5,
+                      -11.476603109604074
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f04",
+                  "eyeDeltaFromStart": 17.729072833967702,
+                  "camera": {
+                    "eye": [
+                      -5.896957190336029,
+                      13.5,
+                      -13.62812884791394
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f05",
+                  "eyeDeltaFromStart": 20.881614376888205,
+                  "camera": {
+                    "eye": [
+                      -1.899357867051683,
+                      13.5,
+                      -14.727268575430708
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f06",
+                  "eyeDeltaFromStart": 23.62545151941957,
+                  "camera": {
+                    "eye": [
+                      2.2467130048057813,
+                      13.5,
+                      -14.67829283922475
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T1__f07",
+                  "eyeDeltaFromStart": 25.905177111699313,
+                  "camera": {
+                    "eye": [
+                      6.215141407966987,
+                      13.5,
+                      -13.485993373829535
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                }
+              ]
+            },
+            "T2": {
+              "moved": true,
+              "camBefore": {
+                "eye": [
+                  7.787677455904271,
+                  13.5,
+                  -12.643262231038332
+                ],
+                "target": [
+                  0,
+                  3.8,
+                  0
+                ],
+                "up": [
+                  0,
+                  1,
+                  0
+                ],
+                "fovYRadians": 0.7853981633974483,
+                "near": 0.05,
+                "far": 220
+              },
+              "frames": [
+                {
+                  "stem": "stratocumulus__motion-T2__f00",
+                  "eyeDeltaFromStart": 2.4623095393045196,
+                  "camera": {
+                    "eye": [
+                      9.769905130215497,
+                      13.5,
+                      -11.1825289512967
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f01",
+                  "eyeDeltaFromStart": 6.4922030700642255,
+                  "camera": {
+                    "eye": [
+                      12.437404093053596,
+                      13.5,
+                      -8.112396651181058
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f02",
+                  "eyeDeltaFromStart": 10.478235197476383,
+                  "camera": {
+                    "eye": [
+                      14.19668665036478,
+                      13.5,
+                      -4.353629307985972
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f03",
+                  "eyeDeltaFromStart": 14.254743143253616,
+                  "camera": {
+                    "eye": [
+                      14.846979276743234,
+                      13.5,
+                      -0.25924188696445116
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f04",
+                  "eyeDeltaFromStart": 17.732037142343817,
+                  "camera": {
+                    "eye": [
+                      14.346502251561638,
+                      13.5,
+                      3.8311712498838832
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f05",
+                  "eyeDeltaFromStart": 20.883088970845503,
+                  "camera": {
+                    "eye": [
+                      12.72895246380059,
+                      13.5,
+                      7.6468143154064405
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f06",
+                  "eyeDeltaFromStart": 23.625443001375736,
+                  "camera": {
+                    "eye": [
+                      10.119934266767082,
+                      13.5,
+                      10.866781052193577
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                },
+                {
+                  "stem": "stratocumulus__motion-T2__f07",
+                  "eyeDeltaFromStart": 25.91153580598471,
+                  "camera": {
+                    "eye": [
+                      6.711602386069662,
+                      13.5,
+                      13.245919877883303
+                    ],
+                    "target": [
+                      0,
+                      3.8,
+                      0
+                    ],
+                    "up": [
+                      0,
+                      1,
+                      0
+                    ],
+                    "fovYRadians": 0.7853981633974483,
+                    "near": 0.05,
+                    "far": 220
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "runtime__activeTemporalModeTaau",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "activeTemporalMode=taau-4x4; path=cloud-frame",
+      "check": {
+        "status": "PASS",
+        "reason": "activeTemporalMode=taau-4x4; path=cloud-frame",
+        "activeTemporalMode": "taau-4x4",
+        "path": "cloud-frame"
+      }
+    },
+    {
+      "id": "runtime__taauCurrentResolutionCeil",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "canvas=1280x720; taau=320x180; expect ceil/4=320x180",
+      "check": {
+        "status": "PASS",
+        "reason": "canvas=1280x720; taau=320x180; expect ceil/4=320x180",
+        "canvasWidth": 1280,
+        "canvasHeight": 720,
+        "taauCurrentWidth": 320,
+        "taauCurrentHeight": 180,
+        "expectedWidth": 320,
+        "expectedHeight": 180
+      }
+    },
+    {
+      "id": "runtime__bayerPhaseRotation",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "inRange=true; covers16=true; advancesMod16=true; samples=[13,14,15,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,8,9,10,11,12]",
+      "check": {
+        "status": "PASS",
+        "reason": "inRange=true; covers16=true; advancesMod16=true; samples=[13,14,15,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7,8,9,10,11,12]",
+        "samples": [
+          13,
+          14,
+          15,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "phaseInRange": true,
+        "covers16": true,
+        "advancesMod16": true
+      }
+    },
+    {
+      "id": "runtime__combinedPathFallback",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "active=full-res-taa; reason=combined-path",
+      "check": {
+        "status": "PASS",
+        "reason": "active=full-res-taa; reason=combined-path",
+        "activeTemporalMode": "full-res-taa",
+        "temporalFallbackReason": "combined-path"
+      }
+    },
+    {
+      "id": "runtime__taaDisabledFallback",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "active=off; reason=taa-disabled",
+      "check": {
+        "status": "PASS",
+        "reason": "active=off; reason=taa-disabled",
+        "activeTemporalMode": "off",
+        "temporalFallbackReason": "taa-disabled"
+      }
+    },
+    {
+      "id": "runtime__nonTaauDebugForcesOff",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "debugView=3 active=off; reason=debug-view",
+      "check": {
+        "status": "PASS",
+        "reason": "debugView=3 active=off; reason=debug-view",
+        "activeTemporalMode": "off",
+        "temporalFallbackReason": "debug-view"
+      }
+    },
+    {
+      "id": "runtime__taauDebugViewsKeepTaau",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "debug16=taau-4x4; debug17=taau-4x4",
+      "check": {
+        "status": "PASS",
+        "reason": "debug16=taau-4x4; debug17=taau-4x4",
+        "debug16": "taau-4x4",
+        "debug17": "taau-4x4"
+      }
+    },
+    {
+      "id": "runtime__gpuValidationErrorsEmpty",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "gpuValidationErrors empty on T0/T1/T2 timing samples",
+      "check": {
+        "status": "PASS",
+        "reason": "gpuValidationErrors empty on T0/T1/T2 timing samples",
+        "perMode": {
+          "temporal_T0_off": [],
+          "temporal_T1_fullres_taa": [],
+          "temporal_T2_taau_4x4": []
+        }
+      }
+    },
+    {
+      "id": "runtime__historyRejectionRatioRange",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "ratio=0.9372395833333333; sampledEstimate=true; rangeOk=true",
+      "check": {
+        "status": "PASS",
+        "reason": "ratio=0.9372395833333333; sampledEstimate=true; rangeOk=true",
+        "taauHistoryRejectionRatio": 0.9372395833333333,
+        "taauHistoryRejectionSampledEstimate": true
+      }
+    },
+    {
+      "id": "runtime__historyRejectionRatioValue",
+      "category": "runtime-api",
+      "status": "OBSERVATION",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Ratio is a 1/16 sparse sampled estimate with no frozen Gate threshold; value recorded only",
+      "check": {
+        "status": "OBSERVATION",
+        "reason": "Ratio is a 1/16 sparse sampled estimate with no frozen Gate threshold; value recorded only",
+        "taauHistoryRejectionRatio": 0.9372395833333333
+      }
+    },
+    {
+      "id": "runtime__historyRejectionReasonSplit",
+      "category": "runtime-api",
+      "status": "PASS",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "nv/vp/d/o in [0,1]=true; sum=0.9372395833333333; aggregate=0.9372395833333333",
+      "check": {
+        "status": "PASS",
+        "reason": "nv/vp/d/o in [0,1]=true; sum=0.9372395833333333; aggregate=0.9372395833333333",
+        "taauRejectNoVelocityRatio": 0.9334027777777778,
+        "taauRejectViewportRatio": 0,
+        "taauRejectDepthRatio": 0.0038368055555555555,
+        "taauRejectOpacityRatio": 0,
+        "sum": 0.9372395833333333,
+        "taauHistoryRejectionRatio": 0.9372395833333333,
+        "taauCurrentPhaseSampleCount": 0,
+        "taauNonCurrentPhaseSampleCount": 57600
+      }
+    },
+    {
+      "id": "runtime__cloudCoveredRejectionRatio",
+      "category": "runtime-api",
+      "status": "OBSERVATION",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Cloud-covered rejection (opacity>thr on current low-res sample); Gate-relevant; no frozen threshold",
+      "check": {
+        "status": "OBSERVATION",
+        "reason": "Cloud-covered rejection (opacity>thr on current low-res sample); Gate-relevant; no frozen threshold",
+        "taauCloudCoveredRejectionRatio": 0.022621967838648133,
+        "taauCloudCoveredSampleCount": 3669,
+        "taauCloudOpacityThreshold": 0.01
+      }
+    },
+    {
+      "id": "runtime__resizeDiscontinuityApi",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "HEAD has no setFixedCanvasSize evidence API; playwright viewport resize ignored under benchmark fixed canvas",
+      "check": {
+        "status": "UNABLE",
+        "reason": "HEAD has no setFixedCanvasSize evidence API; playwright viewport resize ignored under benchmark fixed canvas"
+      }
+    },
+    {
+      "id": "runtime__deviceLossApi",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "No safe automated WebGPU device-loss injection in this harness",
+      "check": {
+        "status": "UNABLE",
+        "reason": "No safe automated WebGPU device-loss injection in this harness"
+      }
+    },
+    {
+      "id": "runtime__cameraCutPixelProof",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "HEAD has no reliable camera-cut evidence API; setCamera overwritten by interactive orbit follow; no pixel-level whole-frame invalidation proof",
+      "check": {
+        "status": "UNABLE",
+        "reason": "HEAD has no reliable camera-cut evidence API; setCamera overwritten by interactive orbit follow; no pixel-level whole-frame invalidation proof"
+      }
+    },
+    {
+      "id": "runtime__steadyTimingAsPerformanceGate",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Steady median/p90 data available ≠ performance Gate pass: no frozen Gate threshold / owner judgment",
+      "check": {
+        "status": "UNABLE",
+        "reason": "Steady median/p90 data available ≠ performance Gate pass: no frozen Gate threshold / owner judgment"
+      }
+    },
+    {
+      "id": "runtime__taauVsFullresTaaVisualEquivalence",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "PNG diff is OBSERVATION only; TAAU vs full-res TAA visual equivalence requires owner judgment",
+      "check": {
+        "status": "UNABLE",
+        "reason": "PNG diff is OBSERVATION only; TAAU vs full-res TAA visual equivalence requires owner judgment"
+      }
+    },
+    {
+      "id": "runtime__ghostingBreathingVisual",
+      "category": "runtime-api",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Trailing / double-image / Bayer residue / 16-frame brightness breathing require owner visual review of screenshot sequences",
+      "check": {
+        "status": "UNABLE",
+        "reason": "Trailing / double-image / Bayer residue / 16-frame brightness breathing require owner visual review of screenshot sequences"
+      }
+    },
+    {
+      "id": "pngdiff__cirrostratus__T1-vs-T2",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrostratus__temporal-T1__clean.png",
+        "screenshots/cirrostratus__temporal-T2__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=13; referenceThreshold=24 (non-normative)",
+      "maxAbs": 13,
+      "kind": "temporal-T1-vs-T2"
+    },
+    {
+      "id": "pngdiff__cirrus__T1-vs-T2",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrus__temporal-T1__clean.png",
+        "screenshots/cirrus__temporal-T2__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=0; referenceThreshold=24 (non-normative)",
+      "maxAbs": 0,
+      "kind": "temporal-T1-vs-T2"
+    },
+    {
+      "id": "pngdiff__cirrocumulus__T1-vs-T2",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrocumulus__temporal-T1__clean.png",
+        "screenshots/cirrocumulus__temporal-T2__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=33; referenceThreshold=24 (non-normative)",
+      "maxAbs": 33,
+      "kind": "temporal-T1-vs-T2"
+    },
+    {
+      "id": "pngdiff__thin-ridge__T1-vs-T2",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/thin-ridge__temporal-T1__clean.png",
+        "screenshots/thin-ridge__temporal-T2__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=76; referenceThreshold=24 (non-normative)",
+      "maxAbs": 76,
+      "kind": "temporal-T1-vs-T2"
+    },
+    {
+      "id": "pngdiff__stratocumulus__T1-vs-T2",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/stratocumulus__temporal-T1__clean.png",
+        "screenshots/stratocumulus__temporal-T2__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=34; referenceThreshold=24 (non-normative)",
+      "maxAbs": 34,
+      "kind": "temporal-T1-vs-T2"
+    },
+    {
+      "id": "pngdiff__cirrocumulus__conv-f16-vs-f17",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrocumulus__conv-f16.png",
+        "screenshots/cirrocumulus__conv-f17.png"
+      ],
+      "reason": "OBSERVATION maxAbs=42; referenceThreshold=24 (non-normative)",
+      "maxAbs": 42,
+      "kind": "convergence-adjacent-T2"
+    },
+    {
+      "id": "pngdiff__cirrocumulus__conv-T1-f16-vs-f17",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrocumulus__conv-T1-f16.png",
+        "screenshots/cirrocumulus__conv-T1-f17.png"
+      ],
+      "reason": "OBSERVATION maxAbs=24; referenceThreshold=24 (non-normative)",
+      "maxAbs": 24,
+      "kind": "convergence-adjacent-T1-control"
+    },
+    {
+      "id": "pngdiff__cirrocumulus__conv-f17-vs-T1-steady",
+      "category": "png-diff-observation",
+      "status": "OBSERVATION",
+      "evidence": [
+        "pixel-diff.json",
+        "screenshots/cirrocumulus__conv-f17.png",
+        "screenshots/cirrocumulus__temporal-T1-steady__clean.png"
+      ],
+      "reason": "OBSERVATION maxAbs=42; referenceThreshold=24 (non-normative)",
+      "maxAbs": 42,
+      "kind": "convergence-vs-fullres-taa"
+    },
+    {
+      "id": "taau-vs-fullres-visual-equivalence",
+      "category": "visual-gate",
+      "status": "UNABLE",
+      "evidence": [
+        "pixel-diff.json"
+      ],
+      "reason": "PNG diff OBSERVATION only; owner must judge TAAU vs full-res TAA visual equivalence"
+    },
+    {
+      "id": "ghosting-breathing-owner-visual",
+      "category": "visual-gate",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshot-manifest.json"
+      ],
+      "reason": "Trailing / double-image / Bayer residue / 16-frame brightness breathing require owner visual review"
+    },
+    {
+      "id": "owner-visual-signoff",
+      "category": "owner",
+      "status": "UNABLE",
+      "evidence": [
+        "screenshot-manifest.json"
+      ],
+      "reason": "Owner visual approval PENDING; screenshot SHA256 manifest is inventory only, not visual PASS"
+    },
+    {
+      "id": "steady-median-p90-evidence",
+      "category": "performance-evidence-completeness",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Evidence completeness only (≠ performance Gate PASS)",
+      "timing": {
+        "temporal_T0_off": {
+          "temporalQuality": 0,
+          "expectedMode": "off",
+          "description": "full-res no-TAA (temporalQuality=0)",
+          "available": true,
+          "reason": "",
+          "cloudCurrentMs": {
+            "count": 60,
+            "median": 5.799936,
+            "p90": 5.991424,
+            "min": 5.716992,
+            "max": 7.461888
+          },
+          "taauBackgroundMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "taauCurrentMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "taauResolveMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "temporalResolveMs": {
+            "count": 60,
+            "median": 0.022528,
+            "p90": 0.024576,
+            "min": 0.02048,
+            "max": 0.0256
+          },
+          "compositeMs": {
+            "count": 60,
+            "median": 0.02048,
+            "p90": 0.021504,
+            "min": 0.019456,
+            "max": 0.026624
+          },
+          "timedPassSumMs": {
+            "count": 60,
+            "median": 5.861375999999999,
+            "p90": 6.053888,
+            "min": 5.779456,
+            "max": 7.523327999999999
+          },
+          "deviceInfo": {
+            "adapter": {
+              "vendor": "nvidia",
+              "architecture": "ampere",
+              "device": "",
+              "description": ""
+            },
+            "features": [
+              "bgra8unorm-storage",
+              "chromium-experimental-multi-draw-indirect",
+              "chromium-experimental-timestamp-query-inside-passes",
+              "clip-distances",
+              "core-features-and-limits",
+              "depth-clip-control",
+              "depth32float-stencil8",
+              "dual-source-blending",
+              "float32-blendable",
+              "float32-filterable",
+              "indirect-first-instance",
+              "primitive-index",
+              "rg11b10ufloat-renderable",
+              "shader-f16",
+              "subgroup-size-control",
+              "subgroups",
+              "texture-component-swizzle",
+              "texture-compression-bc",
+              "texture-compression-bc-sliced-3d",
+              "texture-formats-tier1",
+              "texture-formats-tier2",
+              "timestamp-query"
+            ],
+            "limits": {
+              "maxTextureDimension1D": 16384,
+              "maxTextureDimension2D": 16384,
+              "maxTextureDimension3D": 2048,
+              "maxTextureArrayLayers": 2048,
+              "maxBindGroups": 4,
+              "maxStorageBufferBindingSize": 2147483644,
+              "maxComputeWorkgroupStorageSize": 32768,
+              "maxComputeInvocationsPerWorkgroup": 1024,
+              "maxComputeWorkgroupSizeX": 1024,
+              "maxComputeWorkgroupSizeY": 1024,
+              "maxComputeWorkgroupSizeZ": 64,
+              "maxComputeWorkgroupsPerDimension": 65535
+            }
+          },
+          "lastSample": {
+            "cloudCurrentMs": 5.735424,
+            "taauBackgroundMs": 0,
+            "taauCurrentMs": 0,
+            "taauResolveMs": 0,
+            "temporalResolveMs": 0.022528,
+            "compositeMs": 0.02048,
+            "timedPassSumMs": 5.796864,
+            "timedPassSumCovers": "cacheMs(if cacheRan)+shadowMs(if shadowRan)+cloudMs+temporalResolveMs+compositeMs+postMs; instrumented passes only, not full-frame GPU wall time; excludes brick and shared atlas/macro timestamps",
+            "activeTemporalMode": "off",
+            "requestedTemporalMode": "off",
+            "temporalFallbackReason": null,
+            "temporalBayerPhase": 3,
+            "taauCurrentWidth": 0,
+            "taauCurrentHeight": 0,
+            "taauHistoryRejectionRatio": 0,
+            "taauHistoryRejectionSampledEstimate": true,
+            "taauRejectNoVelocityRatio": 0,
+            "taauRejectViewportRatio": 0,
+            "taauRejectDepthRatio": 0,
+            "taauRejectOpacityRatio": 0,
+            "taauCurrentPhaseSampleCount": 0,
+            "taauNonCurrentPhaseSampleCount": 0,
+            "taauCloudCoveredSampleCount": 0,
+            "taauCloudCoveredRejectionRatio": 0,
+            "taauCloudOpacityThreshold": 0.01,
+            "cloudFrameHistoryBytes": 14745600,
+            "cloudFrameLowResAttachmentBytes": 1382400,
+            "taauHistoryDepthBytes": 3686400,
+            "cloudFrameAttachmentBytes": 22118400,
+            "path": "cloud-frame",
+            "gpuValidationErrors": [],
+            "deviceInfo": {
+              "adapter": {
+                "vendor": "nvidia",
+                "architecture": "ampere",
+                "device": "",
+                "description": ""
+              },
+              "features": [
+                "bgra8unorm-storage",
+                "chromium-experimental-multi-draw-indirect",
+                "chromium-experimental-timestamp-query-inside-passes",
+                "clip-distances",
+                "core-features-and-limits",
+                "depth-clip-control",
+                "depth32float-stencil8",
+                "dual-source-blending",
+                "float32-blendable",
+                "float32-filterable",
+                "indirect-first-instance",
+                "primitive-index",
+                "rg11b10ufloat-renderable",
+                "shader-f16",
+                "subgroup-size-control",
+                "subgroups",
+                "texture-component-swizzle",
+                "texture-compression-bc",
+                "texture-compression-bc-sliced-3d",
+                "texture-formats-tier1",
+                "texture-formats-tier2",
+                "timestamp-query"
+              ],
+              "limits": {
+                "maxTextureDimension1D": 16384,
+                "maxTextureDimension2D": 16384,
+                "maxTextureDimension3D": 2048,
+                "maxTextureArrayLayers": 2048,
+                "maxBindGroups": 4,
+                "maxStorageBufferBindingSize": 2147483644,
+                "maxComputeWorkgroupStorageSize": 32768,
+                "maxComputeInvocationsPerWorkgroup": 1024,
+                "maxComputeWorkgroupSizeX": 1024,
+                "maxComputeWorkgroupSizeY": 1024,
+                "maxComputeWorkgroupSizeZ": 64,
+                "maxComputeWorkgroupsPerDimension": 65535
+              }
+            },
+            "revision": "working-tree",
+            "canvasWidth": 1280,
+            "canvasHeight": 720
+          }
+        },
+        "temporal_T1_fullres_taa": {
+          "temporalQuality": 1,
+          "expectedMode": "full-res-taa",
+          "description": "full-res TAA (temporalQuality=1)",
+          "available": true,
+          "reason": "",
+          "cloudCurrentMs": {
+            "count": 60,
+            "median": 5.944319999999999,
+            "p90": 6.524928,
+            "min": 5.748736,
+            "max": 7.527424
+          },
+          "taauBackgroundMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "taauCurrentMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "taauResolveMs": {
+            "count": 60,
+            "median": 0,
+            "p90": 0,
+            "min": 0,
+            "max": 0
+          },
+          "temporalResolveMs": {
+            "count": 60,
+            "median": 0.023039999999999998,
+            "p90": 0.024576,
+            "min": 0.021504,
+            "max": 0.026624
+          },
+          "compositeMs": {
+            "count": 60,
+            "median": 0.02048,
+            "p90": 0.021504,
+            "min": 0.019456,
+            "max": 0.0256
+          },
+          "timedPassSumMs": {
+            "count": 60,
+            "median": 8.220672,
+            "p90": 8.668159999999999,
+            "min": 7.924735999999999,
+            "max": 9.668607999999999
+          },
+          "deviceInfo": {
+            "adapter": {
+              "vendor": "nvidia",
+              "architecture": "ampere",
+              "device": "",
+              "description": ""
+            },
+            "features": [
+              "bgra8unorm-storage",
+              "chromium-experimental-multi-draw-indirect",
+              "chromium-experimental-timestamp-query-inside-passes",
+              "clip-distances",
+              "core-features-and-limits",
+              "depth-clip-control",
+              "depth32float-stencil8",
+              "dual-source-blending",
+              "float32-blendable",
+              "float32-filterable",
+              "indirect-first-instance",
+              "primitive-index",
+              "rg11b10ufloat-renderable",
+              "shader-f16",
+              "subgroup-size-control",
+              "subgroups",
+              "texture-component-swizzle",
+              "texture-compression-bc",
+              "texture-compression-bc-sliced-3d",
+              "texture-formats-tier1",
+              "texture-formats-tier2",
+              "timestamp-query"
+            ],
+            "limits": {
+              "maxTextureDimension1D": 16384,
+              "maxTextureDimension2D": 16384,
+              "maxTextureDimension3D": 2048,
+              "maxTextureArrayLayers": 2048,
+              "maxBindGroups": 4,
+              "maxStorageBufferBindingSize": 2147483644,
+              "maxComputeWorkgroupStorageSize": 32768,
+              "maxComputeInvocationsPerWorkgroup": 1024,
+              "maxComputeWorkgroupSizeX": 1024,
+              "maxComputeWorkgroupSizeY": 1024,
+              "maxComputeWorkgroupSizeZ": 64,
+              "maxComputeWorkgroupsPerDimension": 65535
+            }
+          },
+          "lastSample": {
+            "cloudCurrentMs": 5.818368,
+            "taauBackgroundMs": 0,
+            "taauCurrentMs": 0,
+            "taauResolveMs": 0,
+            "temporalResolveMs": 0.022528,
+            "compositeMs": 0.019456,
+            "timedPassSumMs": 8.372224,
+            "timedPassSumCovers": "cacheMs(if cacheRan)+shadowMs(if shadowRan)+cloudMs+temporalResolveMs+compositeMs+postMs; instrumented passes only, not full-frame GPU wall time; excludes brick and shared atlas/macro timestamps",
+            "activeTemporalMode": "full-res-taa",
+            "requestedTemporalMode": "full-res-taa",
+            "temporalFallbackReason": null,
+            "temporalBayerPhase": 14,
+            "taauCurrentWidth": 0,
+            "taauCurrentHeight": 0,
+            "taauHistoryRejectionRatio": 0,
+            "taauHistoryRejectionSampledEstimate": true,
+            "taauRejectNoVelocityRatio": 0,
+            "taauRejectViewportRatio": 0,
+            "taauRejectDepthRatio": 0,
+            "taauRejectOpacityRatio": 0,
+            "taauCurrentPhaseSampleCount": 0,
+            "taauNonCurrentPhaseSampleCount": 0,
+            "taauCloudCoveredSampleCount": 0,
+            "taauCloudCoveredRejectionRatio": 0,
+            "taauCloudOpacityThreshold": 0.01,
+            "cloudFrameHistoryBytes": 14745600,
+            "cloudFrameLowResAttachmentBytes": 1382400,
+            "taauHistoryDepthBytes": 3686400,
+            "cloudFrameAttachmentBytes": 22118400,
+            "path": "cloud-frame",
+            "gpuValidationErrors": [],
+            "deviceInfo": {
+              "adapter": {
+                "vendor": "nvidia",
+                "architecture": "ampere",
+                "device": "",
+                "description": ""
+              },
+              "features": [
+                "bgra8unorm-storage",
+                "chromium-experimental-multi-draw-indirect",
+                "chromium-experimental-timestamp-query-inside-passes",
+                "clip-distances",
+                "core-features-and-limits",
+                "depth-clip-control",
+                "depth32float-stencil8",
+                "dual-source-blending",
+                "float32-blendable",
+                "float32-filterable",
+                "indirect-first-instance",
+                "primitive-index",
+                "rg11b10ufloat-renderable",
+                "shader-f16",
+                "subgroup-size-control",
+                "subgroups",
+                "texture-component-swizzle",
+                "texture-compression-bc",
+                "texture-compression-bc-sliced-3d",
+                "texture-formats-tier1",
+                "texture-formats-tier2",
+                "timestamp-query"
+              ],
+              "limits": {
+                "maxTextureDimension1D": 16384,
+                "maxTextureDimension2D": 16384,
+                "maxTextureDimension3D": 2048,
+                "maxTextureArrayLayers": 2048,
+                "maxBindGroups": 4,
+                "maxStorageBufferBindingSize": 2147483644,
+                "maxComputeWorkgroupStorageSize": 32768,
+                "maxComputeInvocationsPerWorkgroup": 1024,
+                "maxComputeWorkgroupSizeX": 1024,
+                "maxComputeWorkgroupSizeY": 1024,
+                "maxComputeWorkgroupSizeZ": 64,
+                "maxComputeWorkgroupsPerDimension": 65535
+              }
+            },
+            "revision": "working-tree",
+            "canvasWidth": 1280,
+            "canvasHeight": 720
+          }
+        },
+        "temporal_T2_taau_4x4": {
+          "temporalQuality": 2,
+          "expectedMode": "taau-4x4",
+          "description": "TAAU 4×4 (temporalQuality=2)",
+          "available": true,
+          "reason": "",
+          "cloudCurrentMs": {
+            "count": 60,
+            "median": 0.586752,
+            "p90": 0.633856,
+            "min": 0.557056,
+            "max": 0.646144
+          },
+          "taauBackgroundMs": {
+            "count": 60,
+            "median": 3.246592,
+            "p90": 3.628032,
+            "min": 3.207168,
+            "max": 3.713024
+          },
+          "taauCurrentMs": {
+            "count": 60,
+            "median": 0.586752,
+            "p90": 0.633856,
+            "min": 0.557056,
+            "max": 0.646144
+          },
+          "taauResolveMs": {
+            "count": 60,
+            "median": 0.0512,
+            "p90": 0.057344,
+            "min": 0.050176,
+            "max": 0.058368
+          },
+          "temporalResolveMs": {
+            "count": 60,
+            "median": 0.0512,
+            "p90": 0.057344,
+            "min": 0.050176,
+            "max": 0.058368
+          },
+          "compositeMs": {
+            "count": 60,
+            "median": 0.021504,
+            "p90": 0.022528,
+            "min": 0.02048,
+            "max": 0.023552
+          },
+          "timedPassSumMs": {
+            "count": 60,
+            "median": 6.25152,
+            "p90": 6.607871999999999,
+            "min": 5.948416,
+            "max": 6.746112
+          },
+          "deviceInfo": {
+            "adapter": {
+              "vendor": "nvidia",
+              "architecture": "ampere",
+              "device": "",
+              "description": ""
+            },
+            "features": [
+              "bgra8unorm-storage",
+              "chromium-experimental-multi-draw-indirect",
+              "chromium-experimental-timestamp-query-inside-passes",
+              "clip-distances",
+              "core-features-and-limits",
+              "depth-clip-control",
+              "depth32float-stencil8",
+              "dual-source-blending",
+              "float32-blendable",
+              "float32-filterable",
+              "indirect-first-instance",
+              "primitive-index",
+              "rg11b10ufloat-renderable",
+              "shader-f16",
+              "subgroup-size-control",
+              "subgroups",
+              "texture-component-swizzle",
+              "texture-compression-bc",
+              "texture-compression-bc-sliced-3d",
+              "texture-formats-tier1",
+              "texture-formats-tier2",
+              "timestamp-query"
+            ],
+            "limits": {
+              "maxTextureDimension1D": 16384,
+              "maxTextureDimension2D": 16384,
+              "maxTextureDimension3D": 2048,
+              "maxTextureArrayLayers": 2048,
+              "maxBindGroups": 4,
+              "maxStorageBufferBindingSize": 2147483644,
+              "maxComputeWorkgroupStorageSize": 32768,
+              "maxComputeInvocationsPerWorkgroup": 1024,
+              "maxComputeWorkgroupSizeX": 1024,
+              "maxComputeWorkgroupSizeY": 1024,
+              "maxComputeWorkgroupSizeZ": 64,
+              "maxComputeWorkgroupsPerDimension": 65535
+            }
+          },
+          "lastSample": {
+            "cloudCurrentMs": 0.644096,
+            "taauBackgroundMs": 3.234816,
+            "taauCurrentMs": 0.644096,
+            "taauResolveMs": 0.057344,
+            "temporalResolveMs": 0.057344,
+            "compositeMs": 0.022528,
+            "timedPassSumMs": 6.3006720000000005,
+            "timedPassSumCovers": "cacheMs(if cacheRan)+shadowMs(if shadowRan)+cloudMs+temporalResolveMs+compositeMs+postMs; instrumented passes only, not full-frame GPU wall time; excludes brick and shared atlas/macro timestamps",
+            "activeTemporalMode": "taau-4x4",
+            "requestedTemporalMode": "taau-4x4",
+            "temporalFallbackReason": null,
+            "temporalBayerPhase": 8,
+            "taauCurrentWidth": 320,
+            "taauCurrentHeight": 180,
+            "taauHistoryRejectionRatio": 0.9372395833333333,
+            "taauHistoryRejectionSampledEstimate": true,
+            "taauRejectNoVelocityRatio": 0.9334027777777778,
+            "taauRejectViewportRatio": 0,
+            "taauRejectDepthRatio": 0.0038368055555555555,
+            "taauRejectOpacityRatio": 0,
+            "taauCurrentPhaseSampleCount": 0,
+            "taauNonCurrentPhaseSampleCount": 57600,
+            "taauCloudCoveredSampleCount": 3669,
+            "taauCloudCoveredRejectionRatio": 0.022621967838648133,
+            "taauCloudOpacityThreshold": 0.01,
+            "cloudFrameHistoryBytes": 14745600,
+            "cloudFrameLowResAttachmentBytes": 1382400,
+            "taauHistoryDepthBytes": 3686400,
+            "cloudFrameAttachmentBytes": 22118400,
+            "path": "cloud-frame",
+            "gpuValidationErrors": [],
+            "deviceInfo": {
+              "adapter": {
+                "vendor": "nvidia",
+                "architecture": "ampere",
+                "device": "",
+                "description": ""
+              },
+              "features": [
+                "bgra8unorm-storage",
+                "chromium-experimental-multi-draw-indirect",
+                "chromium-experimental-timestamp-query-inside-passes",
+                "clip-distances",
+                "core-features-and-limits",
+                "depth-clip-control",
+                "depth32float-stencil8",
+                "dual-source-blending",
+                "float32-blendable",
+                "float32-filterable",
+                "indirect-first-instance",
+                "primitive-index",
+                "rg11b10ufloat-renderable",
+                "shader-f16",
+                "subgroup-size-control",
+                "subgroups",
+                "texture-component-swizzle",
+                "texture-compression-bc",
+                "texture-compression-bc-sliced-3d",
+                "texture-formats-tier1",
+                "texture-formats-tier2",
+                "timestamp-query"
+              ],
+              "limits": {
+                "maxTextureDimension1D": 16384,
+                "maxTextureDimension2D": 16384,
+                "maxTextureDimension3D": 2048,
+                "maxTextureArrayLayers": 2048,
+                "maxBindGroups": 4,
+                "maxStorageBufferBindingSize": 2147483644,
+                "maxComputeWorkgroupStorageSize": 32768,
+                "maxComputeInvocationsPerWorkgroup": 1024,
+                "maxComputeWorkgroupSizeX": 1024,
+                "maxComputeWorkgroupSizeY": 1024,
+                "maxComputeWorkgroupSizeZ": 64,
+                "maxComputeWorkgroupsPerDimension": 65535
+              }
+            },
+            "revision": "working-tree",
+            "canvasWidth": 1280,
+            "canvasHeight": 720
+          }
+        }
+      },
+      "provenance": {
+        "headCommit": "6121d43486b7c4b24a5594ca34dbe6ded810d414",
+        "gitDirty": true,
+        "dirtyPaths": [
+          "docs/roadmap-refactor.md",
+          "openspec/changes/add-temporal-cloud-upscaling/design.md",
+          "openspec/changes/add-temporal-cloud-upscaling/tasks.md",
+          "package.json",
+          "scripts/check-density-shared-fields.mjs",
+          "scripts/check-w10a-cloud-frame-output.mjs",
+          "shaders/cloud.wgsl",
+          "src/densityBenchmark.ts",
+          "src/gui.ts",
+          "src/i18n.ts",
+          "src/main.ts",
+          "src/params.ts",
+          "src/renderer.ts",
+          "src/rendering/cloudFrameOutput.ts",
+          "docs/evidence/w11-visual-qa/",
+          "scripts/check-w11-bayer-phase.mjs",
+          "scripts/check-w11-history-invalidation.mjs",
+          "scripts/check-w11-lowres-mapping.mjs",
+          "scripts/check-w11-taau-resolve.mjs"
+        ],
+        "srcDirtyPaths": [
+          "src/densityBenchmark.ts",
+          "src/gui.ts",
+          "src/i18n.ts",
+          "src/main.ts",
+          "src/params.ts",
+          "src/renderer.ts",
+          "src/rendering/cloudFrameOutput.ts"
+        ],
+        "shaderDirtyPaths": [
+          "shaders/cloud.wgsl"
+        ],
+        "runtimeSourceDirty": true,
+        "docsOrOpenspecDirty": true,
+        "runtimeSourceMatchesHead": false,
+        "note": "src and/or shaders dirty vs HEAD — do not treat timings as clean-revision Gate data"
+      }
+    },
+    {
+      "id": "steady-median-p90-performance-gate",
+      "category": "performance-gate",
+      "status": "UNABLE",
+      "evidence": [
+        "runtime-evidence.json"
+      ],
+      "reason": "Data available ≠ performance Gate pass: no frozen Gate threshold / owner judgment"
+    },
+    {
+      "id": "local-screenshots-not-repo-evidence",
+      "category": "artifact-policy",
+      "status": "OBSERVATION",
+      "evidence": [
+        "../.gitignore",
+        "screenshot-manifest.json"
+      ],
+      "reason": "docs/evidence/.gitignore ignores screenshots/; local PNGs are not check-in evidence. Manifest records name/size/sha256 for local files."
+    }
+  ]
+}
