@@ -146,17 +146,22 @@ export function createBodyStore(initial: CloudBody[], getCloudHeightM: () => num
   };
 }
 
+const DEFAULT_DEMO_HALF_EXTENT_M = Math.max(
+  ...CLOUD_GENERA.map((genus) => genusProfile(genus).defaultHorizontalHalfExtentM),
+);
+const DEFAULT_BODY_PITCH_M = DEFAULT_DEMO_HALF_EXTENT_M * 2 + 8000;
+
 const DEFAULT_BODY_CENTERS: Record<CloudGenus, readonly [number, number]> = {
-  cumulus: [-9000, -9000],
-  stratus: [0, -12000],
-  stratocumulus: [9000, -9000],
-  cumulonimbus: [-12000, 0],
-  altocumulus: [0, 0],
-  altostratus: [14000, 0],
-  nimbostratus: [-14000, 10000],
-  cirrus: [0, 12000],
-  cirrostratus: [16000, 14000],
-  cirrocumulus: [-9000, 14000],
+  cumulus: [-2 * DEFAULT_BODY_PITCH_M, -0.5 * DEFAULT_BODY_PITCH_M],
+  stratus: [-1 * DEFAULT_BODY_PITCH_M, -0.5 * DEFAULT_BODY_PITCH_M],
+  stratocumulus: [0, -0.5 * DEFAULT_BODY_PITCH_M],
+  cumulonimbus: [1 * DEFAULT_BODY_PITCH_M, -0.5 * DEFAULT_BODY_PITCH_M],
+  altocumulus: [2 * DEFAULT_BODY_PITCH_M, -0.5 * DEFAULT_BODY_PITCH_M],
+  altostratus: [-2 * DEFAULT_BODY_PITCH_M, 0.5 * DEFAULT_BODY_PITCH_M],
+  nimbostratus: [-1 * DEFAULT_BODY_PITCH_M, 0.5 * DEFAULT_BODY_PITCH_M],
+  cirrus: [0, 0.5 * DEFAULT_BODY_PITCH_M],
+  cirrostratus: [1 * DEFAULT_BODY_PITCH_M, 0.5 * DEFAULT_BODY_PITCH_M],
+  cirrocumulus: [2 * DEFAULT_BODY_PITCH_M, 0.5 * DEFAULT_BODY_PITCH_M],
 };
 
 const DEFAULT_BODY_WIND: Record<CloudGenus, { windDeg: number; windSpeedMps: number; morphRate: number }> = {
@@ -173,6 +178,7 @@ const DEFAULT_BODY_WIND: Record<CloudGenus, { windDeg: number; windSpeedMps: num
 };
 
 export function createDefaultBodies(cloudHeightM = 12000): CloudBody[] {
+  const half = DEFAULT_DEMO_HALF_EXTENT_M;
   return CLOUD_GENERA.map((type, i) => {
     const [cx, cz] = DEFAULT_BODY_CENTERS[type];
     const profile = genusProfile(type);
@@ -182,7 +188,7 @@ export function createDefaultBodies(cloudHeightM = 12000): CloudBody[] {
       id: `B${i + 1}`,
       shape: 'rect',
       bounds: [cx, cz, cx, cz],
-      feather: Math.max(400, profile.defaultHorizontalHalfExtentM * 0.35),
+      feather: Math.max(400, half * 0.35),
       base: profile.defaultBaseM,
       thickness: profile.defaultThicknessM,
       type,
@@ -196,6 +202,8 @@ export function createDefaultBodies(cloudHeightM = 12000): CloudBody[] {
       life: defaultLife(),
     };
     applyGenusDefaults(body, cloudHeightM);
+    body.bounds = [cx - half, cz - half, cx + half, cz + half];
+    body.feather = Math.max(400, half * 0.35);
     body.placementLocked = true;
     return body;
   });
