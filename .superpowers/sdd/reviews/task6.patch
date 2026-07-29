@@ -1,0 +1,7 @@
+# Task 6 independent re-review: APPROVED
+#
+# 原两项 P1 已关闭：GUI 保留 16/17 并精确新增可选的 18/19，双语标签完整。
+# 检查器现在从默认对象、GUI/词典、CloudFrame attachment、WGSL fragment、overlay
+# 与 temporal/bind-group block 取证；target/调用精确计数，并明确拒绝 composite
+# 读取 `.a`/`.rgba`。`node scripts/check-w12-light-rough.mjs`、`npm run typecheck`
+# 均 exit 0。

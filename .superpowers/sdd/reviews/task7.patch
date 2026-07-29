@@ -1,0 +1,34 @@
+# Task 7 independent review: NEEDS_FIXES
+#
+# P1 `scripts/check-w12-density-monotonic.mjs:65-72`: 公式检查仍是原始
+# `includes`，且完全没有断言 `rough` 的实际赋值。把 stage 的 `rough` 改为
+# `0.0`（其余现有受检文本不变）仍会通过，却可令 final > rough；注释或无效
+# 分支也可携带这些字符串。须按实际语句/返回结构断言 rough 的 hardening remap、
+# erosion-only `lo`、final 从 dilated remap，及 hi<=lo，避免错误公式固定为绿。
+#
+# `package.json` 仅新增四个准确入口，未改既有 scripts/依赖/格式；每项均指向
+# 对应现有脚本，Node 失败会非零退出。
+#
+# Verified (all exit 0):
+# npm run test:w12-detail-contract
+# npm run test:w12-density-monotonic
+# npm run test:w12-sample-budget
+# npm run test:w12-light-rough
+# npm run test:pipeline-isolation
+# npm run typecheck
+
+# Task 7 independent re-review: APPROVED
+#
+# P1 已关闭：检查器以阶段函数内的顺序化语句约束锁定 roughBase、基于同一
+# roughBase 的 rough hardening remap、采样前的 rough early return、erosion-only
+# lo，以及同一 roughBase 的 final remap；`rough = 0.0` 会因缺少 rough remap
+# 立即失败。`hi <= lo` 返回零仍覆盖 `lo >= 1`，由 `lo >= hardeningLo` 得出
+# final <= rough，且 remap 输入为 dilated support 得出 final <= dilated。
+#
+# Verified (all exit 0):
+# npm run test:w12-detail-contract
+# npm run test:w12-density-monotonic
+# npm run test:w12-sample-budget
+# npm run test:w12-light-rough
+# npm run test:pipeline-isolation
+# npm run typecheck

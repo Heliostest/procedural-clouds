@@ -1,0 +1,35 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const OUT = path.dirname(fileURLToPath(import.meta.url));
+const capturePath = path.join(OUT, 'capture-index.json');
+const unavailable = (reason) => ({ status: 'unavailable', reason });
+const finite = (value) => typeof value === 'number' && Number.isFinite(value);
+const currentMs = (sample) => sample?.diagnostics?.temporal?.activeTemporalMode === 'taau-4x4' ? sample.diagnostics.temporal.taauCurrentMs : sample?.diagnostics?.temporal?.cloudCurrentMs;
+const capture = existsSync(capturePath) ? JSON.parse(readFileSync(capturePath, 'utf8')) : null;
+const output = { schemaVersion: 1, generatedAt: new Date().toISOString(), runtimeSourceMatchesHead: capture?.runtimeSourceMatchesHead ?? false, captureSource: capture ? 'capture-index.json' : null, currentMsSelection: "activeTemporalMode === 'taau-4x4' ? taauCurrentMs : cloudCurrentMs", bsm: 'not-applicable', pairs: [], unavailable: [], integrity: { status: 'PASS', issues: [] } };
+if (!capture) output.unavailable.push('capture-index.json missing; run capture:w12 first');
+if (capture?.fatal) output.unavailable.push(`capture failed before page readiness: ${capture.fatal}`);
+const all = capture?.results ?? [];
+const matching = (matrix, temporal, detailStrength, skipLight) => all.filter((sample) => sample.matrix === matrix && sample.temporal === temporal && sample.detailStrength === detailStrength && sample.skipLight === skipLight && sample.expectedTemporalMode && sample.diagnostics?.raymarch?.worldStepActive === true && sample.diagnostics?.raymarch?.worldStepMinMeters === 120 && sample.diagnostics?.raymarch?.worldStepMaxIterations === 512);
+for (const matrix of (capture?.matrix ?? []).map((entry) => entry.name)) for (const temporal of ['fullres', 'taau']) {
+  const slots = [[1, false], [1, true], [0, false], [0, true]].map(([detailStrength, skipLight]) => ({ detailStrength, skipLight, samples: matching(matrix, temporal, detailStrength, skipLight) }));
+  const invalidSlots = slots.filter((slot) => slot.samples.length !== 1);
+  if (invalidSlots.length) output.integrity.issues.push({ matrix, temporal, reason: 'expected exactly one sample for each detailStrength×skipLight variant', slots: invalidSlots.map((slot) => ({ detailStrength: slot.detailStrength, skipLight: slot.skipLight, count: slot.samples.length, stems: slot.samples.map((sample) => sample.stem) })) });
+  const pick = (detailStrength, skipLight) => slots.find((slot) => slot.detailStrength === detailStrength && slot.skipLight === skipLight)?.samples[0];
+  const onFull = pick(1, false); const onSkip = pick(1, true); const offFull = pick(0, false); const offSkip = pick(0, true);
+  const samples = { on: { full: onFull, skipLight: onSkip }, off: { full: offFull, skipLight: offSkip } };
+  const values = [onFull, onSkip, offFull, offSkip].map(currentMs);
+  const timingAvailable = invalidSlots.length === 0 && values.every(finite);
+  const shadowReason = 'page controller does not expose RenderStats.shadowRan/shadowSampleId/shadowMs; fresh-shadow filter cannot be evaluated';
+  const iterationSamples = [onFull, onSkip, offFull, offSkip].filter(Boolean).map((sample) => sample.diagnostics.raymarch);
+  output.pairs.push({ matrix, temporal, runtimeSourceMatchesHead: capture?.runtimeSourceMatchesHead ?? false, captureIntegrity: invalidSlots.length ? unavailable('variant set incomplete or duplicated; cost calculation rejected') : { status: 'available' }, fixed: { worldStepEnabled: true, worldStepMinMeters: 120, worldStepMaxIterations: 512, sameScene: Boolean(onFull && onSkip && offFull && offSkip && new Set([onFull.sceneId, onSkip.sceneId, offFull.sceneId, offSkip.sceneId]).size === 1), sameTemporalMode: Boolean(onFull && onSkip && offFull && offSkip && new Set([onFull.expectedTemporalMode, onSkip.expectedTemporalMode, offFull.expectedTemporalMode, offSkip.expectedTemporalMode]).size === 1) }, current: timingAvailable ? { status: 'available', fullResOrTaau: onFull.expectedTemporalMode, onFull: currentMs(onFull), onSkipLight: currentMs(onSkip), offFull: currentMs(offFull), offSkipLight: currentMs(offSkip), mainDetailCost: currentMs(onSkip) - currentMs(offSkip), localLightDetailCost: (currentMs(onFull) - currentMs(onSkip)) - (currentMs(offFull) - currentMs(offSkip)) } : unavailable(invalidSlots.length ? 'variant set incomplete or duplicated; timestamp calculation rejected' : 'one or more cloudCurrentMs/taauCurrentMs timestamp fields missing or non-finite'), groundShadow: unavailable(shadowReason), primaryIterations: invalidSlots.length ? unavailable('variant set incomplete or duplicated; iteration calculation rejected') : iterationSamples.length ? { status: 'available', values: iterationSamples.map((r) => r.raymarchPrimaryIterationsPerPixel), touchCapCount: iterationSamples.filter((r) => r.raymarchPrimaryIterationsPerPixel >= 512).length, maxStepMeters: Math.max(...iterationSamples.map((r) => r.raymarchMaxStepMeters)), averageStepMeters: iterationSamples.map((r) => r.raymarchAverageStepMeters), raymarchDensitySamplesPerPixel: iterationSamples.map((r) => r.raymarchDensitySamplesPerPixel), raymarchLightSamplesPerPixel: iterationSamples.map((r) => r.raymarchLightSamplesPerPixel) } : unavailable('raymarch counters missing'), inputs: Object.fromEntries(Object.entries(samples).map(([detail, group]) => [detail, Object.fromEntries(Object.entries(group).map(([key, sample]) => [key, sample ? sample.screenshot?.replace('/screenshots/', '/diagnostics/').replace(/\.png$/, '.json') ?? null : null]))])) });
+}
+if (output.integrity.issues.length) output.integrity.status = 'FAIL';
+output.worldStepOffControl = all.find((sample) => sample.matrix === 'old-w11-world-step-off-control') ?? unavailable('old W11 explanatory control missing');
+output.debug = [18, 19].map((debugView) => { const sample = all.find((item) => item.matrix === `debug-${debugView}`); return sample ? { debugView, status: 'available', screenshot: sample.screenshot, diagnostics: `diagnostics/${sample.stem}.json`, runtimeSourceMatchesHead: sample.runtimeSourceMatchesHead } : { debugView, ...unavailable(`debug ${debugView} capture missing`) }; });
+output.fallbackSlots = { detailStrengthZeroAt120x512: output.pairs.length ? { status: 'available', evidence: 'on/off pairs include detailStrength=0 with worldStep=true, min=120, maxIterations=512' } : unavailable('no fixed baseline pairs'), atlasUnavailable: unavailable('no existing page controller API can force atlas unavailable without changing business code'), legacyCoarseFallback: unavailable('no existing page controller API can select Legacy while preserving the fixed Hybrid matrix without changing business code') };
+if (!output.pairs.length && !output.unavailable.length) output.unavailable.push('no complete W12 matrix pairs were captured');
+writeFileSync(path.join(OUT, 'runtime-evidence.json'), `${JSON.stringify(output, null, 2)}\n`);
+console.log(JSON.stringify({ pairs: output.pairs.length, runtimeSourceMatchesHead: output.runtimeSourceMatchesHead, unavailable: output.unavailable.length }, null, 2));

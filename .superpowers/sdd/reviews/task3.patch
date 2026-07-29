@@ -1,0 +1,30 @@
+diff --git a/scripts/check-w12-sample-budget.mjs b/scripts/check-w12-sample-budget.mjs
+--- a/scripts/check-w12-sample-budget.mjs
++++ b/scripts/check-w12-sample-budget.mjs
+@@
+ const root = resolve(import.meta.dirname, '..');
+ const cloud = readFileSync(resolve(root, 'shaders/cloud.wgsl'), 'utf8');
++const shaderSources = readFileSync(resolve(root, 'src/rendering/densityShaderSources.ts'), 'utf8');
+@@
+ function blockStartingAt(source, token) {
+@@
+ }
++function templateStartingAt(source, token) {
++  const start = source.indexOf(token);
++  assert(start >= 0, `missing ${token}`);
++  const open = source.indexOf('`', start);
++  const end = source.indexOf('`;', open + 1);
++  assert(open >= 0 && end >= 0, `unclosed ${token}`);
++  return source.slice(start, end + 1);
++}
+@@
+ const detailNoise = blockStartingAt(cloud, 'fn detailNoise(');
+ const abiGuard = blockStartingAt(cloud, 'fn detailAbiReachabilityGuard(');
++const hybridAdapter = templateStartingAt(shaderSources, 'const hybridQualityAdapter =');
++const hierarchicalHybridAdapter = templateStartingAt(shaderSources, 'const hierarchicalHybridQualityAdapter =');
+@@
+ assertNoToken(abiGuard, 'sampleDetailField(');
++for (const adapter of [hybridAdapter, hierarchicalHybridAdapter]) {
++  assertNoToken(adapter, 'sampleDetailField(');
++  assertNoToken(adapter, 'applyBoundedDetailStage(');
++}

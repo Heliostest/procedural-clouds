@@ -1,0 +1,23 @@
+# W12 worktree baseline
+
+head
+
+`c8bd2c9cc3a67804b4610b7ee0b2aed4a3e7dc87`
+
+status
+
+```text
+A  docs/superpowers/specs/2026-07-28-w12-bounded-render-time-detail-design.md
+A  docs/superpowers/specs/2026-07-28-w12-handoff.md
+?? docs/superpowers/plans/
+```
+
+src-shaders-patch
+
+`git diff --no-ext-diff --unified=0 -- src shaders` produced no output. This baseline is empty; staged W12 documentation is not a `src`/`shaders` baseline diff.
+
+paths: none
+
+SHA-256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+hunks: none

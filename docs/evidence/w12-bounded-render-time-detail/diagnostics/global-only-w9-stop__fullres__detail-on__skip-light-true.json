@@ -1,0 +1,309 @@
+{
+  "stem": "global-only-w9-stop__fullres__detail-on__skip-light-true",
+  "matrix": "global-only-w9-stop",
+  "sceneId": "single-stratocumulus",
+  "caseId": "w9--single-stratocumulus--recipe-v2--global-only--hybrid--normal",
+  "storage": "global-only",
+  "quality": "hybrid",
+  "temporal": "fullres",
+  "expectedTemporalMode": "full-res-taa",
+  "detailStrength": 1,
+  "detailFreq": 1,
+  "skipLight": true,
+  "debugView": 0,
+  "requiredEvidence": null,
+  "fixedPost": {
+    "bloomEnabled": false,
+    "bloomThreshold": 1,
+    "bloomAmount": 0.5,
+    "exposure": 0.1,
+    "tonemapMode": 1
+  },
+  "worldStep": {
+    "enabled": true,
+    "minMeters": 120,
+    "maxIterations": 512,
+    "maxRayDistanceMeters": 64000
+  },
+  "farFlickerPolicy": null,
+  "cbPolicy": null,
+  "diagnostics": {
+    "producer": {
+      "requested": "recipe-v2",
+      "active": "recipe-v2",
+      "pipelineCreateCpuMs": 317.90000000596046,
+      "shaderModuleCreateCpuMs": 0.09999999403953552,
+      "sourceLength": 21033,
+      "recordBytes": 4160,
+      "outputBytes": 14155776,
+      "evaluator": {
+        "enabledGenera": [
+          "cumulus",
+          "stratus",
+          "stratocumulus",
+          "altocumulus",
+          "altostratus",
+          "nimbostratus",
+          "cirrostratus",
+          "cirrocumulus"
+        ],
+        "unsupportedGenera": [
+          "cumulonimbus",
+          "cirrus"
+        ],
+        "sampleLimits": {
+          "cumulus": [
+            3,
+            1,
+            0,
+            0
+          ],
+          "stratus": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "stratocumulus": [
+            3,
+            0,
+            0,
+            0
+          ],
+          "altocumulus": [
+            3,
+            0,
+            0,
+            0
+          ],
+          "altostratus": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "nimbostratus": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "cirrostratus": [
+            2,
+            0,
+            0,
+            0
+          ],
+          "cirrocumulus": [
+            3,
+            0,
+            0,
+            0
+          ]
+        },
+        "cellularHooks": {
+          "stratocumulus": [
+            0.02,
+            0.03,
+            0,
+            0
+          ],
+          "altocumulus": [
+            0.04,
+            0.08,
+            0,
+            0
+          ],
+          "cirrocumulus": [
+            0.08,
+            0.36,
+            0,
+            0
+          ]
+        },
+        "unsupportedBodyCount": 0,
+        "actualEvaluatorCalls": null,
+        "evaluatorCallUpperBound": 24576
+      },
+      "sharedFields": {
+        "status": "ready",
+        "format": "rgba8unorm",
+        "atlasDimension": 64,
+        "macroDimension": 256,
+        "payloadBytes": 2359296,
+        "peakBudgetBytes": 8388608,
+        "resourceCount": 3,
+        "generation": 1,
+        "atlasGeneration": 1,
+        "macroGeneration": 1,
+        "atlasBuildCount": 1,
+        "macroBuildCount": 1,
+        "atlasBuildReason": "initial",
+        "macroBuildReason": "initial",
+        "atlasRan": false,
+        "macroRan": false,
+        "createCpuMs": 932.5,
+        "buildEncodeCpuMs": 0.09999999403953552,
+        "atlasGpuMs": 0.41984,
+        "macroGpuMs": 0.045056,
+        "gpuTimingError": "",
+        "failureReason": "",
+        "formatEvidence": [
+          {
+            "format": "rgba8unorm",
+            "storageWritable": true,
+            "filterSampled": true,
+            "bytes": 2359296,
+            "channelCount": 4,
+            "reason": ""
+          },
+          {
+            "format": "r16float",
+            "storageWritable": false,
+            "filterSampled": true,
+            "bytes": 1310720,
+            "channelCount": 1,
+            "reason": "storage:The texture usage (TextureUsage::StorageBinding) includes TextureUsage::StorageBinding, which is incompatible with the format (TextureFormat::R16Float).\n - While validating [TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"].\n - While calling [Device].CreateTexture([TextureDescriptor \"\"density-shared-format-probe-storage-r16float\"\"]).\n"
+          },
+          {
+            "format": "rgba16float",
+            "storageWritable": true,
+            "filterSampled": true,
+            "bytes": 4456448,
+            "channelCount": 4,
+            "reason": ""
+          }
+        ]
+      },
+      "storageRequested": "global-only",
+      "storageActive": "global-only",
+      "storageLifecycle": "idle",
+      "storageReason": "",
+      "bricks": {
+        "requested": "global-only",
+        "active": "global-only",
+        "lifecycle": "idle",
+        "reason": "not-requested",
+        "profileFallbackReason": "",
+        "profile": "",
+        "format": "",
+        "dimensions": [
+          0,
+          0,
+          0
+        ],
+        "residentBytes": 0,
+        "rebuildPeakBytes": 0,
+        "totalDensityBytes": 14155776,
+        "recordBytes": 0,
+        "candidateBytes": 0,
+        "allocationGeneration": 0,
+        "activeGeneration": 0,
+        "activeBindingGeneration": 0,
+        "stagingGeneration": 0,
+        "stagingWarmMask": 0,
+        "livePairCount": 0,
+        "contentRevision": 0,
+        "rebuildCount": 0,
+        "rebuildCpuMs": 0,
+        "residentBodyCount": 0,
+        "nonresidentBodyCount": 0,
+        "lods": [],
+        "dispatchCount": 0,
+        "voxelCount": 0,
+        "sampleId": 0,
+        "candidate": null,
+        "fallbackSamples": null,
+        "createCpuMs": 0,
+        "brickGpuMs": null,
+        "gpuTimingError": ""
+      }
+    },
+    "shadowHistoryResetReason": "scene",
+    "cloudFrame": {
+      "cloudFrameRequested": true,
+      "cloudFrameActivePath": "cloud-frame",
+      "cloudFrameFallbackReason": "",
+      "cloudFrameAttachmentBytes": 22118400,
+      "cloudFrameHistoryBytes": 14745600,
+      "cloudFrameResourceGeneration": 1,
+      "cloudFrameContentRevision": 203,
+      "cloudFrameDiscontinuityGeneration": 7,
+      "cloudCurrentMs": 4.82816,
+      "temporalResolveMs": 0.036864,
+      "compositeMs": 0.024576,
+      "gpuValidationErrors": []
+    },
+    "raymarch": {
+      "worldStepRequested": true,
+      "worldStepActive": true,
+      "worldStepMinMeters": 120,
+      "worldStepMaxMeters": 250,
+      "worldStepMaxRayDistanceMeters": 64000,
+      "worldStepMaxIterations": 512,
+      "worldStepSupportCount": 1,
+      "worldStepSupportSkipping": true,
+      "worldStepCandidateSkipping": false,
+      "stochasticSamplingRequested": true,
+      "stochasticSamplingActive": "stbn",
+      "stochasticSamplingFallbackReason": "",
+      "stbnFrozenSlice": -1,
+      "stbnBytes": 1048576,
+      "raymarchConfigGeneration": 8,
+      "raymarchCurrentFrameIndex": 203,
+      "raymarchCounterSampleId": 183,
+      "raymarchCounterConfigGeneration": 8,
+      "raymarchCounterFrameIndex": 202,
+      "raymarchCounterSamplePixels": 3600,
+      "raymarchPrimaryIterationsPerPixel": 24.606944444444444,
+      "raymarchSupportSkipsPerPixel": 0.7941666666666667,
+      "raymarchCandidateSkipsPerPixel": 0,
+      "raymarchDensitySamplesPerPixel": 22.81277777777778,
+      "raymarchLightSamplesPerPixel": 0,
+      "raymarchAverageStepMeters": 122.62328585666167,
+      "raymarchMaxStepMeters": 139,
+      "raymarchRefinementsPerPixel": 0.4775,
+      "raymarchCoarseHintsPerPixel": 0
+    },
+    "temporal": {
+      "requestedTemporalMode": "full-res-taa",
+      "activeTemporalMode": "full-res-taa",
+      "temporalFallbackReason": null,
+      "temporalBayerPhase": 11,
+      "taauCurrentWidth": 0,
+      "taauCurrentHeight": 0,
+      "taauBackgroundMs": 0,
+      "taauCurrentMs": 0,
+      "taauResolveMs": 0,
+      "temporalResolveMs": 0.036864,
+      "compositeMs": 0.024576,
+      "cloudCurrentMs": 4.82816,
+      "taauHistoryRejectionRatio": 0,
+      "taauHistoryRejectionSampledEstimate": true,
+      "taauRejectNoVelocityRatio": 0,
+      "taauRejectViewportRatio": 0,
+      "taauRejectDepthRatio": 0,
+      "taauRejectOpacityRatio": 0,
+      "taauCurrentPhaseSampleCount": 0,
+      "taauNonCurrentPhaseSampleCount": 0,
+      "taauCloudCoveredSampleCount": 0,
+      "taauCloudCoveredRejectionRatio": 0,
+      "taauCloudOpacityThreshold": 0.01,
+      "cloudFrameLowResAttachmentBytes": 1382400,
+      "taauHistoryDepthBytes": 3686400,
+      "cloudFrameHistoryBytes": 14745600,
+      "taauDepthRejectRel": 0.1,
+      "taauOpacityOutsideReactLo": 0.05,
+      "taauOpacityOutsideRejectHi": 0.25,
+      "taauResolveCounterSampleId": 0,
+      "timedPassSumMs": 4.908031999999999,
+      "timedPassSumCovers": "cacheMs(if cacheRan)+shadowMs(if shadowRan)+cloudMs+temporalResolveMs+compositeMs+postMs; instrumented passes only, not full-frame GPU wall time; excludes brick and shared atlas/macro timestamps"
+    }
+  },
+  "shadow": {
+    "available": false,
+    "reason": "getRuntimeDiagnostics does not expose RenderStats.shadowRan/shadowSampleId/shadowMs; no shadow timestamp was inferred"
+  },
+  "screenshot": "screenshots/global-only-w9-stop__fullres__detail-on__skip-light-true.png",
+  "runtimeSourceMatchesHead": false
+}

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T02:10:21.145Z",
+  "source": {
+    "revision": "59da592cdde92d6eb981a3aadf08c9fa7f45f4a6",
+    "dirtyPaths": [
+      "ackage.json",
+      "scripts/check-density-pipeline-isolation.mjs",
+      "shaders/cloud.wgsl",
+      "src/gui.ts",
+      "src/i18n.ts",
+      "src/params.ts",
+      "src/renderer.ts",
+      "src/rendering/densityQualityContracts.ts",
+      "src/rendering/densityQualityPipelines.ts",
+      "src/rendering/densityShaderSources.ts",
+      ".superpowers/",
+      "docs/evidence/w12-bounded-render-time-detail/",
+      "docs/superpowers/plans/",
+      "openspec/changes/add-bounded-render-time-cloud-detail/",
+      "scripts/check-w12-density-monotonic.mjs",
+      "scripts/check-w12-detail-contract.mjs",
+      "scripts/check-w12-light-rough.mjs",
+      "scripts/check-w12-sample-budget.mjs",
+      "src/rendering/densityDetailResources.ts"
+    ],
+    "runtimeSourceMatchesHead": false
+  },
+  "runtimeSourceMatchesHead": false,
+  "fixedPost": {
+    "bloomEnabled": false,
+    "bloomThreshold": 1,
+    "bloomAmount": 0.5,
+    "exposure": 0.1,
+    "tonemapMode": 1
+  },
+  "matrix": [
+    [
+      "global-only-w9-stop",
+      "single-cumulus",
+      "global-only"
+    ],
+    [
+      "hierarchical",
+      "single-cumulus",
+      "hierarchical"
+    ],
+    [
+      "equal-overlap",
+      "w8-cellular-overlap",
+      "hierarchical"
+    ],
+    [
+      "far-flicker-64km",
+      "w9-brick-lod-sweep",
+      "hierarchical"
+    ],
+    [
+      "cu",
+      "single-cumulus",
+      "hierarchical"
+    ],
+    [
+      "sc",
+      "single-stratocumulus",
+      "hierarchical"
+    ],
+    [
+      "ac",
+      "single-altocumulus",
+      "hierarchical"
+    ],
+    [
+      "cc",
+      "single-cirrocumulus",
+      "hierarchical"
+    ],
+    [
+      "w9-thin-ridge",
+      "w9-thin-ridge-proxy",
+      "hierarchical"
+    ],
+    [
+      "cb-linear-remap-known-deviation",
+      "single-cumulonimbus",
+      "hierarchical"
+    ]
+  ],
+  "results": [],
+  "errors": [
+    "page.waitForFunction: Timeout 60000ms exceeded.\n    at D:\\heli-workspace\\app\\cloudy-cloud\\procedural-clouds\\docs\\evidence\\w12-bounded-render-time-detail\\run-capture-with-vite.mjs:92:14"
+  ],
+  "console": [
+    {
+      "type": "console",
+      "text": "Error: Cached density quality pipeline creation failed: cached-global-only-pipeline-create-failed: 1344:65 'final' is a reserved keyword\n    at createRenderer (http://127.0.0.1:5173/procedural-clouds/src/renderer.ts:962:11)\n    at async main (http://127.0.0.1:5173/procedural-clouds/src/main.ts:51:20)"
+    },
+    {
+      "type": "console",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "win32"
+  },
+  "base": "http://127.0.0.1:5173/procedural-clouds/?benchmark=1",
+  "launchErrors": [],
+  "launchUsed": "chrome-headless-webgpu",
+  "fatal": "page.waitForFunction: Timeout 60000ms exceeded.\n    at D:\\heli-workspace\\app\\cloudy-cloud\\procedural-clouds\\docs\\evidence\\w12-bounded-render-time-detail\\run-capture-with-vite.mjs:92:14",
+  "runId": "2026-07-29T02-11-25-068Z"
+}

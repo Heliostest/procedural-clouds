@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T02:20:55.767Z",
+  "source": {
+    "revision": "59da592cdde92d6eb981a3aadf08c9fa7f45f4a6",
+    "dirtyPaths": [
+      "ackage.json",
+      "scripts/check-density-pipeline-isolation.mjs",
+      "shaders/cloud.wgsl",
+      "src/gui.ts",
+      "src/i18n.ts",
+      "src/params.ts",
+      "src/renderer.ts",
+      "src/rendering/densityQualityContracts.ts",
+      "src/rendering/densityQualityPipelines.ts",
+      "src/rendering/densityShaderSources.ts",
+      ".superpowers/",
+      "docs/evidence/w12-bounded-render-time-detail/",
+      "docs/superpowers/plans/",
+      "openspec/changes/add-bounded-render-time-cloud-detail/",
+      "scripts/check-w12-density-monotonic.mjs",
+      "scripts/check-w12-detail-contract.mjs",
+      "scripts/check-w12-light-rough.mjs",
+      "scripts/check-w12-sample-budget.mjs",
+      "src/rendering/densityDetailResources.ts"
+    ],
+    "runtimeSourceMatchesHead": false
+  },
+  "runtimeSourceMatchesHead": false,
+  "fixedPost": {
+    "bloomEnabled": false,
+    "bloomThreshold": 1,
+    "bloomAmount": 0.5,
+    "exposure": 0.1,
+    "tonemapMode": 1
+  },
+  "matrix": [
+    [
+      "global-only-w9-stop",
+      "single-cumulus",
+      "global-only"
+    ],
+    [
+      "hierarchical",
+      "single-cumulus",
+      "hierarchical"
+    ],
+    [
+      "equal-overlap",
+      "w8-cellular-overlap",
+      "hierarchical"
+    ],
+    [
+      "far-flicker-64km",
+      "w9-brick-lod-sweep",
+      "hierarchical"
+    ],
+    [
+      "cu",
+      "single-cumulus",
+      "hierarchical"
+    ],
+    [
+      "sc",
+      "single-stratocumulus",
+      "hierarchical"
+    ],
+    [
+      "ac",
+      "single-altocumulus",
+      "hierarchical"
+    ],
+    [
+      "cc",
+      "single-cirrocumulus",
+      "hierarchical"
+    ],
+    [
+      "w9-thin-ridge",
+      "w9-thin-ridge-proxy",
+      "hierarchical"
+    ],
+    [
+      "cb-linear-remap-known-deviation",
+      "single-cumulonimbus",
+      "hierarchical"
+    ]
+  ],
+  "results": [],
+  "errors": [
+    "missing hybrid case global-only-w9-stop/single-cumulus/global-only",
+    "missing hybrid case hierarchical/single-cumulus/hierarchical",
+    "equal-overlap: Error: invalid benchmark case w9--w8-cellular-overlap--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "far-flicker-64km: Error: invalid benchmark case w9--w9-brick-lod-sweep--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "missing hybrid case cu/single-cumulus/hierarchical",
+    "sc: Error: invalid benchmark case w9--single-stratocumulus--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at runNextTicks (node:internal/process/task_queues:65:5)\n    at process.processImmediate (node:internal/timers:453:9)\n    at process.callbackTrampoline (node:internal/async_hooks:130:17)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "ac: Error: invalid benchmark case w9--single-altocumulus--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "cc: Error: invalid benchmark case w9--single-cirrocumulus--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "w9-thin-ridge: Error: invalid benchmark case w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--hybrid--normal: Density producer recipe-v2 failed: recipe-density-v2-pipeline-create-failed: Number of entries (4) did not match the expected number of entries (5) for [BindGroupLayoutInternal (unlabeled)].\nExpected layout: [{ binding: 0, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 192, hasDynamicOffset: 0} }, { binding: 1, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 2048, hasDynamicOffset: 0} }, { binding: 2, visibility: ShaderStage::Compute, texture: {sampleType: TextureSampleType::Float, viewDimension: TextureViewDimension::e2DArray, multisampled: 0} }, { binding: 3, visibility: ShaderStage::Compute, sampler: {type: SamplerBindingType::Filtering} }, { binding: 4, visibility: ShaderStage::Compute, buffer: {type: BufferBindingType::Uniform, minBindingSize: 1280, hasDynamicOffset: 0} }]\n - While validating [BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"] against [BindGroupLayout (unlabeled)]\n - While calling [Device].CreateBindGroup([BindGroupDescriptor \"\"density-quality-hybrid-ground-shadow-scene\"\"]).\n\n    at startCase (file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:49:41)\n    at async file:///D:/heli-workspace/app/cloudy-cloud/procedural-clouds/docs/evidence/w12-bounded-render-time-detail/run-capture-with-vite.mjs:115:7",
+    "missing hybrid case cb-linear-remap-known-deviation/single-cumulonimbus/hierarchical"
+  ],
+  "console": [
+    {
+      "type": "console",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "win32"
+  },
+  "base": "http://127.0.0.1:5173/procedural-clouds/?benchmark=1",
+  "launchErrors": [],
+  "launchUsed": "chrome-headless-webgpu",
+  "selected": [
+    {
+      "name": "global-only-w9-stop",
+      "sceneId": "single-cumulus",
+      "storage": "global-only",
+      "caseId": null,
+      "quality": null
+    },
+    {
+      "name": "hierarchical",
+      "sceneId": "single-cumulus",
+      "storage": "hierarchical",
+      "caseId": null,
+      "quality": null
+    },
+    {
+      "name": "equal-overlap",
+      "sceneId": "w8-cellular-overlap",
+      "storage": "hierarchical",
+      "caseId": "w9--w8-cellular-overlap--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "far-flicker-64km",
+      "sceneId": "w9-brick-lod-sweep",
+      "storage": "hierarchical",
+      "caseId": "w9--w9-brick-lod-sweep--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "cu",
+      "sceneId": "single-cumulus",
+      "storage": "hierarchical",
+      "caseId": null,
+      "quality": null
+    },
+    {
+      "name": "sc",
+      "sceneId": "single-stratocumulus",
+      "storage": "hierarchical",
+      "caseId": "w9--single-stratocumulus--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "ac",
+      "sceneId": "single-altocumulus",
+      "storage": "hierarchical",
+      "caseId": "w9--single-altocumulus--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "cc",
+      "sceneId": "single-cirrocumulus",
+      "storage": "hierarchical",
+      "caseId": "w9--single-cirrocumulus--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "w9-thin-ridge",
+      "sceneId": "w9-thin-ridge-proxy",
+      "storage": "hierarchical",
+      "caseId": "w9--w9-thin-ridge-proxy--recipe-v2--hierarchical--hybrid--normal",
+      "quality": "hybrid"
+    },
+    {
+      "name": "cb-linear-remap-known-deviation",
+      "sceneId": "single-cumulonimbus",
+      "storage": "hierarchical",
+      "caseId": null,
+      "quality": null
+    }
+  ],
+  "runId": "2026-07-29T02-21-21-979Z"
+}

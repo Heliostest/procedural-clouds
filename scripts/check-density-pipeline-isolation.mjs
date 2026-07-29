@@ -46,6 +46,17 @@ function between(source, startMarker, endMarker) {
   return source.slice(start, end);
 }
 
+function blockStartingAt(source, token) {
+  const start = markerIndex(source, token);
+  const open = source.indexOf('{', start);
+  let depth = 0;
+  for (let i = open; i < source.length; i++) {
+    if (source[i] === '{') depth++;
+    if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1);
+  }
+  throw new Error(`unclosed source block: ${token}`);
+}
+
 const noiseCommon = before(noise, '// VORONOI (Blender exact path for F1)');
 const noiseLegacyVoronoi = noise.slice(markerIndex(noise, '// VORONOI (Blender exact path for F1)'));
 const abi = before(cloud, 'struct VSOut {');
@@ -54,8 +65,8 @@ const helpers = between(cloud, 'fn mapRange(', 'fn sampleDensityTyped(');
 const cacheSampling = between(cloud, 'fn sampleDensityTyped(', 'struct DensityType {');
 const legacyEvaluator = between(cloud, 'struct DensityType {', 'fn boxMin()');
 const spatial = between(cloud, 'fn boxMin()', 'struct HitInfo {');
-const renderPrefix = between(cloud, 'fn boxMin()', 'fn detailNoise(');
-const hybridDetail = between(cloud, 'fn detailNoise(', 'fn applyEdgeShaping(');
+const renderPrefix = between(cloud, 'fn boxMin()', 'fn applyBoundedDetailStage(');
+const hybridDetail = between(cloud, 'fn applyBoundedDetailStage(', 'fn applyEdgeShaping(');
 const edge = between(cloud, 'fn applyEdgeShaping(', 'fn dbgSphere(');
 const debug = between(cloud, 'fn dbgSphere(', 'fn densityAtTyped(');
 const renderTail = between(
@@ -66,31 +77,87 @@ const renderTail = between(
 const groundShadow = cloud.slice(markerIndex(cloud, '@compute @workgroup_size(8, 8, 1)'));
 const cacheEntry = between(cloud, '// Density Cache Compute', '@compute @workgroup_size(8, 8, 1)');
 
+const hierarchicalSampling = between(manifestSource, 'const hierarchicalSampling =', 'const hierarchicalCachedQualityAdapter');
 const cachedAdapter = between(manifestSource, 'const cachedQualityAdapter', 'const hybridQualityAdapter');
 const hybridAdapter = between(manifestSource, 'const hybridQualityAdapter', 'const realtimeQualityAdapter');
 const realtimeAdapter = between(manifestSource, 'const realtimeQualityAdapter', "fragments.set('quality-cached'");
+const hierarchicalCachedAdapter = between(manifestSource, 'const hierarchicalCachedQualityAdapter', 'const hierarchicalHybridQualityAdapter');
+const hierarchicalHybridAdapter = between(manifestSource, 'const hierarchicalHybridQualityAdapter', "fragments.set('hierarchical-cache-sampling'");
 
 const cached = [noiseCommon, abi, vertex, helpers, cacheSampling, renderPrefix, edge, debug, cachedAdapter, renderTail, groundShadow].join('\n');
 const hybrid = [noiseCommon, abi, vertex, helpers, cacheSampling, renderPrefix, hybridDetail, edge, debug, hybridAdapter, renderTail, groundShadow].join('\n');
 const realtime = [noiseCommon, noiseLegacyVoronoi, abi, vertex, helpers, legacyEvaluator, ...genusSources, renderPrefix, edge, debug, realtimeAdapter, renderTail, groundShadow].join('\n');
+const hierarchicalCached = [noiseCommon, abi, vertex, helpers, cacheSampling, renderPrefix, edge, debug, hierarchicalSampling, hierarchicalCachedAdapter, renderTail, groundShadow].join('\n');
+const hierarchicalHybrid = [noiseCommon, abi, vertex, helpers, cacheSampling, renderPrefix, hybridDetail, edge, debug, hierarchicalSampling, hierarchicalHybridAdapter, renderTail, groundShadow].join('\n');
 const legacyCache = [noiseCommon, noiseLegacyVoronoi, abi, helpers, spatial, legacyEvaluator, ...genusSources, debug, cacheEntry].join('\n');
 
 const forbidden = ['fn cloudDensityTyped(', 'fn evalBody(', 'fn evalGenusDensity(', 'fn node_tex_voronoi_f1_4d_distance(', 'fn cs('];
-for (const [kind, source] of [['cached', cached], ['hybrid', hybrid]]) {
+for (const [kind, source] of [['cached', cached], ['hybrid', hybrid], ['hierarchical-cached', hierarchicalCached], ['hierarchical-hybrid', hierarchicalHybrid]]) {
   for (const symbol of forbidden) {
     if (source.includes(symbol)) throw new Error(`${kind} source contains forbidden symbol: ${symbol}`);
   }
 }
 
-if (cached.includes('fn detailNoise(')) throw new Error('cached source contains Hybrid detail');
-if (!hybrid.includes('fn detailNoise(')) throw new Error('hybrid source is missing bounded detail');
+const detailAbiTokens = [
+  'DetailResourceControlsGPU', 'detailSampler', 'detailBaseTex', 'detailFieldTex', 'detailResourceControls',
+  '@group(3) @binding(4)', '@group(3) @binding(5)', '@group(3) @binding(6)', '@group(3) @binding(7)',
+];
+const hybridOnlyDebugTokens = ['detailControlsForMetadata(', 'evaluateDetail(', 'sampleDetailField(', 'detailResourceControls'];
+for (const [kind, source] of [['cached', cached], ['realtime', realtime], ['hierarchical-cached', hierarchicalCached]]) {
+  if (source.includes('fn applyBoundedDetailStage(') || source.includes('textureSampleLevel(detail')) {
+    throw new Error(`${kind} source contains Hybrid detail`);
+  }
+  for (const token of detailAbiTokens) {
+    if (source.includes(token)) throw new Error(`${kind} source contains detail ABI: ${token}`);
+  }
+  for (const token of hybridOnlyDebugTokens) {
+    if (source.includes(token)) throw new Error(`${kind} source contains Hybrid debug symbol: ${token}`);
+  }
+}
+for (const [kind, source] of [['hybrid', hybrid], ['hierarchical-hybrid', hierarchicalHybrid]]) {
+  if ((source.match(/fn applyBoundedDetailStage\s*\(/g) ?? []).length !== 1) {
+    throw new Error(`${kind} source must contain one detail stage definition`);
+  }
+  for (const token of detailAbiTokens) {
+    if (!source.includes(token)) throw new Error(`${kind} source is missing detail ABI: ${token}`);
+  }
+}
+for (const [kind, source] of [['cached', cached], ['hybrid', hybrid], ['realtime', realtime], ['hierarchical-cached', hierarchicalCached], ['hierarchical-hybrid', hierarchicalHybrid]]) {
+  if ((source.match(/fn w12DebugErosionAt\s*\(/g) ?? []).length !== 1) {
+    throw new Error(`${kind} source must define one W12 debug adapter`);
+  }
+}
+for (const [kind, adapter] of [['cached', cachedAdapter], ['realtime', realtimeAdapter], ['hierarchical-cached', hierarchicalCachedAdapter]]) {
+  const helper = blockStartingAt(adapter, 'fn w12DebugErosionAt(');
+  if (!helper.includes('return 0.0;')) throw new Error(`${kind} W12 debug adapter must return zero`);
+  for (const token of hybridOnlyDebugTokens) {
+    if (helper.includes(token)) throw new Error(`${kind} W12 debug adapter contains ${token}`);
+  }
+}
+for (const [kind, adapter] of [['hybrid', hybridAdapter], ['hierarchical-hybrid', hierarchicalHybridAdapter]]) {
+  const helper = blockStartingAt(adapter, 'fn w12DebugErosionAt(');
+  if ((helper.match(/sampleDetailField\s*\(/g) ?? []).length !== 1) {
+    throw new Error(`${kind} W12 debug adapter must sample detail once`);
+  }
+  if (!helper.includes('evaluation.effectiveErosionAmount <= 0.0')) {
+    throw new Error(`${kind} W12 debug adapter lost erosion guard`);
+  }
+}
+for (const token of hybridOnlyDebugTokens) {
+  if (renderTail.includes(token)) throw new Error(`shared render tail contains Hybrid-only symbol: ${token}`);
+}
+const w12DebugBranch = blockStartingAt(renderTail, 'if (debugView == 18 || debugView == 19)');
+const erosionBranch = blockStartingAt(w12DebugBranch, 'if (debugView == 18)');
+if (!erosionBranch.includes('w12DebugErosionAt(pos, dt)') || (renderTail.match(/w12DebugErosionAt\s*\(/g) ?? []).length !== 1) {
+  throw new Error('shared render tail must call W12 debug adapter only in view 18');
+}
 if (!realtime.includes('fn cloudDensityTyped(') || realtime.includes('fn sampleDensityTyped(')) {
   throw new Error('realtime source closure is not direct-density-only');
 }
 if (!legacyCache.includes('fn cs(') || legacyCache.includes('@fragment') || legacyCache.includes('fn csGroundShadow(')) {
   throw new Error('Legacy cache source closure contains a render/ground-shadow entry or lacks cache compute');
 }
-for (const [kind, source] of [['cached', cached], ['hybrid', hybrid], ['realtime', realtime], ['legacy-cache', legacyCache]]) {
+for (const [kind, source] of [['cached', cached], ['hybrid', hybrid], ['realtime', realtime], ['hierarchical-cached', hierarchicalCached], ['hierarchical-hybrid', hierarchicalHybrid], ['legacy-cache', legacyCache]]) {
   const opens = [...source].filter((character) => character === '{').length;
   const closes = [...source].filter((character) => character === '}').length;
   if (opens !== closes) throw new Error(`${kind} source has unbalanced braces: ${opens} != ${closes}`);
@@ -118,6 +185,55 @@ if (!managerSource.includes("kind === 'realtime' && state.lifecycle === 'idle'")
 const cloudBindingSource = between(managerSource, 'const cloudScene =', 'const groundShadowScene =');
 if (!cloudBindingSource.includes('...weatherEntries,')) {
   throw new Error('Cloud render bindings do not provide shared debug weather resources to every quality mode');
+}
+const groundShadowStage = blockStartingAt(hybridDetail, 'fn applyBoundedDetailStage(');
+const groundShadowEvaluation = blockStartingAt(hybridDetail, 'fn evaluateDetail(');
+const groundShadowSampling = blockStartingAt(hybridDetail, 'fn sampleDetailField(');
+const groundShadowIntegration = blockStartingAt(renderTail, 'fn integrateGroundShadow(');
+if (!groundShadowIntegration.includes('densityAt(sp, false)')
+  || !hybridAdapter.includes('applyBoundedDetailStage(sampleDensityTyped(pos), pos, wantFinal)')
+  || groundShadowStage.indexOf('evaluateDetail(') > groundShadowStage.indexOf('if (!wantFinal')) {
+  throw new Error('Hybrid ground-shadow does not statically reach the detail evaluation before rough return');
+}
+if (!groundShadowEvaluation.includes('camera.position')
+  || !groundShadowEvaluation.includes('params.')
+  || !groundShadowSampling.includes('dominantWindPhase(pos)')
+  || !hybridDetail.includes('blendedEdgeStyle(')) {
+  throw new Error('Hybrid ground-shadow group 0 static resource closure drifted');
+}
+if (!groundShadowSampling.includes('detailSampler')
+  || !groundShadowSampling.includes('detailBaseTex')
+  || !groundShadowSampling.includes('detailFieldTex')
+  || !groundShadowEvaluation.includes('detailResourceControls')) {
+  throw new Error('Hybrid ground-shadow group 3 detail resource closure drifted');
+}
+const groundShadowBindingSource = between(managerSource, 'const groundShadowSceneEntries', 'let cloudDensity');
+for (const token of [
+  "bundle.kind === 'hybrid'",
+  '{ binding: 0, resource: { buffer: resources.cameraBuffer } }',
+  '...sharedSceneEntries',
+  '...weatherEntries',
+  'bundle.groundShadowPipeline.getBindGroupLayout(0)',
+  'entries: groundShadowSceneEntries',
+]) {
+  if (!groundShadowBindingSource.includes(token)) throw new Error(`Hybrid ground-shadow group 0 binding closure misses ${token}`);
+}
+const groundShadowDetailBindingStart = markerIndex(managerSource, 'const detailEntries');
+const groundShadowDetailBindingEnd = managerSource.indexOf('\n  return {', groundShadowDetailBindingStart);
+if (groundShadowDetailBindingEnd < 0) throw new Error('ground-shadow detail binding return block is missing');
+const groundShadowDetailBindingSource = managerSource.slice(groundShadowDetailBindingStart, groundShadowDetailBindingEnd);
+for (const token of [
+  '{ binding: 4, resource: resources.detail.sampler }',
+  '{ binding: 5, resource: resources.detail.baseView }',
+  '{ binding: 6, resource: resources.detail.detailView }',
+  '{ binding: 7, resource: { buffer: resources.detail.controlsBuffer } }',
+  "const groundShadowDetail = bundle.kind === 'hybrid'",
+  'bundle.groundShadowPipeline.getBindGroupLayout(3)',
+]) {
+  if (!groundShadowDetailBindingSource.includes(token)) throw new Error(`Hybrid ground-shadow group 3 binding closure misses ${token}`);
+}
+if (cached.includes('detailResourceControls') || realtime.includes('detailResourceControls') || hierarchicalCached.includes('detailResourceControls')) {
+  throw new Error('Non-Hybrid ground-shadow source gained detail ABI');
 }
 if (realtime.includes('textureDimensions(densityTex0')) {
   throw new Error('Ground-shadow source derives step size from a density-cache texture');

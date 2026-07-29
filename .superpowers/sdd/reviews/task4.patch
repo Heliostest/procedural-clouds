@@ -1,0 +1,12 @@
+# Task 4 independent re-review: APPROVED
+#
+# P1 resolved: DetailResourceControlsGPU and bindings 4–7 are inside the
+# Hybrid detail slice, whose first token remains applyBoundedDetailStage.
+# Cached, Realtime, and hierarchical Cached contain no detail ABI, stage, or
+# atlas sample; both Hybrid closures contain the ABI and exactly one stage.
+#
+# Verified:
+# node scripts/check-w12-detail-contract.mjs
+# node scripts/check-w12-density-monotonic.mjs
+# node scripts/check-density-pipeline-isolation.mjs
+# node scripts/check-w12-sample-budget.mjs

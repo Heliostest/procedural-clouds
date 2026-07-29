@@ -580,9 +580,9 @@ assert(!cloud.includes('@group(4)'), 'STBN must not require a fifth bind group')
 
 const defaults = blockStartingAt(params, 'export function createDefaultParams(', 'createDefaultParams');
 assertIncludes(defaults, [
-  'worldStepEnabled: false',
-  'worldStepMaxIterations: 384',
-  'worldStepMinMeters: 100',
+  'worldStepEnabled: true',
+  'worldStepMaxIterations: 512',
+  'worldStepMinMeters: 120',
   'worldStepMaxMeters: 250',
   'worldStepMaxRayDistanceMeters: 64000',
   'worldStepPerspectiveScale: 0.003',
@@ -590,7 +590,7 @@ assertIncludes(defaults, [
   'worldStepCandidateSkipping: true',
   'stochasticSampling: true',
   'stbnFrozenSlice: -1',
-], 'W10B defaults and fixed-step feature-off baseline');
+], 'W12-approved defaults and fixed-step feature-off compatibility');
 
 for (const control of [
   'worldStepEnabled',

@@ -6,18 +6,25 @@ import type {
   DensityProducerKind,
   DensityProducerLifecycle,
   DensityProducerSelection,
+  DensitySharedFieldDiagnostics,
   DensityProducerStats,
 } from './contracts';
 import type { DensityStorageMode } from './bodyLocalBricks';
+import type { DensityDetailResources } from '../rendering/densityDetailResources';
 
 export interface DensityProducerSelectorOptions {
   legacy: DensityCacheProducer;
   createRecipeV2(): Promise<DensityCacheProducer>;
+  createDetailResources(
+    diagnostics: DensitySharedFieldDiagnostics | null,
+    unavailableReason?: string,
+  ): DensityDetailResources;
 }
 
 export class DensityProducerSelector {
   private readonly legacy: DensityCacheProducer;
   private readonly createRecipeV2: () => Promise<DensityCacheProducer>;
+  private readonly createDetailResources: DensityProducerSelectorOptions['createDetailResources'];
   private recipeV2: DensityCacheProducer | null = null;
   private requested: DensityProducerKind = 'legacy';
   private active: DensityCacheProducer;
@@ -41,6 +48,7 @@ export class DensityProducerSelector {
   constructor(options: DensityProducerSelectorOptions) {
     this.legacy = options.legacy;
     this.createRecipeV2 = options.createRecipeV2;
+    this.createDetailResources = options.createDetailResources;
     this.active = options.legacy;
     const stats = this.legacy.getStats();
     this.desiredResolution = stats.resolution;
@@ -152,6 +160,14 @@ export class DensityProducerSelector {
   getActive(): DensityCacheProducer {
     this.assertAlive();
     return this.active;
+  }
+
+  getActiveDetailResources(): DensityDetailResources {
+    this.assertAlive();
+    return this.createDetailResources(
+      this.active.getSharedFieldDiagnostics(),
+      this.active.kind === 'legacy' ? 'legacy-producer' : 'shared-fields-unavailable',
+    );
   }
 
   getSelection(): DensityProducerSelection {
@@ -356,6 +372,20 @@ async function settleDensitySelectorFixture(): Promise<void> {
   await Promise.resolve();
 }
 
+const densitySelectorFixtureDetailResources = (): DensityDetailResources => ({
+  available: false,
+  reason: 'fixture-unavailable',
+  layoutVersion: 1,
+  generation: 0,
+  format: 'rgba8unorm',
+  atlasDimension: 64,
+  macroDimension: 256,
+  sampler: null,
+  baseView: null,
+  detailView: null,
+  macroView: null,
+});
+
 export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void> {
   const legacy = densitySelectorFixtureProducer('legacy');
   const deferredRecipe = densitySelectorFixtureProducer('recipe-v2');
@@ -364,6 +394,7 @@ export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void
   const selector = new DensityProducerSelector({
     legacy: legacy.producer,
     createRecipeV2: () => recipePromise,
+    createDetailResources: densitySelectorFixtureDetailResources,
   });
   selector.requestStorageMode('hierarchical', true);
   selector.request('recipe-v2', true);
@@ -383,6 +414,7 @@ export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void
   const lostSelector = new DensityProducerSelector({
     legacy: lostLegacy.producer,
     createRecipeV2: () => lostPromise,
+    createDetailResources: densitySelectorFixtureDetailResources,
   });
   lostSelector.requestStorageMode('hierarchical', true);
   lostSelector.request('recipe-v2', true);
@@ -400,6 +432,7 @@ export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void
   const destroyedSelector = new DensityProducerSelector({
     legacy: destroyedLegacy.producer,
     createRecipeV2: () => destroyedPromise,
+    createDetailResources: densitySelectorFixtureDetailResources,
   });
   destroyedSelector.requestStorageMode('hierarchical', true);
   destroyedSelector.request('recipe-v2', true);
@@ -418,6 +451,7 @@ export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void
   const rejectedSelector = new DensityProducerSelector({
     legacy: rejectedLegacy.producer,
     createRecipeV2: () => Promise.resolve(rejectedRecipe.producer),
+    createDetailResources: densitySelectorFixtureDetailResources,
   });
   rejectedSelector.requestStorageMode('hierarchical', true);
   rejectedSelector.request('recipe-v2', true);
@@ -436,6 +470,7 @@ export async function verifyDensityProducerSelectorAsyncFixtures(): Promise<void
   const failedInitSelector = new DensityProducerSelector({
     legacy: failedInitLegacy.producer,
     createRecipeV2: () => Promise.resolve(failedInitRecipe.producer),
+    createDetailResources: densitySelectorFixtureDetailResources,
   });
   failedInitSelector.requestStorageMode('hierarchical', true);
   failedInitSelector.request('recipe-v2', true);

@@ -1,0 +1,12 @@
+# Task 5 independent re-review: APPROVED
+#
+# P1 resolved: the checker uses balanced-parenthesis call parsing and function
+# blocks, requires exactly 11 real calls (cloud 6; five adapters one each), and
+# excludes definitions.  Cloud scalar forwarding, light, legacy/adaptive
+# ground, main, and silver have exact exclusive call sets, so bool semantics
+# cannot be reversed or supplemented.  Both Hybrid typed wrappers call the
+# single stage exactly once with their support sample, pos, and wantFinal; all
+# three non-Hybrid adapters retain edge shaping and contain no detail stage.
+# The stage rough return remains before sampleDetailField/Base/Detail sampling.
+# Verified: node scripts/check-w12-light-rough.mjs; npm run test:w10b-raymarch;
+# npm run test:w10b-world-raymarch (all exit 0).

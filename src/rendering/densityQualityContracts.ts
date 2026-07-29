@@ -62,6 +62,14 @@ export interface DensityQualityBindingResources {
   groundShadowView: GPUTextureView;
   stbnView: GPUTextureView;
   raymarchCountersBuffer: GPUBuffer;
+  detail: DensityDetailBindingResources;
+}
+
+export interface DensityDetailBindingResources {
+  sampler: GPUSampler;
+  baseView: GPUTextureView;
+  detailView: GPUTextureView;
+  controlsBuffer: GPUBuffer;
 }
 
 export interface DensityQualityBindings {
@@ -74,6 +82,7 @@ export interface DensityQualityBindings {
   groundShadowStore: GPUBindGroup;
   cloudGroundShadow: GPUBindGroup;
   cloudFrameGroundShadow: GPUBindGroup | null;
+  groundShadowDetail: GPUBindGroup | null;
 }
 
 export function densityQualityKindFromMode(mode: number): DensityQualityKind {

@@ -44,6 +44,7 @@ import {
   type DensityQualityKind,
   type DensityQualityPipelineState,
 } from './rendering/densityQualityContracts';
+import { createDensityDetailResources } from './rendering/densityDetailResources';
 import { CloudFrameOutputResources } from './rendering/cloudFrameOutput';
 import { createStbnTextureResources } from './rendering/stbnTexture';
 import {
@@ -88,8 +89,18 @@ const DEBUG_VIEW_TAAU_PHASE = 16;
 const DEBUG_VIEW_TAAU_REJECTION = 17;
 const TAAU_DEBUG_VIEWS = Object.freeze([DEBUG_VIEW_TAAU_PHASE, DEBUG_VIEW_TAAU_REJECTION] as const);
 
+function isNonDestructiveTemporalDebugView(debugView: number): boolean {
+  const rounded = Math.round(debugView);
+  return rounded === 16 || rounded === 17 || rounded === 18 || rounded === 19;
+}
+
 function isTaauDebugView(debugView: number): boolean {
   return (TAAU_DEBUG_VIEWS as readonly number[]).includes(Math.round(debugView));
+}
+
+function isW12DetailDebugView(debugView: number): boolean {
+  const rounded = Math.round(debugView);
+  return rounded === 18 || rounded === 19;
 }
 
 function sunDirectionFromAngles(azimuthDeg: number, elevationDeg: number): [number, number, number] {
@@ -655,6 +666,33 @@ struct VOut { @builtin(position) pos : vec4f };
   }
   let decision = taauClassify(coord, fc.xy);
   return taauDebugOverlayColor(debugMode, decision.category, bayer, phase);
+}
+`;
+
+const w12DetailDebugOverlayShaderSource = /* wgsl */ `
+struct W12DetailDebugUniform { debugViewId : f32 };
+@group(0) @binding(0) var debugScalar : texture_2d<f32>;
+@group(0) @binding(1) var debugSampler : sampler;
+@group(0) @binding(2) var<uniform> debug : W12DetailDebugUniform;
+struct VOut { @builtin(position) pos : vec4f, @location(0) uv : vec2f };
+@vertex fn vsW12DetailDebug(@builtin(vertex_index) vi : u32) -> VOut {
+  let p = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  var o : VOut;
+  o.pos = vec4f(p[vi], 0.0, 1.0);
+  o.uv = p[vi] * 0.5 + vec2f(0.5);
+  return o;
+}
+@fragment fn fsW12DetailDebug(@location(0) uv : vec2f) -> @location(0) vec4f {
+  let scalar = textureSampleLevel(debugScalar, debugSampler, uv, 0.0).a;
+  var color = vec3f(scalar);
+  let debugViewId = debug.debugViewId;
+  if (debugViewId == 19) {
+    let signedDifference = 2.0 * scalar - 1.0;
+    if (abs(signedDifference) <= 0.0001) { color = vec3f(0.08, 0.10, 0.14); }
+    else if (signedDifference < 0.0) { color = vec3f(0.12, 0.35, 1.0); }
+    else { color = vec3f(1.0, 0.20, 0.10); }
+  }
+  return vec4f(color, 1.0);
 }
 `;
 
@@ -1237,6 +1275,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     },
     primitive: { topology: 'triangle-list' },
   });
+  const w12DetailDebugOverlayModule = createShaderModuleTimed({ code: w12DetailDebugOverlayShaderSource });
+  const w12DetailDebugOverlayPipeline = createRenderPipelineTimed({
+    layout: 'auto',
+    vertex: { module: w12DetailDebugOverlayModule, entryPoint: 'vsW12DetailDebug' },
+    fragment: {
+      module: w12DetailDebugOverlayModule,
+      entryPoint: 'fsW12DetailDebug',
+      targets: [{ format: OFFSCREEN_FORMAT }],
+    },
+    primitive: { topology: 'triangle-list' },
+  });
   const taaUniformBuffer = device.createBuffer({
     size: 160,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -1247,6 +1296,11 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const taauResolveData = new Float32Array(8);
+  const w12DetailDebugUniformBuffer = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const w12DetailDebugData = new Float32Array(4);
   const taauResolveCountersBuffer = device.createBuffer({
     label: 'w11-taau-resolve-counters',
     size: TAAU_RESOLVE_COUNTER_BUFFER_BYTES,
@@ -1266,6 +1320,17 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     addressModeU: 'clamp-to-edge',
     addressModeV: 'clamp-to-edge',
   });
+
+  function createW12DetailDebugOverlayBindGroup(source: GPUTextureView): GPUBindGroup {
+    return device.createBindGroup({
+      layout: w12DetailDebugOverlayPipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: source },
+        { binding: 1, resource: postSampler },
+        { binding: 2, resource: { buffer: w12DetailDebugUniformBuffer } },
+      ],
+    });
+  }
 
   let weatherSize = DEFAULT_WEATHER_SIZE;
   let boxHalfExtent = DEFAULT_BOX_HALF_EXTENT;
@@ -1423,6 +1488,36 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     addressModeV: 'clamp-to-edge',
     addressModeW: 'clamp-to-edge',
   });
+  const dummyDetailSampler = device.createSampler({
+    addressModeU: 'repeat',
+    addressModeV: 'repeat',
+    addressModeW: 'repeat',
+    magFilter: 'linear',
+    minFilter: 'linear',
+    mipmapFilter: 'nearest',
+  });
+  const dummyDetailBaseTexture = device.createTexture({
+    size: [1, 1, 1],
+    dimension: '3d',
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+  });
+  const dummyDetailFieldTexture = device.createTexture({
+    size: [1, 1, 1],
+    dimension: '3d',
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+  });
+  const dummyDetailBaseView = dummyDetailBaseTexture.createView({ dimension: '3d' });
+  const dummyDetailFieldView = dummyDetailFieldTexture.createView({ dimension: '3d' });
+  const detailResourceControlsBuffer = device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  const dummyDetailTexel = new Uint8Array([0, 0, 0, 0]);
+  device.queue.writeTexture({ texture: dummyDetailBaseTexture }, dummyDetailTexel, { bytesPerRow: 4, rowsPerImage: 1 }, { width: 1, height: 1, depthOrArrayLayers: 1 });
+  device.queue.writeTexture({ texture: dummyDetailFieldTexture }, dummyDetailTexel, { bytesPerRow: 4, rowsPerImage: 1 }, { width: 1, height: 1, depthOrArrayLayers: 1 });
+  device.queue.writeBuffer(detailResourceControlsBuffer, 0, new Float32Array([0, 1, 0, 0]));
 
   const presetBuffer = device.createBuffer({
     size: PRESET_BYTE_SIZE,
@@ -1475,6 +1570,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let densityConsumerGeneration = -1;
   let densityConsumerHierarchyGeneration = -1;
   let densityConsumerProducerGeneration = -1;
+  let densityDetailConsumerGeneration = -1;
+  let densityDetailConsumerAvailable = false;
   let qualityConsumerGeneration = -1;
 
   const initialCacheWorkgroup = [8, 8, 4] as const;
@@ -1507,6 +1604,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       initialResolution: legacyDensityAdapter.getStats().resolution,
       initialWorkgroup: legacyDensityAdapter.getStats().workgroup,
     }),
+    createDetailResources: createDensityDetailResources,
   });
 
   function requestedDensityProducer(mode: number): DensityProducerKind {
@@ -1544,6 +1642,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   function rebuildGroundShadowSampleBindGroup(): void {
     if (!qualityBindingsReady) return;
     const bundle = densityQualityPipelineManager.getActiveBundle();
+    const detail = densityProducerSelector.getActiveDetailResources();
+    const detailBinding = detail.available
+      ? { sampler: detail.sampler!, baseView: detail.baseView!, detailView: detail.detailView! }
+      : { sampler: dummyDetailSampler, baseView: dummyDetailBaseView, detailView: dummyDetailFieldView };
+    const cloudDetailEntries: GPUBindGroupEntry[] = bundle.kind === 'hybrid'
+      ? [
+          { binding: 4, resource: detailBinding.sampler },
+          { binding: 5, resource: detailBinding.baseView },
+          { binding: 6, resource: detailBinding.detailView },
+          { binding: 7, resource: { buffer: detailResourceControlsBuffer } },
+        ]
+      : [];
     qualityBindings = {
       ...qualityBindings,
       cloudGroundShadow: device.createBindGroup({
@@ -1553,6 +1663,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
           { binding: 2, resource: stbnResources.view },
           { binding: 3, resource: { buffer: raymarchCountersBuffer } },
+          ...cloudDetailEntries,
         ],
       }),
       cloudFrameGroundShadow: bundle.cloudFramePipeline ? device.createBindGroup({
@@ -1562,6 +1673,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           { binding: 1, resource: groundShadowHistoryViews[groundShadowHistoryIndex] },
           { binding: 2, resource: stbnResources.view },
           { binding: 3, resource: { buffer: raymarchCountersBuffer } },
+          ...cloudDetailEntries,
         ],
       }) : null,
     };
@@ -1573,6 +1685,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const bundle = densityQualityPipelineManager.getActiveBundle();
     const producerSelection = densityProducerSelector.getSelection();
     const densityOutput = densityProducerSelector.getActive().getOutput();
+    const detail = densityProducerSelector.getActiveDetailResources();
     if (
       !force
       && qualityBindingsReady
@@ -1581,10 +1694,20 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       && (!bundle.usesDensityCache || densityConsumerGeneration === densityOutput.resourceGeneration)
       && (bundle.storageMode !== 'hierarchical'
         || densityConsumerHierarchyGeneration === densityOutput.hierarchical?.layoutGeneration)
+      && densityDetailConsumerGeneration === detail.generation
+      && densityDetailConsumerAvailable === detail.available
     ) {
       return;
     }
     const shapeView = shapeTexture.createView({ dimension: '2d-array' });
+    const detailBinding = detail.available
+      ? { sampler: detail.sampler!, baseView: detail.baseView!, detailView: detail.detailView!, enabled: 1 }
+      : { sampler: dummyDetailSampler, baseView: dummyDetailBaseView, detailView: dummyDetailFieldView, enabled: 0 };
+    device.queue.writeBuffer(
+      detailResourceControlsBuffer,
+      0,
+      new Float32Array([detailBinding.enabled, detail.layoutVersion, detail.generation, 0]),
+    );
     qualityBindings = createDensityQualityBindings(device, bundle, {
       cameraBuffer,
       paramsBuffer,
@@ -1597,6 +1720,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
       groundShadowView: groundShadowHistoryViews[groundShadowHistoryIndex],
       stbnView: stbnResources.view,
       raymarchCountersBuffer,
+      detail: {
+        sampler: detailBinding.sampler,
+        baseView: detailBinding.baseView,
+        detailView: detailBinding.detailView,
+        controlsBuffer: detailResourceControlsBuffer,
+      },
     });
     cloudFrameSceneTaauCurrent = bundle.cloudFramePipeline ? device.createBindGroup({
       label: `density-quality-${bundle.kind}-cloud-frame-scene-taau-current`,
@@ -1616,6 +1745,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     densityConsumerHierarchyGeneration = bundle.storageMode === 'hierarchical'
       ? densityOutput.hierarchical?.layoutGeneration ?? -1
       : -1;
+    densityDetailConsumerGeneration = detail.generation;
+    densityDetailConsumerAvailable = detail.available;
     shadowRevision++;
   }
 
@@ -1669,6 +1800,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
   let previousWorldMarchSignature = '';
   let previousSunDir: [number, number, number] | null = null;
   let previousBrickAllocationGeneration: number | null = null;
+  let previousDetailGeneration: number | null = null;
   const prevViewProj = new Float32Array(16);
   let previousJitterX = 0;
   let previousJitterY = 0;
@@ -2281,6 +2413,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const densityPlan = densityProducer.prepareFrame(densityFrameInput);
     densityProducerSelector.prepareTransition(densityFrameInput, cacheRequired);
     currentDensityOutput = densityProducerSelector.getActive().getOutput();
+    const detailResources = densityProducerSelector.getActiveDetailResources();
+    if (previousDetailGeneration !== null && detailResources.generation !== previousDetailGeneration) {
+      historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
+    }
+    previousDetailGeneration = detailResources.generation;
     qualitySelection = densityQualityPipelineManager.request(
       requestedQualityKind,
       bundleStorageRequest,
@@ -2372,8 +2510,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     }
     previousWorldMarchSignature = worldMarchSignature;
 
-    const taaOn = (params.taaEnabled && params.debugView < 0.5)
-      || (params.taaEnabled && isTaauDebugView(params.debugView));
+    const taaOn = params.taaEnabled && (
+      params.debugView < 0.5 || isNonDestructiveTemporalDebugView(params.debugView)
+    );
     const activeQualityBundleForTemporal = densityQualityPipelineManager.getActiveBundle();
     const cloudFramePathForTemporal = !params.cloudFrameEnabled
       ? 'combined-feature-off' as const
@@ -2390,7 +2529,7 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     if (!params.taaEnabled) {
       activeTemporalModeNum = 0;
       temporalFallbackReason = 'taa-disabled';
-    } else if (params.debugView >= 0.5 && !isTaauDebugView(params.debugView)) {
+    } else if (params.debugView >= 0.5 && !isNonDestructiveTemporalDebugView(params.debugView)) {
       activeTemporalModeNum = 0;
       temporalFallbackReason = 'debug-view';
     } else if (cloudFramePathForTemporal !== 'cloud-frame' && activeTemporalModeNum === 2) {
@@ -2498,6 +2637,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         }
       : {});
     const postEncodeDensityOutput = densityProducerSelector.getActive().getOutput();
+    const postEncodeDetailResources = densityProducerSelector.getActiveDetailResources();
+    if (previousDetailGeneration !== null && postEncodeDetailResources.generation !== previousDetailGeneration) {
+      historyValid = false;
+      cloudFrameOutput?.markDiscontinuity();
+    }
+    previousDetailGeneration = postEncodeDetailResources.generation;
     const postEncodeQualitySelection = densityQualityPipelineManager.request(
       requestedQualityKind,
       bundleStorageRequest,
@@ -2579,6 +2724,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         integrationPass.setBindGroup(1, qualityBindings.groundShadowDensity);
       }
       integrationPass.setBindGroup(2, qualityBindings.groundShadowStore);
+      if (qualityBindings.groundShadowDetail) {
+        integrationPass.setBindGroup(3, qualityBindings.groundShadowDetail);
+      }
       integrationPass.dispatchWorkgroups(
         Math.ceil(groundShadowResolution / 8),
         Math.ceil(groundShadowResolution / 8),
@@ -2914,6 +3062,25 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
         taauDebugOverlayPass.draw(3);
         taauDebugOverlayPass.end();
       }
+
+      if (isW12DetailDebugView(params.debugView)) {
+        const w12DebugSource = taauActive
+          ? cloudFrameLowResOutput!.backgroundRadianceView
+          : cloudFrameOutput!.backgroundRadianceView;
+        w12DetailDebugData[0] = Math.round(params.debugView);
+        device.queue.writeBuffer(w12DetailDebugUniformBuffer, 0, w12DetailDebugData);
+        const w12DetailDebugOverlayPass = commandEncoder.beginRenderPass({
+          colorAttachments: [{
+            view: sceneView!,
+            loadOp: 'load',
+            storeOp: 'store',
+          }],
+        });
+        w12DetailDebugOverlayPass.setPipeline(w12DetailDebugOverlayPipeline);
+        w12DetailDebugOverlayPass.setBindGroup(0, createW12DetailDebugOverlayBindGroup(w12DebugSource));
+        w12DetailDebugOverlayPass.draw(3);
+        w12DetailDebugOverlayPass.end();
+      }
     }
     historyValid = true;
     prevViewProj.set(cam.viewProj);
@@ -2966,9 +3133,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     const sharedDebugRequested = params.debugView >= 7 && params.debugView <= 9;
     let sharedDebugBindGroup: GPUBindGroup | null = null;
     if (sharedDebugRequested) {
-      const diagnostics = densityProducerSelector.getActive().getSharedFieldDiagnostics();
-      const debugPipeline = diagnostics ? ensureDensitySharedDebugPipeline() : null;
-      if (diagnostics && debugPipeline && densitySharedDebugUniformBuffer) {
+      const detailResources = densityProducerSelector.getActiveDetailResources();
+      const debugPipeline = detailResources.available ? ensureDensitySharedDebugPipeline() : null;
+      if (detailResources.available && debugPipeline && densitySharedDebugUniformBuffer) {
         const data = new ArrayBuffer(32);
         const uints = new Uint32Array(data);
         const floats = new Float32Array(data);
@@ -2983,18 +3150,18 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
           label: 'density-shared-debug-bindings',
           layout: debugPipeline.getBindGroupLayout(0),
           entries: [
-            { binding: 0, resource: diagnostics.sampler },
-            { binding: 1, resource: diagnostics.baseView },
-            { binding: 2, resource: diagnostics.detailView },
-            { binding: 3, resource: diagnostics.macroView },
+            { binding: 0, resource: detailResources.sampler! },
+            { binding: 1, resource: detailResources.baseView! },
+            { binding: 2, resource: detailResources.detailView! },
+            { binding: 3, resource: detailResources.macroView! },
             { binding: 4, resource: { buffer: densitySharedDebugUniformBuffer } },
           ],
         });
         stats.densitySharedFieldDebugReason = '';
       } else {
-        stats.densitySharedFieldDebugReason = diagnostics
+        stats.densitySharedFieldDebugReason = detailResources.available
           ? densitySharedDebugFailureReason || 'debug-pipeline-unavailable'
-          : 'active-producer-has-no-ready-shared-fields';
+          : detailResources.reason;
       }
     } else {
       stats.densitySharedFieldDebugReason = '';
@@ -3338,6 +3505,9 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
     taauResolveCountersBuffer.destroy();
     taauResolveCountersReadBuffer.destroy();
     densitySharedDebugUniformBuffer?.destroy();
+    detailResourceControlsBuffer.destroy();
+    dummyDetailBaseTexture.destroy();
+    dummyDetailFieldTexture.destroy();
     device.destroy();
   }
 

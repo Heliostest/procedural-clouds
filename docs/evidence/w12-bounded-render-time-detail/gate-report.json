@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T03:21:47.927Z",
+  "decision": "REVIEW",
+  "formalContinue": false,
+  "ownerVisualVerdict": "PENDING",
+  "runtimeSourceMatchesHead": false,
+  "capture": {
+    "captures": 95,
+    "errors": [],
+    "console": [
+      {
+        "type": "console",
+        "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      }
+    ],
+    "environment": {
+      "node": "v22.16.0",
+      "platform": "win32"
+    }
+  },
+  "runtime": {
+    "path": "runtime-evidence.json",
+    "pairs": 20,
+    "bsm": "not-applicable",
+    "integrity": {
+      "status": "PASS",
+      "issues": []
+    }
+  },
+  "fallback": {
+    "detailStrengthZeroAt120x512": {
+      "status": "available",
+      "evidence": "on/off pairs include detailStrength=0 with worldStep=true, min=120, maxIterations=512"
+    },
+    "atlasUnavailable": {
+      "status": "unavailable",
+      "reason": "no existing page controller API can force atlas unavailable without changing business code"
+    },
+    "legacyCoarseFallback": {
+      "status": "unavailable",
+      "reason": "no existing page controller API can select Legacy while preserving the fixed Hybrid matrix without changing business code"
+    }
+  },
+  "cbKnownLinearRemapDeviation": {
+    "status": "OBSERVATION",
+    "text": "Cb smoothstep-to-linear remap deviation is recorded only; W16 calibration is out of scope."
+  },
+  "farFlicker64km": {
+    "status": "UNABLE",
+    "reason": "screenshots/counters captured; visual far-flicker verdict requires owner review"
+  },
+  "zeroTolerance": [
+    {
+      "id": "support-leak",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "negative-density",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "nan",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "brick-seam",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "lod-phase-jump",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "camera-lock",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "genus-hard-cut",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    },
+    {
+      "id": "thin-layer-break",
+      "status": "UNABLE",
+      "reason": "capture/runtime interfaces provide no automatic visual or density-defect verdict; owner review required"
+    }
+  ],
+  "requiredEvidence": [
+    {
+      "id": "raw-density",
+      "status": "OBSERVATION",
+      "reason": "1 screenshot capture(s) present; owner visual verdict required",
+      "evidence": [
+        "screenshots/required-raw-density__fullres__detail-on__skip-light-false.png"
+      ]
+    },
+    {
+      "id": "normal",
+      "status": "OBSERVATION",
+      "reason": "1 screenshot capture(s) present; owner visual verdict required",
+      "evidence": [
+        "screenshots/required-normal__taau__detail-on__skip-light-false.png"
+      ]
+    },
+    {
+      "id": "edge-only",
+      "status": "UNABLE",
+      "reason": "existing benchmark controller exposes no edge-only view; edgeSharpening normal output is not mislabeled as edge-only"
+    },
+    {
+      "id": "detail-frequency",
+      "status": "OBSERVATION",
+      "reason": "2 screenshot capture(s) present; owner visual verdict required",
+      "evidence": [
+        "screenshots/required-detail-frequency-high__taau__detail-on__skip-light-false.png",
+        "screenshots/required-detail-frequency-low__taau__detail-on__skip-light-false.png"
+      ]
+    },
+    {
+      "id": "wind-motion",
+      "status": "UNABLE",
+      "reason": "benchmark frame override freezes scene clock and controller exposes no deterministic wind-motion drive"
+    },
+    {
+      "id": "taau-convergence",
+      "status": "OBSERVATION",
+      "reason": "8 screenshot capture(s) present; owner visual verdict required",
+      "evidence": [
+        "screenshots/required-taau-convergence-f00__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f01__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f02__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f03__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f04__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f05__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f06__taau__detail-on__skip-light-false.png",
+        "screenshots/required-taau-convergence-f07__taau__detail-on__skip-light-false.png"
+      ]
+    },
+    {
+      "id": "debug-18",
+      "status": "OBSERVATION",
+      "reason": "screenshot captured; not an automated visual pass"
+    },
+    {
+      "id": "debug-19",
+      "status": "OBSERVATION",
+      "reason": "screenshot captured; not an automated visual pass"
+    }
+  ],
+  "owner": {
+    "verdict": "PENDING",
+    "note": "Owner visual verdict cannot be replaced by automation."
+  }
+}

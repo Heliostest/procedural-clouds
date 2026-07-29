@@ -1,0 +1,299 @@
+diff --git a/shaders/cloud.wgsl b/shaders/cloud.wgsl
+index 68d115b..340d791 100644
+--- a/shaders/cloud.wgsl
++++ b/shaders/cloud.wgsl
+@@ -156,0 +157,12 @@ override wg_z : u32 = 4u;
++struct DetailResourceControlsGPU {
++  enabled : f32,
++  layoutVersion : f32,
++  generation : f32,
++  _pad : f32,
++};
++
++@group(3) @binding(4) var detailSampler : sampler;
++@group(3) @binding(5) var detailBaseTex : texture_3d<f32>;
++@group(3) @binding(6) var detailFieldTex : texture_3d<f32>;
++@group(3) @binding(7) var<uniform> detailResourceControls : DetailResourceControlsGPU;
++
+diff --git a/src/renderer.ts b/src/renderer.ts
+index a2dd2da..9860db8 100644
+--- a/src/renderer.ts
++++ b/src/renderer.ts
+@@ -46,0 +47 @@ import {
++import { createDensityDetailResources, type DensityDetailResources } from './rendering/densityDetailResources';
+@@ -1425,0 +1427,28 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++  const dummyDetailSampler = device.createSampler({
++    addressModeU: 'repeat',
++    addressModeV: 'repeat',
++    addressModeW: 'repeat',
++    magFilter: 'linear',
++    minFilter: 'linear',
++    mipmapFilter: 'nearest',
++  });
++  const dummyDetailBaseTexture = device.createTexture({
++    size: [1, 1, 1],
++    dimension: '3d',
++    format: 'rgba8unorm',
++    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
++  });
++  const dummyDetailFieldTexture = device.createTexture({
++    size: [1, 1, 1],
++    dimension: '3d',
++    format: 'rgba8unorm',
++    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
++  });
++  const dummyDetailBaseView = dummyDetailBaseTexture.createView({ dimension: '3d' });
++  const dummyDetailFieldView = dummyDetailFieldTexture.createView({ dimension: '3d' });
++  const detailResourceControlsBuffer = device.createBuffer({
++    size: 16,
++    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
++  });
++  const dummyDetailTexel = new Uint8Array([0, 0, 0, 0]);
++  device.queue.writeTexture({ texture: dummyDetailBaseTexture }, dummyDetailTexel, { bytesPerRow: 4, rowsPerImage: 1 }, { width: 1, height: 1, depthOrArrayLayers: 1 });
++  device.queue.writeTexture({ texture: dummyDetailFieldTexture }, dummyDetailTexel, { bytesPerRow: 4, rowsPerImage: 1 }, { width: 1, height: 1, depthOrArrayLayers: 1 });
++  device.queue.writeBuffer(detailResourceControlsBuffer, 0, new Float32Array([0, 1, 0, 0]));
+@@ -1477,0 +1507,2 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++  let densityDetailConsumerGeneration = -1;
++  let densityDetailConsumerAvailable = false;
+@@ -1511,0 +1543,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++  function activeDensityDetailResources(): DensityDetailResources {
++    const producer = densityProducerSelector.getActive();
++    return createDensityDetailResources(
++      producer.getSharedFieldDiagnostics(),
++      producer.kind === 'legacy' ? 'legacy-producer' : 'shared-fields-unavailable',
++    );
++  }
++
+@@ -1546,0 +1586,12 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    const detail = activeDensityDetailResources();
++    const detailBinding = detail.available
++      ? { sampler: detail.sampler!, baseView: detail.baseView!, detailView: detail.detailView! }
++      : { sampler: dummyDetailSampler, baseView: dummyDetailBaseView, detailView: dummyDetailFieldView };
++    const cloudDetailEntries: GPUBindGroupEntry[] = bundle.kind === 'hybrid'
++      ? [
++          { binding: 4, resource: detailBinding.sampler },
++          { binding: 5, resource: detailBinding.baseView },
++          { binding: 6, resource: detailBinding.detailView },
++          { binding: 7, resource: { buffer: detailResourceControlsBuffer } },
++        ]
++      : [];
+@@ -1555,0 +1607 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++          ...cloudDetailEntries,
+@@ -1564,0 +1617 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++          ...cloudDetailEntries,
+@@ -1575,0 +1629 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    const detail = activeDensityDetailResources();
+@@ -1583,0 +1638,2 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++      && densityDetailConsumerGeneration === detail.generation
++      && densityDetailConsumerAvailable === detail.available
+@@ -1587,0 +1644,8 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    const detailBinding = detail.available
++      ? { sampler: detail.sampler!, baseView: detail.baseView!, detailView: detail.detailView!, enabled: 1 }
++      : { sampler: dummyDetailSampler, baseView: dummyDetailBaseView, detailView: dummyDetailFieldView, enabled: 0 };
++    device.queue.writeBuffer(
++      detailResourceControlsBuffer,
++      0,
++      new Float32Array([detailBinding.enabled, detail.layoutVersion, detail.generation, 0]),
++    );
+@@ -1599,0 +1664,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++      detail: {
++        sampler: detailBinding.sampler,
++        baseView: detailBinding.baseView,
++        detailView: detailBinding.detailView,
++        controlsBuffer: detailResourceControlsBuffer,
++      },
+@@ -1618,0 +1689,2 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    densityDetailConsumerGeneration = detail.generation;
++    densityDetailConsumerAvailable = detail.available;
+@@ -1671,0 +1744 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++  let previousDetailGeneration: number | null = null;
+@@ -2283,0 +2357,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    const detailResources = activeDensityDetailResources();
++    if (previousDetailGeneration !== null && detailResources.generation !== previousDetailGeneration) {
++      historyValid = false;
++      cloudFrameOutput?.markDiscontinuity();
++    }
++    previousDetailGeneration = detailResources.generation;
+@@ -2500,0 +2580,6 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    const postEncodeDetailResources = activeDensityDetailResources();
++    if (previousDetailGeneration !== null && postEncodeDetailResources.generation !== previousDetailGeneration) {
++      historyValid = false;
++      cloudFrameOutput?.markDiscontinuity();
++    }
++    previousDetailGeneration = postEncodeDetailResources.generation;
+@@ -2581,0 +2667,3 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++      if (qualityBindings.groundShadowDetail) {
++        integrationPass.setBindGroup(3, qualityBindings.groundShadowDetail);
++      }
+@@ -3340,0 +3429,3 @@ export async function createRenderer(canvas: HTMLCanvasElement): Promise<Rendere
++    detailResourceControlsBuffer.destroy();
++    dummyDetailBaseTexture.destroy();
++    dummyDetailFieldTexture.destroy();
+diff --git a/src/rendering/densityDetailResources.ts b/src/rendering/densityDetailResources.ts
+new file mode 100644
+index 0000000..c1cd068
+--- /dev/null
++++ b/src/rendering/densityDetailResources.ts
+@@ -0,0 +1,49 @@
++import type { DensitySharedFieldDiagnostics } from '../density/contracts';
++
++export interface DensityDetailResources {
++  readonly available: boolean;
++  readonly reason: string;
++  readonly layoutVersion: 1;
++  readonly generation: number;
++  readonly format: 'rgba8unorm';
++  readonly atlasDimension: 64;
++  readonly macroDimension: 256;
++  readonly sampler: GPUSampler | null;
++  readonly baseView: GPUTextureView | null;
++  readonly detailView: GPUTextureView | null;
++  readonly macroView: GPUTextureView | null;
++}
++
++const unavailable = (reason: string): DensityDetailResources => ({
++  available: false,
++  reason,
++  layoutVersion: 1,
++  generation: 0,
++  format: 'rgba8unorm',
++  atlasDimension: 64,
++  macroDimension: 256,
++  sampler: null,
++  baseView: null,
++  detailView: null,
++  macroView: null,
++});
++
++export function createDensityDetailResources(
++  diagnostics: DensitySharedFieldDiagnostics | null,
++  unavailableReason = 'shared-fields-unavailable',
++): DensityDetailResources {
++  if (!diagnostics || !diagnostics.available) return unavailable(unavailableReason);
++  return {
++    available: true,
++    reason: '',
++    layoutVersion: 1,
++    generation: diagnostics.generation,
++    format: diagnostics.format,
++    atlasDimension: diagnostics.atlasDimension,
++    macroDimension: diagnostics.macroDimension,
++    sampler: diagnostics.sampler,
++    baseView: diagnostics.baseView,
++    detailView: diagnostics.detailView,
++    macroView: diagnostics.macroView,
++  };
++}
+diff --git a/src/rendering/densityQualityContracts.ts b/src/rendering/densityQualityContracts.ts
+index df2a4f0..dd6ef85 100644
+--- a/src/rendering/densityQualityContracts.ts
++++ b/src/rendering/densityQualityContracts.ts
+@@ -64,0 +65,8 @@ export interface DensityQualityBindingResources {
++  detail: DensityDetailBindingResources;
++}
++
++export interface DensityDetailBindingResources {
++  sampler: GPUSampler;
++  baseView: GPUTextureView;
++  detailView: GPUTextureView;
++  controlsBuffer: GPUBuffer;
+@@ -76,0 +85 @@ export interface DensityQualityBindings {
++  groundShadowDetail: GPUBindGroup | null;
+diff --git a/src/rendering/densityQualityPipelines.ts b/src/rendering/densityQualityPipelines.ts
+index ed25b4c..45bac95 100644
+--- a/src/rendering/densityQualityPipelines.ts
++++ b/src/rendering/densityQualityPipelines.ts
+@@ -222,0 +223,7 @@ export function createDensityQualityBindings(
++  const detailEntries: GPUBindGroupEntry[] = [
++    { binding: 4, resource: resources.detail.sampler },
++    { binding: 5, resource: resources.detail.baseView },
++    { binding: 6, resource: resources.detail.detailView },
++    { binding: 7, resource: { buffer: resources.detail.controlsBuffer } },
++  ];
++  const cloudDetailEntries = bundle.kind === 'hybrid' ? detailEntries : [];
+@@ -230,0 +238 @@ export function createDensityQualityBindings(
++      ...cloudDetailEntries,
+@@ -240,0 +249 @@ export function createDensityQualityBindings(
++      ...cloudDetailEntries,
+@@ -242,0 +252,5 @@ export function createDensityQualityBindings(
++  const groundShadowDetail = bundle.kind === 'hybrid' ? device.createBindGroup({
++    label: `density-quality-${bundle.kind}-ground-shadow-detail`,
++    layout: bundle.groundShadowPipeline.getBindGroupLayout(3),
++    entries: detailEntries,
++  }) : null;
+@@ -253,0 +268 @@ export function createDensityQualityBindings(
++    groundShadowDetail,
+diff --git a/scripts/check-w12-detail-contract.mjs b/scripts/check-w12-detail-contract.mjs
+new file mode 100644
+index 0000000..a8789fd
+--- /dev/null
++++ b/scripts/check-w12-detail-contract.mjs
+@@ -0,0 +1,46 @@
++import { readFileSync } from 'node:fs';
++import { resolve } from 'node:path';
++
++const root = resolve(import.meta.dirname, '..');
++const read = (path) => readFileSync(resolve(root, path), 'utf8');
++const detailSource = read('src/rendering/densityDetailResources.ts');
++const renderer = read('src/renderer.ts');
++const cloud = read('shaders/cloud.wgsl');
++const shaderSources = read('src/rendering/densityShaderSources.ts');
++const assert = (value, message) => { if (!value) throw new Error(message); };
++function blockStartingAt(source, token) {
++  const start = source.indexOf(token);
++  assert(start >= 0, `missing ${token}`);
++  const open = source.indexOf('{', start);
++  let depth = 0;
++  for (let i = open; i < source.length; i++) {
++    if (source[i] === '{') depth++;
++    if (source[i] === '}' && --depth === 0) return source.slice(start, i + 1);
++  }
++  throw new Error(`unclosed ${token}`);
++}
++
++
++assert(detailSource.includes('export interface DensityDetailResources'), 'missing consumer contract');
++assert(detailSource.includes('layoutVersion: 1'), 'missing layout version');
++assert(!detailSource.includes('storageView'), 'storage view leaked');
++assert(!detailSource.includes('Pipeline'), 'pipeline leaked');
++assert(renderer.includes('previousDetailGeneration'), 'missing generation tracking');
++assert(renderer.includes('cloudFrameOutput?.markDiscontinuity()'), 'missing TAAU invalidation');
++assert(cloud.includes('@group(3) @binding(4) var detailSampler : sampler'), 'detail sampler ABI missing');
++assert(cloud.includes('@group(3) @binding(7) var<uniform> detailResourceControls'), 'detail controls ABI missing');
++const guard = blockStartingAt(cloud, 'fn detailAbiReachabilityGuard(');
++const illegalGuardBranch = blockStartingAt(guard, 'if (detailResourceControls.enabled < 0.0)');
++assert(guard.includes('if (detailResourceControls.enabled < 0.0)'), 'detail ABI guard is not illegal-value gated');
++assert(guard.includes('textureSampleLevel(detailBaseTex, detailSampler'), 'detail ABI guard misses Base reachability');
++assert(guard.includes('textureSampleLevel(detailFieldTex, detailSampler'), 'detail ABI guard misses Detail reachability');
++assert(guard.includes('return 0.0;'), 'detail ABI guard does not preserve legal values');
++assert(!guard.replace(illegalGuardBranch, '').includes('textureSampleLevel('), 'detail ABI guard samples for legal values');
++assert(blockStartingAt(cloud, 'fn detailNoise(').includes('detailAbiReachabilityGuard(pos)'), 'detail ABI guard does not affect a Hybrid return');
++assert(cloud.indexOf('fn detailAbiReachabilityGuard(') > cloud.indexOf('fn detailNoise('), 'detail ABI guard is outside Hybrid detail source');
++assert(cloud.indexOf('fn detailAbiReachabilityGuard(') < cloud.indexOf('fn applyEdgeShaping('), 'detail ABI guard is outside Hybrid detail source');
++assert(shaderSources.includes("['hybrid-detail', between(cloudSource, CLOUD_DETAIL_START, CLOUD_EDGE_START)]"), 'Hybrid detail source slice missing');
++assert(shaderSources.includes("'cloud-render-prefix', 'edge-shaping', 'debug-shapes', 'quality-cached'"), 'Cached source includes Hybrid detail');
++assert(shaderSources.includes("'legacy-evaluator', ...genusFragmentNames, 'cloud-render-prefix', 'edge-shaping', 'debug-shapes'"), 'Realtime source includes Hybrid detail');
++assert(shaderSources.includes("'cloud-render-prefix', 'hybrid-detail', 'edge-shaping', 'debug-shapes',\n          'hierarchical-cache-sampling'"), 'Hierarchical Hybrid source omits Hybrid detail');
++assert(renderer.includes("const dummyDetailBaseTexture = device.createTexture({\n    size: [1, 1, 1],\n    dimension: '3d',"), 'dummy Base texture is not 3d');
++assert(renderer.includes("const dummyDetailFieldTexture = device.createTexture({\n    size: [1, 1, 1],\n    dimension: '3d',"), 'dummy Detail texture is not 3d');
+
+diff --git a/shaders/cloud.wgsl b/shaders/cloud.wgsl
+index 68d115b..de8c3f9 100644
+--- a/shaders/cloud.wgsl
++++ b/shaders/cloud.wgsl
+@@ -784 +796,14 @@ fn detailNoise(pos : vec3f) -> f32 {
+-  return perlin_noise_4d(vec4f(advectedPos * f, phase.z * 0.1));
++  let noise = perlin_noise_4d(vec4f(advectedPos * f, phase.z * 0.1));
++  if (detailResourceControls.enabled < 0.0) {
++    return noise + detailAbiReachabilityGuard(pos);
++  }
++  return noise;
++}
++
++fn detailAbiReachabilityGuard(pos : vec3f) -> f32 {
++  if (detailResourceControls.enabled < 0.0) {
++    let base = textureSampleLevel(detailBaseTex, detailSampler, pos * 0.0, 0.0);
++    let detail = textureSampleLevel(detailFieldTex, detailSampler, pos * 0.0, 0.0);
++    return base.r + detail.g;
++  }
++  return 0.0;

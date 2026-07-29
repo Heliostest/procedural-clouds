@@ -695,6 +695,8 @@ export function createGui(params: CloudParams, store: BodyStore, timeline: Timel
     debugOptions[t('debugWorldStepMeters')] = 15;
     debugOptions[t('debugTaauPhase')] = 16;
     debugOptions[t('debugTaauRejection')] = 17;
+    debugOptions[t('debugW12Erosion')] = 18;
+    debugOptions[t('debugW12FinalMinusRough')] = 19;
     tipKey(debugFolder.add(params, 'debugView', debugOptions).name(t('debugView')), 'debugView');
     tipKey(debugFolder.add(params, 'sharedFieldDebugSlice', 0, 1, 0.001).name(t('sharedFieldDebugSlice')), 'sharedFieldDebugSlice');
     tipKey(debugFolder.add(params, 'sharedFieldDebugChannel', { R: 0, G: 1, B: 2, A: 3 }).name(t('sharedFieldDebugChannel')), 'sharedFieldDebugChannel');

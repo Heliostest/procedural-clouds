@@ -777,11 +777,140 @@ fn dominantWindPhase(pos : vec3f) -> vec3f {
   return phase;
 }
 
-fn detailNoise(pos : vec3f) -> f32 {
-  let f = max(params.g.detailFreq, 0.01);
+fn applyBoundedDetailStage(support : vec4f, pos : vec3f, wantFinal : bool) -> vec4f {
+  if (support.x <= 0.0) { return vec4f(0.0, support.yzw); }
+  let controls = detailControlsForMetadata(support.y, support.z, support.w);
+  let evaluation = evaluateDetail(pos, controls, support.y, support.z, support.w);
+  let roughBase = min(support.x * evaluation.effectiveDilateGain, 1.0);
+  let rough = remapClamped(roughBase, evaluation.hardeningLo, 1.0);
+  if (!wantFinal || evaluation.effectiveErosionAmount <= 0.0) {
+    return vec4f(rough, support.yzw);
+  }
+  let erosion = sampleDetailField(pos, evaluation);
+  let lo = max((1.0 - erosion) * evaluation.effectiveErosionAmount, evaluation.hardeningLo);
+  return vec4f(remapClamped(roughBase, lo, 1.0), support.yzw);
+}
+
+struct DetailResourceControlsGPU {
+  enabled : f32,
+  layoutVersion : f32,
+  generation : f32,
+  _pad : f32,
+};
+
+@group(3) @binding(4) var detailSampler : sampler;
+@group(3) @binding(5) var detailBaseTex : texture_3d<f32>;
+@group(3) @binding(6) var detailFieldTex : texture_3d<f32>;
+@group(3) @binding(7) var<uniform> detailResourceControls : DetailResourceControlsGPU;
+
+struct DetailControls {
+  dilateGain : f32,
+  erosionAmount : f32,
+  detailWeight : f32,
+  warpWeight : f32,
+  detailWavelengthMeters : f32,
+  warpWavelengthMeters : f32,
+};
+
+struct DetailEvaluation {
+  enabled : f32,
+  continuousWeight : f32,
+  effectiveDilateGain : f32,
+  effectiveErosionAmount : f32,
+  wavelengthMeters : f32,
+  warpWavelengthMeters : f32,
+  warpWeight : f32,
+  hardeningLo : f32,
+};
+
+fn remapClamped(value : f32, lo : f32, hi : f32) -> f32 {
+  if (hi <= lo) { return 0.0; }
+  return clamp((value - lo) / (hi - lo), 0.0, 1.0);
+}
+
+fn detailControlsForPreset(index : i32) -> DetailControls {
+  if (index == 0 || index == 2 || index == 4) {
+    return DetailControls(1.8, 0.55, 1.0, 1.0, 300.0, 1200.0);
+  }
+  if (index == 1 || index == 5 || index == 6 || index == 8) {
+    return DetailControls(1.0, 0.08, 1.0, 0.0, 300.0, 1200.0);
+  }
+  if (index == 9) {
+    return DetailControls(1.0, 0.12, 1.0, 0.0, 300.0, 1200.0);
+  }
+  if (index == 7) {
+    return DetailControls(1.0, 0.0, 0.0, 0.0, 300.0, 1200.0);
+  }
+  return DetailControls(1.0, 0.0, 0.0, 0.0, 300.0, 1200.0);
+}
+
+fn detailControlsForMetadata(idx : f32, idx2 : f32, w2 : f32) -> DetailControls {
+  let a = detailControlsForPreset(i32(round(idx)));
+  let b = detailControlsForPreset(i32(round(idx2)));
+  let w = clamp(w2, 0.0, 0.5);
+  return DetailControls(
+    mix(a.dilateGain, b.dilateGain, w),
+    mix(a.erosionAmount, b.erosionAmount, w),
+    mix(a.detailWeight, b.detailWeight, w),
+    mix(a.warpWeight, b.warpWeight, w),
+    mix(a.detailWavelengthMeters, b.detailWavelengthMeters, w),
+    mix(a.warpWavelengthMeters, b.warpWavelengthMeters, w),
+  );
+}
+
+fn evaluateDetail(pos : vec3f, controls : DetailControls, idx : f32, idx2 : f32, w2 : f32) -> DetailEvaluation {
+  let wavelength = controls.detailWavelengthMeters / max(params.g.detailFreq, 0.01);
+  let warpWavelength = controls.warpWavelengthMeters / max(params.g.detailFreq, 0.01);
+  let physicalDelta = (pos - camera.position) * vec3f(
+    params.march.metric.x,
+    params.march.metric.y,
+    params.march.metric.x,
+  );
+  let distanceMeters = length(physicalDelta);
+  let worldStepOn = params.march.controls.x > 0.5;
+  let nyquist = select(0.0, select(1.0, 0.0, worldStepMeters(distanceMeters) > 0.5 * wavelength), worldStepOn);
+  let distanceFade = 1.0 - smoothstep(0.35 * params.march.limits.x, params.march.limits.x, distanceMeters);
+  let enabled = select(
+    0.0,
+    1.0,
+    detailResourceControls.enabled > 0.5
+      && params.g.edgeSharpening > 0.5
+      && params.g.detailStrength > 0.0001
+      && worldStepOn,
+  );
+  let continuous = enabled * controls.detailWeight * distanceFade * nyquist;
+  let erosion = min(controls.erosionAmount * params.g.detailStrength, 1.0) * continuous;
+  let warp = controls.warpWeight * continuous;
+  let hardening = select(
+    0.0,
+    blendedEdgeStyle(idx, idx2, w2).hardness * max(params.g.edgeHardnessThreshold, 0.0),
+    params.g.edgeSharpening > 0.5,
+  );
+  return DetailEvaluation(
+    enabled,
+    continuous,
+    mix(1.0, controls.dilateGain, continuous),
+    erosion,
+    wavelength,
+    warpWavelength,
+    warp,
+    hardening,
+  );
+}
+
+fn sampleDetailField(pos : vec3f, evaluation : DetailEvaluation) -> f32 {
   let phase = dominantWindPhase(pos);
-  let advectedPos = vec3f(pos.x - phase.x, pos.y, pos.z - phase.y);
-  return perlin_noise_4d(vec4f(advectedPos * f, phase.z * 0.1));
+  let meters = vec3f(params.march.metric.x, params.march.metric.y, params.march.metric.x);
+  let advected = vec3f(pos.x - phase.x, pos.y, pos.z - phase.y);
+  let baseCoord = advected * meters / evaluation.wavelengthMeters;
+  let warpCoord = advected * meters / evaluation.warpWavelengthMeters;
+  var sampleCoord = baseCoord;
+  if (evaluation.warpWeight > 0.0) {
+    sampleCoord = baseCoord + vec3f(
+      textureSampleLevel(detailBaseTex, detailSampler, warpCoord, 0.0).a,
+    ) * (0.15 * evaluation.warpWeight);
+  }
+  return clamp(textureSampleLevel(detailFieldTex, detailSampler, sampleCoord, 0.0).b, 0.0, 1.0);
 }
 
 fn applyEdgeShaping(d : f32, idx : f32, idx2 : f32, w2 : f32, pos : vec3f) -> f32 {
@@ -881,22 +1010,34 @@ fn shapeCoord(mode : i32, p : vec3f) -> f32 {
   return 1e9;
 }
 
-fn densityAtTyped(pos : vec3f) -> vec4f {
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
   let mode = i32(params.g.qualityMode);
   if (mode == 2) {
     let dt = cloudDensityTyped(pos);
     return vec4f(applyEdgeShaping(dt.d, dt.idx, dt.idx2, dt.w2, pos), dt.idx, dt.idx2, dt.w2);
   }
   let s = sampleDensityTyped(pos);
-  var base = s.x;
-  if (mode == 1 && base > 0.01 && params.g.detailStrength > 0.0001) {
-    base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
+  if (mode == 1) {
+    return applyBoundedDetailStage(s, pos, wantFinal);
   }
-  return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
+  return vec4f(applyEdgeShaping(max(s.x, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  if (i32(params.g.qualityMode) != 1) { return 0.0; }
+  let evaluation = evaluateDetail(
+    pos,
+    detailControlsForMetadata(typed.y, typed.z, typed.w),
+    typed.y,
+    typed.z,
+    typed.w,
+  );
+  if (evaluation.effectiveErosionAmount <= 0.0) { return 0.0; }
+  return sampleDetailField(pos, evaluation);
 }
 
 // Accumulated optical depth toward the sun (raw, not yet attenuated).
@@ -920,7 +1061,7 @@ fn lightMarchDepth(pos : vec3f, rayJitter : f32, recordCounters : bool) -> f32 {
       atomicAdd(&raymarchCounters.lightSamples, 1u);
       atomicAdd(&raymarchCounters.densitySamples, 1u);
     }
-    shadow = shadow + densityAt(p) * ss;
+    shadow = shadow + densityAt(p, false) * ss;
     if (shadow > cutoff) { break; }
     ss = ss * 2.0;
   }
@@ -991,7 +1132,7 @@ fn legacyGroundShadow(p : vec3f) -> GroundShadowResult {
   var dens = 0.0;
   for (var i = 0; i < steps; i++) {
     let sp = p + sd * (t0 + dt * (f32(i) + 0.5));
-    dens += densityAt(sp) * dt;
+    dens += densityAt(sp, false) * dt;
     if (dens * params.g.shadowDarkness > 4.6) {
       return GroundShadowResult(0.01, f32(i + 1));
     }
@@ -1050,7 +1191,7 @@ fn integrateGroundShadow(p : vec3f, shadowCell : vec2u, phase : u32) -> GroundSh
     let stable = groundShadowHash(shadowCell, u32(i), phase);
     let stratumOffset = mix(0.5, stable, jitterStrength);
     let sp = p + sd * (t0 + dt * (f32(i) + stratumOffset));
-    dens += densityAt(sp) * dt;
+    dens += densityAt(sp, false) * dt;
     used = i + 1;
     if (dens * params.g.shadowDarkness > 4.6) {
       return GroundShadowResult(0.01, f32(used));
@@ -1172,6 +1313,11 @@ fn debugCloudFrame(color : vec3f) -> CloudFrameSample {
   );
 }
 
+fn encodeW12DetailDebug(view : i32, erosion : f32, rough : f32, finalDensity : f32) -> f32 {
+  if (view == 18) { return clamp(erosion, 0.0, 1.0); }
+  return clamp(0.5 + 0.5 * (finalDensity - rough), 0.0, 1.0);
+}
+
 fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   let skipLight = params.g.skipLight > 0.5;
   let numSteps = i32(params.g.rayMarchSteps);
@@ -1249,6 +1395,9 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
   var refinementCount = 0u;
   var worldStepSumMeters = 0.0;
   var worldStepCount = 0u;
+  let debugView = i32(round(params.g.debugView));
+  var debugWeight = 0.0;
+  var debugScalarSum = 0.0;
 
   if (passMode != 2 && hit.hit) {
     let tEntry = max(hit.tNear, 0.0);
@@ -1345,7 +1494,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
       }
       let pos = ro + rd * t;
       if (recordCounters) { atomicAdd(&raymarchCounters.densitySamples, 1u); }
-      let dt = densityAtTyped(pos);
+      let dt = densityAtTyped(pos, true);
       let d = dt.x;
       let potentialHit = d > minDensity;
       if (worldMarch && potentialHit && !inCloud && !refinementActive
@@ -1412,6 +1561,18 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
         let extinction = mix(1.0, L.absorption * ABS_K, blend * params.g.fxAbsorption);
         let sigma = d * extinction;
         let step_trans = exp(-sigma * stepT);
+        let contribution = transmittance * (1.0 - step_trans);
+        if (debugView == 18 || debugView == 19) {
+          var erosion = 0.0;
+          var rough = dt.x;
+          if (debugView == 18) {
+            erosion = w12DebugErosionAt(pos, dt);
+          } else {
+            rough = densityAtTyped(pos, false).x;
+          }
+          debugScalarSum += encodeW12DetailDebug(debugView, erosion, rough, dt.x) * contribution;
+          debugWeight += contribution;
+        }
         var shadow = 1.0;
         var opticalDepth = 0.0;
         if (!skipLight) {
@@ -1457,7 +1618,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
             atomicAdd(&raymarchCounters.lightSamples, 1u);
             atomicAdd(&raymarchCounters.densitySamples, 1u);
           }
-          let edgeDens = densityAt(pos + SUN_DIR * probeOffset);
+          let edgeDens = densityAt(pos + SUN_DIR * probeOffset, false);
           let edgeThin = exp(-edgeDens * 3.0);
           litColor *= 1.0 + silverGate * pow(clamp01(sunTheta), 4.0) * edgeThin * tGate;
         }
@@ -1468,7 +1629,7 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
           litColor += vec3f(1.0, 0.85, 0.55) * pulse * lightningAmt * densW * 2.5;
         }
 
-        let w = transmittance * (1.0 - step_trans);
+        let w = contribution;
         // Energy path: Frostbite analytic step — (1-e^{-σΔt})·(σ_s Li)/σ ≈ w·(albedo·Li)
         // when σ_s≈σ (sunPart already omits legacy (1-e^{-d})). Legacy keeps (1-e^{-d}) inside sunPart.
         color += w * litColor;
@@ -1657,10 +1818,13 @@ fn renderCloudFrame(fragCoord : vec4f, uv : vec2f) -> CloudFrameSample {
     let normalizedStep = clamp(averageStep / max(params.march.controls.w, 1.0), 0.0, 1.0);
     return debugCloudFrame(vec3f(normalizedStep, 1.0 - normalizedStep, 0.15));
   }
+  let emptyDebugScalar = select(0.5, 0.0, debugView == 18);
+  let w12DebugScalar = select(emptyDebugScalar, debugScalarSum / max(debugWeight, 1e-5), debugWeight > 0.0);
+  let backgroundAlpha = select(1.0, w12DebugScalar, debugView == 18 || debugView == 19);
   return CloudFrameSample(
     vec4f(color, clamp(transmittance, 0.0, 1.0)),
     vec4f(outputDepth, velocity, select(0.0, 1.0, reprojectionValid)),
-    vec4f(background, 1.0),
+    vec4f(background, backgroundAlpha),
     select(0.0, 1.0, valid),
   );
 }

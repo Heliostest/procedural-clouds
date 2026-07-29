@@ -1,0 +1,10 @@
+# Task 8 independent re-review: APPROVED
+#
+# 原 P1 已关闭：每个 case attempt 先写独立 attempts 目录和局部数组，精确获得
+# 8 个唯一 stem 后才替换全局同 case；失败记录 `exposedToResults:false`，不污染
+# index。resume 继续校验 HEAD/runtime flag/matrix fingerprint，并使用 fresh context。
+#
+# collector 对每个 matrix/temporal/detail×skipLight 槽要求 exact-one，任何缺失或
+# 重复均拒绝成本/迭代计算并置 integrity FAIL；Gate 传播 integrity，同时保持 REVIEW。
+# 已验证 20 pairs integrity PASS，`runtimeSourceMatchesHead=false`、formal Continue
+# false、owner PENDING。`npm run evidence:w12-runtime`、`npm run gate:w12` exit 0。

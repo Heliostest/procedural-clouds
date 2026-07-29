@@ -54,7 +54,7 @@ const CLOUD_CACHE_SAMPLE_START = 'fn sampleDensityTyped(';
 const CLOUD_LEGACY_EVALUATOR_START = 'struct DensityType {';
 const CLOUD_SPATIAL_START = 'fn boxMin()';
 const CLOUD_HIT_START = 'struct HitInfo {';
-const CLOUD_DETAIL_START = 'fn detailNoise(';
+const CLOUD_DETAIL_START = 'fn applyBoundedDetailStage(';
 const CLOUD_EDGE_START = 'fn applyEdgeShaping(';
 const CLOUD_DEBUG_START = 'fn dbgSphere(';
 const CLOUD_QUALITY_ADAPTER_START = 'fn densityAtTyped(';
@@ -97,13 +97,17 @@ const fragments = new Map<string, string>([
 ]);
 
 const cachedQualityAdapter = /* wgsl */ `
-fn densityAtTyped(pos : vec3f) -> vec4f {
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
   let s = sampleDensityTyped(pos);
   return vec4f(applyEdgeShaping(max(s.x, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  return 0.0;
 }
 
 fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
@@ -112,17 +116,24 @@ fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
 `;
 
 const hybridQualityAdapter = /* wgsl */ `
-fn densityAtTyped(pos : vec3f) -> vec4f {
-  let s = sampleDensityTyped(pos);
-  var base = s.x;
-  if (base > 0.01 && params.g.detailStrength > 0.0001) {
-    base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
-  }
-  return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
+  return applyBoundedDetailStage(sampleDensityTyped(pos), pos, wantFinal);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  let evaluation = evaluateDetail(
+    pos,
+    detailControlsForMetadata(typed.y, typed.z, typed.w),
+    typed.y,
+    typed.z,
+    typed.w,
+  );
+  if (evaluation.effectiveErosionAmount <= 0.0) { return 0.0; }
+  return sampleDetailField(pos, evaluation);
 }
 
 fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
@@ -131,13 +142,17 @@ fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
 `;
 
 const realtimeQualityAdapter = /* wgsl */ `
-fn densityAtTyped(pos : vec3f) -> vec4f {
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
   let dt = cloudDensityTyped(pos);
   return vec4f(applyEdgeShaping(dt.d, dt.idx, dt.idx2, dt.w2, pos), dt.idx, dt.idx2, dt.w2);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  return 0.0;
 }
 
 fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
@@ -316,13 +331,17 @@ fn raymarchHierarchicalCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) ->
 `;
 
 const hierarchicalCachedQualityAdapter = /* wgsl */ `
-fn densityAtTyped(pos : vec3f) -> vec4f {
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
   let s = sampleHierarchicalDensityTyped(pos);
   return vec4f(applyEdgeShaping(max(s.x, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  return 0.0;
 }
 
 fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
@@ -331,17 +350,24 @@ fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {
 `;
 
 const hierarchicalHybridQualityAdapter = /* wgsl */ `
-fn densityAtTyped(pos : vec3f) -> vec4f {
-  let s = sampleHierarchicalDensityTyped(pos);
-  var base = s.x;
-  if (base > 0.01 && params.g.detailStrength > 0.0001) {
-    base = base * (1.0 + params.g.detailStrength * detailNoise(pos));
-  }
-  return vec4f(applyEdgeShaping(max(base, 0.0), s.y, s.z, s.w, pos), s.y, s.z, s.w);
+fn densityAtTyped(pos : vec3f, wantFinal : bool) -> vec4f {
+  return applyBoundedDetailStage(sampleHierarchicalDensityTyped(pos), pos, wantFinal);
 }
 
-fn densityAt(pos : vec3f) -> f32 {
-  return densityAtTyped(pos).x;
+fn densityAt(pos : vec3f, wantFinal : bool) -> f32 {
+  return densityAtTyped(pos, wantFinal).x;
+}
+
+fn w12DebugErosionAt(pos : vec3f, typed : vec4f) -> f32 {
+  let evaluation = evaluateDetail(
+    pos,
+    detailControlsForMetadata(typed.y, typed.z, typed.w),
+    typed.y,
+    typed.z,
+    typed.w,
+  );
+  if (evaluation.effectiveErosionAmount <= 0.0) { return 0.0; }
+  return sampleDetailField(pos, evaluation);
 }
 
 fn raymarchCandidateNextT(ro : vec3f, rd : vec3f, currentT : f32) -> f32 {

@@ -167,14 +167,19 @@ export function createDensityQualityBindings(
       ...weatherEntries,
     ],
   }) : null;
+  const groundShadowSceneEntries = bundle.kind === 'cached'
+    ? sharedSceneEntries
+    : bundle.kind === 'hybrid'
+      ? [
+          { binding: 0, resource: { buffer: resources.cameraBuffer } },
+          ...sharedSceneEntries,
+          ...weatherEntries,
+        ]
+      : [...sharedSceneEntries, ...weatherEntries];
   const groundShadowScene = device.createBindGroup({
     label: `density-quality-${bundle.kind}-ground-shadow-scene`,
     layout: bundle.groundShadowPipeline.getBindGroupLayout(0),
-    // Cached shadow integration samples the density cache only. Hybrid detail and
-    // the Realtime evaluator still need weather resources in their shadow entry.
-    entries: bundle.kind === 'cached'
-      ? sharedSceneEntries
-      : [...sharedSceneEntries, ...weatherEntries],
+    entries: groundShadowSceneEntries,
   });
 
   let cloudDensity: GPUBindGroup | null = null;
@@ -220,6 +225,13 @@ export function createDensityQualityBindings(
     layout: bundle.groundShadowPipeline.getBindGroupLayout(2),
     entries: [{ binding: 1, resource: resources.groundShadowStoreView }],
   });
+  const detailEntries: GPUBindGroupEntry[] = [
+    { binding: 4, resource: resources.detail.sampler },
+    { binding: 5, resource: resources.detail.baseView },
+    { binding: 6, resource: resources.detail.detailView },
+    { binding: 7, resource: { buffer: resources.detail.controlsBuffer } },
+  ];
+  const cloudDetailEntries = bundle.kind === 'hybrid' ? detailEntries : [];
   const cloudGroundShadow = device.createBindGroup({
     label: `density-quality-${bundle.kind}-cloud-ground-shadow`,
     layout: bundle.cloudPipeline.getBindGroupLayout(3),
@@ -228,6 +240,7 @@ export function createDensityQualityBindings(
       { binding: 1, resource: resources.groundShadowView },
       { binding: 2, resource: resources.stbnView },
       { binding: 3, resource: { buffer: resources.raymarchCountersBuffer } },
+      ...cloudDetailEntries,
     ],
   });
   const cloudFrameGroundShadow = bundle.cloudFramePipeline ? device.createBindGroup({
@@ -238,7 +251,13 @@ export function createDensityQualityBindings(
       { binding: 1, resource: resources.groundShadowView },
       { binding: 2, resource: resources.stbnView },
       { binding: 3, resource: { buffer: resources.raymarchCountersBuffer } },
+      ...cloudDetailEntries,
     ],
+  }) : null;
+  const groundShadowDetail = bundle.kind === 'hybrid' ? device.createBindGroup({
+    label: `density-quality-${bundle.kind}-ground-shadow-detail`,
+    layout: bundle.groundShadowPipeline.getBindGroupLayout(3),
+    entries: detailEntries,
   }) : null;
 
   return {
@@ -251,6 +270,7 @@ export function createDensityQualityBindings(
     groundShadowStore,
     cloudGroundShadow,
     cloudFrameGroundShadow,
+    groundShadowDetail,
   };
 }
 

@@ -1,0 +1,58 @@
+# W12 final independent two-phase review package
+# Scope: W12 implementation and validation surfaces only. The pre-existing staged
+# handoff/design are intentionally excluded and referenced through
+# docs/superpowers/specs/2026-07-28-w12-handoff.md and
+# docs/superpowers/specs/2026-07-28-w12-bounded-render-time-detail-design.md.
+#
+# Reviewed implementation diff set:
+# package.json
+# scripts/check-density-pipeline-isolation.mjs
+# scripts/check-w10b-raymarch-contracts.mjs
+# scripts/check-w12-detail-contract.mjs
+# scripts/check-w12-density-monotonic.mjs
+# scripts/check-w12-sample-budget.mjs
+# scripts/check-w12-light-rough.mjs
+# shaders/cloud.wgsl
+# src/gui.ts
+# src/i18n.ts
+# src/params.ts
+# src/density/densityProducerSelector.ts
+# src/renderer.ts
+# src/rendering/densityDetailResources.ts
+# src/rendering/densityQualityContracts.ts
+# src/rendering/densityQualityPipelines.ts
+# src/rendering/densityShaderSources.ts
+# openspec/changes/add-bounded-render-time-cloud-detail/
+# docs/evidence/w12-bounded-render-time-detail/
+#
+# Reproducible complete implementation diff command (the baseline excludes the
+# original staged handoff/design by construction):
+# git diff --binary --no-ext-diff -- package.json scripts shaders src openspec/changes/add-bounded-render-time-cloud-detail docs/evidence/w12-bounded-render-time-detail
+# git diff --no-index -- /dev/null scripts/check-w12-detail-contract.mjs
+# git diff --no-index -- /dev/null scripts/check-w12-density-monotonic.mjs
+# git diff --no-index -- /dev/null scripts/check-w12-sample-budget.mjs
+# git diff --no-index -- /dev/null scripts/check-w12-light-rough.mjs
+# git diff --no-index -- /dev/null src/rendering/densityDetailResources.ts
+#
+# RESULT: APPROVED_WITH_OWNER_BLOCKERS
+# Prior P1 is closed. DensityProducerSelector owns the only active-producer
+# diagnostics read used for W12 detail resources and invokes the narrowing
+# adapter injected by renderer. Its DensityDetailResources dependency is
+# import-type-only; renderer consumes getActiveDetailResources() and contains no
+# producer diagnostics getter, so no runtime density/rendering import cycle or
+# consumer-contract leakage remains. The strengthened check locks this boundary.
+#
+# Gate preservation is stable: running gate:w12 leaves the Task 9 block SHA-256
+# c45203f39fa3f9b4607479d2578f6f62aeba336588d0dc571d4f3aa116b31a2e
+# unchanged, with exactly one ordered marker pair and no retained automatic
+# report content. Its three-file unified=0 ledger matches all 58 current headers
+# exactly (cloud 17, renderer 30, densityShaderSources 11).
+#
+# Phase B: O1-O5 and design §§1-16/roadmap §17 map to the reviewed code; only
+# tasks 2.1-3.4, 4.1 and 5.1 are checked. No W13/W15/W16 expansion found.
+# Required validation: strict OpenSpec, four W12 checks, pipeline isolation,
+# two W10B checks, typecheck, evidence:w12-runtime and gate:w12 all exit 0.
+# Owner blockers remain: runtimeSourceMatchesHead=false; Gate REVIEW, formal
+# Continue NO, owner PENDING; fresh ground-shadow timing, atlas-unavailable,
+# Legacy fallback, edge-only, wind-motion and eight zero-tolerance visual
+# verdicts remain unavailable/pending and must not be fabricated.
